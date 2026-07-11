@@ -1,0 +1,106 @@
+artifact: design-contract
+component: waypoint-app-shell
+based-on: 02b-design.md
+summary: "OKLCH warm-ember design system replacing the teal prototype palette: token table, app shell topology (sidebar + content pane + mobile drawer), journeys dashboard, and core component set with all interactive states. Two typographic voices: Manrope (UI sans) + Fraunces (display/lesson serif). Dual light/dark themes, AA-validated in code."
+run_at: "2026-07-11T13:37:14Z"
+tokens:
+  - ember
+  - ember-light
+  - ember-dark
+  - ember-subtle
+  - paper
+  - paper-mid
+  - surface
+  - surface-raised
+  - ink
+  - ink-muted
+  - ink-faint
+  - border
+  - border-strong
+  - success
+  - info
+  - radius-sm
+  - radius-md
+  - radius-lg
+  - radius-xl
+  - radius-pill
+  - motion-fast
+  - motion-default
+  - motion-slow
+states:
+  - default
+  - hover
+  - focus-visible
+  - active
+  - disabled
+  - loading
+  - empty
+  - error
+sizes:
+  - mobile
+  - tablet
+  - desktop
+themes:
+  - light
+  - dark
+contract:
+  - element: "Button (primary)"
+    tokens: [ember, ink, radius-md, motion-fast]
+    states: [default, hover, focus-visible, active, disabled, loading]
+    requirement: "ember fill, white text (AA validated); min-h-11 (44px); loading shows spinner; no translate under reduced-motion"
+  - element: "Button (secondary)"
+    tokens: [surface, ink, border, radius-md, motion-fast]
+    states: [default, hover, focus-visible, active, disabled]
+    requirement: "paper/surface fill, ink text, border; same size as primary"
+  - element: "Button (ghost)"
+    tokens: [ink-muted, radius-md, motion-fast]
+    states: [default, hover, focus-visible, active, disabled]
+    requirement: "transparent fill; ink-muted text that darkens to ink on hover"
+  - element: "Input"
+    tokens: [surface, ink, border, border-strong, radius-md, ember, motion-default]
+    states: [default, hover, focus, error, disabled]
+    requirement: "focus ring uses ember at 40% opacity; error state border uses --error tint; disabled uses ink-faint text"
+  - element: "Card"
+    tokens: [surface, border, radius-lg, shadow-card]
+    states: [default, hover]
+    requirement: "surface background, border, radius-lg (16px), subtle shadow; hover lifts 1px"
+  - element: "Chip (interactive)"
+    tokens: [paper-mid, ink-muted, border, radius-pill, motion-fast]
+    states: [default, hover, focus-visible, active]
+    requirement: "pill shape; selected state uses ember-subtle fill + ember border; min touch target 44px"
+  - element: "Meter"
+    tokens: [ember, paper-mid, radius-pill]
+    states: [default]
+    requirement: "ember fill on paper-mid track; role=progressbar; width transition suppressed under reduced-motion"
+  - element: "Skeleton"
+    tokens: [paper-mid, motion-default]
+    states: [loading]
+    requirement: "shimmer animation on paper-mid; static (no shimmer) under reduced-motion"
+  - element: "AppShell"
+    tokens: [paper, paper-mid]
+    states: [default]
+    requirement: "sidebar 240px fixed left ≥768px; single column <768px; sidebar sticky, content scrolls"
+  - element: "Sidebar waypoint item"
+    tokens: [ink, ink-muted, ember, paper-mid, radius-md]
+    states: [default, hover, focus-visible, active, completed]
+    requirement: "active page gets ember left-border indicator; completed shows checkmark icon; all items min-h-11"
+  - element: "DrawerNav"
+    tokens: [surface-raised, border, radius-lg, shadow-overlay, motion-slow]
+    states: [default, open]
+    requirement: "slides from left; focus-trapped when open; Escape closes; transition suppressed under reduced-motion"
+  - element: "JourneyCard"
+    tokens: [surface, border, radius-lg, ink, ink-muted, ember]
+    states: [default, hover, focus-within]
+    requirement: "Fraunces title; ember meter; hover lifts; focus-within shows focus ring on card boundary"
+  - element: "Empty state (journeys dashboard)"
+    tokens: [ink-muted, ink-faint, ember, paper-mid, radius-lg]
+    states: [empty]
+    requirement: "warm SVG illustration + teaching copy + create-journey CTA; no red, no zeroed charts"
+anti-patterns:
+  - "Teal/lagoon remnants: --sea-ink, --lagoon, --palm prototype tokens must not appear in final output"
+  - "Red for incomplete states: use ink-faint or paper-mid instead"
+  - "outline:none without focus-visible replacement"
+  - "Fixed heights that clip user-provided content"
+  - "Single-theme components: every component must have explicit dark theme values"
+  - "Gradient opacity hacks for contrast: change the token value instead"
+  - "Gamification chrome: no XP counters, no confetti, no guilt-tripping streak notifications"

@@ -1,0 +1,476 @@
+<section class="fragment-design-contract" data-artifact="design-contract" data-component="waypoint-app-shell">
+
+<style>
+.fragment-design-contract {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+  color: var(--dc-ink, #1e1a18);
+}
+.fragment-design-contract .dc-grid-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dc-muted, #6b6560);
+  margin: 0 0 0.75rem;
+}
+.fragment-design-contract .dc-coverage-grid {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+.fragment-design-contract .dc-grid-table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  min-width: 560px;
+}
+.fragment-design-contract .dc-grid-table th,
+.fragment-design-contract .dc-grid-table td {
+  border: 1px solid var(--dc-border, #e5e0da);
+  padding: 0.35rem 0.55rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.fragment-design-contract .dc-grid-table th {
+  background: var(--dc-head-bg, #faf7f4);
+  font-weight: 600;
+  color: var(--dc-ink, #1e1a18);
+}
+.fragment-design-contract .dc-grid-table .dc-row-head {
+  text-align: left;
+  font-weight: 500;
+  background: var(--dc-head-bg, #faf7f4);
+}
+.fragment-design-contract .dc-cell-committed {
+  background: var(--dc-ember-subtle, #fff3ec);
+  color: var(--dc-ember, #b85e1a);
+  font-weight: 700;
+}
+.fragment-design-contract .dc-cell-na {
+  background: transparent;
+  color: var(--dc-faint, #bbb);
+}
+/* Contract rows */
+.fragment-design-contract .dc-contract-section {
+  margin-bottom: 1.5rem;
+}
+.fragment-design-contract .dc-contract-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.fragment-design-contract .dc-contract-table th {
+  text-align: left;
+  border-bottom: 2px solid var(--dc-border, #e5e0da);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dc-muted, #6b6560);
+}
+.fragment-design-contract details.dc-contract-row summary {
+  cursor: pointer;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr;
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--dc-border, #e5e0da);
+  border-radius: 0;
+  transition: background 120ms ease;
+}
+.fragment-design-contract details.dc-contract-row summary:hover {
+  background: var(--dc-hover, #faf7f4);
+}
+.fragment-design-contract details.dc-contract-row summary::-webkit-details-marker { display: none; }
+.fragment-design-contract details.dc-contract-row summary::before {
+  content: "▶";
+  font-size: 0.6rem;
+  margin-right: 0.35rem;
+  display: inline-block;
+  transition: transform 150ms ease;
+  color: var(--dc-muted, #6b6560);
+}
+.fragment-design-contract details.dc-contract-row[open] summary::before {
+  transform: rotate(90deg);
+}
+.fragment-design-contract .dc-contract-row .dc-req-body {
+  padding: 0.6rem 1.4rem 0.8rem;
+  background: var(--dc-body-bg, #fdfbf9);
+  border-bottom: 1px solid var(--dc-border, #e5e0da);
+  font-size: 0.8rem;
+  color: var(--dc-muted, #6b6560);
+  line-height: 1.6;
+}
+.fragment-design-contract .dc-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+.fragment-design-contract .dc-pill {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border: 1px solid;
+}
+.fragment-design-contract .dc-pill-token {
+  background: var(--dc-ember-subtle, #fff3ec);
+  border-color: var(--dc-ember-border, #f5b88a);
+  color: var(--dc-ember, #b85e1a);
+}
+.fragment-design-contract .dc-pill-state {
+  background: var(--dc-blue-subtle, #eef4ff);
+  border-color: var(--dc-blue-border, #99bfff);
+  color: var(--dc-blue, #1a4db8);
+}
+/* Anti-pattern callouts */
+.fragment-design-contract .dc-callout-warn {
+  border-left: 3px solid var(--dc-warn, #d97706);
+  background: var(--dc-warn-subtle, #fffbeb);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--dc-ink, #1e1a18);
+}
+.fragment-design-contract .dc-callout-warn strong {
+  color: var(--dc-warn-strong, #92400e);
+}
+.fragment-design-contract h3.dc-sub {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dc-muted, #6b6560);
+  margin: 1.5rem 0 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--dc-border, #e5e0da);
+}
+@media (prefers-color-scheme: dark) {
+  .fragment-design-contract {
+    --dc-ink: #e8e2da;
+    --dc-muted: #9b9089;
+    --dc-faint: #555;
+    --dc-border: #2e2a27;
+    --dc-head-bg: #1e1a17;
+    --dc-hover: #1e1a17;
+    --dc-body-bg: #1a1714;
+    --dc-ember-subtle: #2d1f14;
+    --dc-ember-border: #6b3810;
+    --dc-ember: #e8903a;
+    --dc-blue-subtle: #0f1a2e;
+    --dc-blue-border: #1e3d7a;
+    --dc-blue: #7ab0ff;
+    --dc-warn: #f59e0b;
+    --dc-warn-subtle: #1c1300;
+    --dc-warn-strong: #fcd34d;
+  }
+}
+:root[data-theme="dark"] .fragment-design-contract {
+  --dc-ink: #e8e2da;
+  --dc-muted: #9b9089;
+  --dc-faint: #555;
+  --dc-border: #2e2a27;
+  --dc-head-bg: #1e1a17;
+  --dc-hover: #1e1a17;
+  --dc-body-bg: #1a1714;
+  --dc-ember-subtle: #2d1f14;
+  --dc-ember-border: #6b3810;
+  --dc-ember: #e8903a;
+  --dc-blue-subtle: #0f1a2e;
+  --dc-blue-border: #1e3d7a;
+  --dc-blue: #7ab0ff;
+  --dc-warn: #f59e0b;
+  --dc-warn-subtle: #1c1300;
+  --dc-warn-strong: #fcd34d;
+}
+</style>
+
+<!-- Coverage grid: selected tokens × states -->
+<h3 class="dc-grid-title">Token × State coverage</h3>
+<div class="dc-coverage-grid">
+  <table class="dc-grid-table" aria-label="Token to state coverage matrix">
+    <thead>
+      <tr>
+        <th class="dc-row-head">Token</th>
+        <th>default</th>
+        <th>hover</th>
+        <th>focus-visible</th>
+        <th>active</th>
+        <th>disabled</th>
+        <th>loading</th>
+        <th>empty</th>
+        <th>error</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="dc-row-head">ember</td>
+        <td class="dc-cell-committed" title="Button primary fill, meter fill">●</td>
+        <td class="dc-cell-committed" title="ember-light on hover">●</td>
+        <td class="dc-cell-committed" title="Focus ring uses ember at 40%">●</td>
+        <td class="dc-cell-committed" title="ember-dark on press">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+      </tr>
+      <tr>
+        <td class="dc-row-head">ember-subtle</td>
+        <td class="dc-cell-committed" title="Chip selected fill">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Empty state warm tint">●</td>
+        <td class="dc-cell-na">—</td>
+      </tr>
+      <tr>
+        <td class="dc-row-head">surface</td>
+        <td class="dc-cell-committed" title="Card bg, input bg">●</td>
+        <td class="dc-cell-committed" title="Card lift on hover">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Reduced opacity on surface">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Empty state card surface">●</td>
+        <td class="dc-cell-na">—</td>
+      </tr>
+      <tr>
+        <td class="dc-row-head">paper / paper-mid</td>
+        <td class="dc-cell-committed" title="Page base, sidebar, skeleton">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Skeleton shimmer on paper-mid">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+      </tr>
+      <tr>
+        <td class="dc-row-head">ink / ink-muted</td>
+        <td class="dc-cell-committed" title="All text">●</td>
+        <td class="dc-cell-committed" title="Ghost button darkens to ink">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="ink-faint for disabled text">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="ink-faint for empty copy">●</td>
+        <td class="dc-cell-committed" title="ink in error message text">●</td>
+      </tr>
+      <tr>
+        <td class="dc-row-head">border / border-strong</td>
+        <td class="dc-cell-committed" title="Card, input borders">●</td>
+        <td class="dc-cell-committed" title="Stronger border on hover">●</td>
+        <td class="dc-cell-committed" title="border-strong on focus">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Faded border on disabled">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Error border tint">●</td>
+      </tr>
+      <tr>
+        <td class="dc-row-head">motion-fast / default / slow</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-committed" title="Button hover translateY">●</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+        <td class="dc-cell-na">—</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Per-element contract rows -->
+<h3 class="dc-sub">Per-element implementation contract</h3>
+<div class="dc-contract-section">
+  <table class="dc-contract-table" role="presentation">
+    <thead>
+      <tr>
+        <th style="width:30%">Element</th>
+        <th style="width:28%">Tokens</th>
+        <th style="width:42%">Requirement</th>
+      </tr>
+    </thead>
+  </table>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Button (primary)</strong></span>
+      <span>ember, ink, radius-md, motion-fast</span>
+      <span style="color:var(--dc-muted)">default hover focus-visible active disabled loading</span>
+    </summary>
+    <div class="dc-req-body">
+      <div class="dc-pill-row">
+        <span class="dc-pill dc-pill-token">ember</span><span class="dc-pill dc-pill-token">radius-md</span><span class="dc-pill dc-pill-token">motion-fast</span>
+        <span class="dc-pill dc-pill-state">disabled</span><span class="dc-pill dc-pill-state">loading</span>
+      </div>
+      ember fill with white text (AA ≥4.5:1 validated); min-h-11 (44px); spinner in loading state; no translateY transform under <code>prefers-reduced-motion: reduce</code>
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Button (secondary / ghost)</strong></span>
+      <span>surface, ink, border, radius-md</span>
+      <span style="color:var(--dc-muted)">default hover focus-visible active disabled</span>
+    </summary>
+    <div class="dc-req-body">
+      <div class="dc-pill-row">
+        <span class="dc-pill dc-pill-token">surface</span><span class="dc-pill dc-pill-token">ink</span><span class="dc-pill dc-pill-token">border</span>
+      </div>
+      Secondary: surface fill, ink text, border. Ghost: transparent fill, ink-muted text that becomes ink on hover. Both share the same 44px minimum height as primary.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Input</strong></span>
+      <span>surface, border, border-strong, ember</span>
+      <span style="color:var(--dc-muted)">default hover focus error disabled</span>
+    </summary>
+    <div class="dc-req-body">
+      <div class="dc-pill-row">
+        <span class="dc-pill dc-pill-token">surface</span><span class="dc-pill dc-pill-token">border-strong</span><span class="dc-pill dc-pill-token">ember</span>
+        <span class="dc-pill dc-pill-state">error</span>
+      </div>
+      Focus ring: 3px offset ring in <code>oklch(ember / 0.4)</code>. Error state: border turns amber-red tint, icon + helper text appear. Disabled: ink-faint text, no hover effect.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Card</strong></span>
+      <span>surface, border, radius-lg</span>
+      <span style="color:var(--dc-muted)">default hover</span>
+    </summary>
+    <div class="dc-req-body">
+      surface background, border, radius-lg (16px), subtle shadow <code>0 1px 3px ink/8%, 0 4px 16px ink/5%</code>. Hover lifts 1px with slightly stronger shadow. No fixed height.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Chip (interactive)</strong></span>
+      <span>paper-mid, ink-muted, border, radius-pill</span>
+      <span style="color:var(--dc-muted)">default hover focus-visible active (selected)</span>
+    </summary>
+    <div class="dc-req-body">
+      <div class="dc-pill-row">
+        <span class="dc-pill dc-pill-token">paper-mid</span><span class="dc-pill dc-pill-token">ember-subtle</span><span class="dc-pill dc-pill-token">radius-pill</span>
+        <span class="dc-pill dc-pill-state">active</span>
+      </div>
+      Selected state: ember-subtle fill + ember border + ember text. 44px minimum touch height. Focus ring on keyboard navigation.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Meter (progress)</strong></span>
+      <span>ember, paper-mid, radius-pill</span>
+      <span style="color:var(--dc-muted)">default (0–100%)</span>
+    </summary>
+    <div class="dc-req-body">
+      ember fill on paper-mid track; pill radius; <code>role="progressbar"</code> with <code>aria-valuenow</code>; width transition suppressed under <code>prefers-reduced-motion: reduce</code>. Never uses red for incomplete.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Skeleton</strong></span>
+      <span>paper-mid, motion-default</span>
+      <span style="color:var(--dc-muted)">loading</span>
+    </summary>
+    <div class="dc-req-body">
+      shimmer animation (<code>linear-gradient</code> sweep) on paper-mid. Under <code>prefers-reduced-motion: reduce</code>: static paper-mid, no shimmer. Aria-hidden="true" — screen readers see the real content when it loads.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>AppShell / Sidebar</strong></span>
+      <span>paper, paper-mid</span>
+      <span style="color:var(--dc-muted)">default (≥768px), collapsed (&lt;768px)</span>
+    </summary>
+    <div class="dc-req-body">
+      ≥768px: sidebar 240px fixed left, sticky h-screen, overflow-y-auto. Content pane: flex-1, min-w-0. &lt;768px: sidebar hidden, top bar with hamburger + slim ember progress bar, DrawerNav on open.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>DrawerNav</strong></span>
+      <span>surface-raised, radius-lg, shadow-overlay, motion-slow</span>
+      <span style="color:var(--dc-muted)">closed, open</span>
+    </summary>
+    <div class="dc-req-body">
+      Slides from left (<code>translateX(-100%)</code> → <code>translateX(0)</code>), motion-slow (340ms). Focus-trapped when open. Escape closes. Backdrop dismisses. Transition suppressed under reduced-motion.
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>JourneyCard</strong></span>
+      <span>surface, border, radius-lg, ink, ember</span>
+      <span style="color:var(--dc-muted)">default hover focus-within</span>
+    </summary>
+    <div class="dc-req-body">
+      Fraunces journey title at text-xl font-bold. Ember meter. Hover lifts (same as Card). Focus-within shows ring on card boundary. Last-activity timestamp in ink-muted. Continue CTA button (secondary variant).
+    </div>
+  </details>
+
+  <details class="dc-contract-row">
+    <summary>
+      <span><strong>Empty state (zero journeys)</strong></span>
+      <span>ink-muted, ink-faint, ember, paper-mid, radius-lg</span>
+      <span style="color:var(--dc-muted)">empty</span>
+    </summary>
+    <div class="dc-req-body">
+      Warm inline SVG illustration (no external image). Teaching copy explaining what journeys are. Ember primary CTA "Start a journey". No zeroed-out charts, no red. Paper-mid tint background. Max-w-sm centered.
+    </div>
+  </details>
+</div>
+
+<!-- Anti-pattern callouts -->
+<h3 class="dc-sub">Anti-patterns to avoid</h3>
+<div class="dc-callout-warn">
+  <strong>Teal/lagoon remnants</strong> — <code>--sea-ink</code>, <code>--lagoon</code>, <code>--palm</code> prototype tokens must not appear in the final design-system-shell output. Any component referencing them is a regression against the warm-ember direction.
+</div>
+<div class="dc-callout-warn">
+  <strong>Red for incomplete states</strong> — empty progress bars, zero-mastery concepts, and incomplete waypoints use <code>--ink-faint</code> or <code>--paper-mid</code>, never red.
+</div>
+<div class="dc-callout-warn">
+  <strong><code>outline: none</code> without focus-visible replacement</strong> — every interactive element must show a visible focus ring on keyboard navigation. Use <code>focus-visible:ring</code> Tailwind utilities, not bare outline removal.
+</div>
+<div class="dc-callout-warn">
+  <strong>Fixed heights that clip content</strong> — journey titles and sidebar labels may contain user-provided text. Use line-clamp with graceful truncation, not fixed height + overflow hidden.
+</div>
+<div class="dc-callout-warn">
+  <strong>Single-theme components</strong> — every token, component, and state must have an explicit dark-theme value. Dark is not an afterthought inversion.
+</div>
+<div class="dc-callout-warn">
+  <strong>Gamification chrome</strong> — no XP counters, no confetti animations, no guilt-tripping streak notifications. Warmth comes from progress fills and mastery meters, not from psychological pressure mechanics.
+</div>
+
+<script>
+(function() {
+  var section = document.currentScript.closest('.fragment-design-contract');
+  if (!section) return;
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: {
+      name: 'design-contract',
+      artifact: 'design-contract',
+      counts: { tokens: 23, states: 8, sizes: 3, themes: 2 }
+    }
+  }));
+})();
+</script>
+
+</section>

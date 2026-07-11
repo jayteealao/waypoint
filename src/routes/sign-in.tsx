@@ -2,15 +2,10 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { signIn } from '#/lib/auth-client'
 
 export const Route = createFileRoute('/sign-in')({
-  // Redirect authenticated users away from sign-in to the home page.
-  // beforeLoad runs on navigation so no flash of sign-in for already-signed-in users.
   beforeLoad: async ({ context }) => {
-    // context.auth is injected by the root loader in later slices (design-system-shell).
-    // Here, fall back to checking sessionStorage for a quick client-side hint.
-    // The real session is validated server-side on every data request via requireAuth().
-    // For this slice, we skip the server-side check to avoid extra complexity;
-    // the design-system-shell root loader will handle the canonical redirect.
-    // sdlc-debt: add server-side session check in root loader (design-system-shell) for no-flash.
+    // Redirect already-authenticated users away from sign-in.
+    // The root loader in the _authenticated layout handles the canonical redirect
+    // for protected routes; this guard handles the reverse (no sign-in flash).
     const auth = (context as { auth?: { session: unknown } | null }).auth
     if (auth?.session) {
       throw redirect({ to: '/' })
@@ -21,14 +16,22 @@ export const Route = createFileRoute('/sign-in')({
 
 function SignInPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg,#f8faf9)] px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-[rgba(23,58,64,0.12)] bg-white px-8 py-10 shadow-[0_2px_16px_rgba(23,58,64,0.08)]">
+    <main
+      className="flex min-h-screen items-center justify-center bg-[var(--paper)] px-4"
+      style={{ color: 'var(--ink)' }}
+    >
+      <div
+        className="w-full max-w-sm rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface)] px-8 py-10"
+        style={{ boxShadow: 'var(--shadow-overlay)' }}
+      >
         {/* App identity */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--sea-ink,#173a40)]">
+          <h1
+            className="display-title text-2xl font-bold tracking-tight text-[var(--ink)]"
+          >
             Waypoint
           </h1>
-          <p className="mt-1.5 text-sm text-[var(--sea-ink-soft,#4a6b72)]">
+          <p className="mt-1.5 text-sm text-[var(--ink-muted)]">
             Your AI-powered learning companion
           </p>
         </div>
@@ -37,10 +40,8 @@ function SignInPage() {
         <div className="flex flex-col gap-3">
           <button
             type="button"
-            onClick={() =>
-              signIn.social({ provider: 'google', callbackURL: '/' })
-            }
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[rgba(23,58,64,0.18)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--sea-ink,#173a40)] transition hover:bg-[rgba(23,58,64,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon-deep,#328f97)] focus-visible:ring-offset-2 active:scale-[0.98]"
+            onClick={() => signIn.social({ provider: 'google', callbackURL: '/' })}
+            className="flex min-h-[2.75rem] w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--border-strong)] hover:bg-[var(--paper-mid)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.54_0.19_32/0.4)] focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             <GoogleIcon />
             Continue with Google
@@ -48,17 +49,15 @@ function SignInPage() {
 
           <button
             type="button"
-            onClick={() =>
-              signIn.social({ provider: 'github', callbackURL: '/' })
-            }
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[rgba(23,58,64,0.18)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--sea-ink,#173a40)] transition hover:bg-[rgba(23,58,64,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon-deep,#328f97)] focus-visible:ring-offset-2 active:scale-[0.98]"
+            onClick={() => signIn.social({ provider: 'github', callbackURL: '/' })}
+            className="flex min-h-[2.75rem] w-full items-center justify-center gap-2.5 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-2.5 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--border-strong)] hover:bg-[var(--paper-mid)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.54_0.19_32/0.4)] focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             <GitHubIcon />
             Continue with GitHub
           </button>
         </div>
 
-        <p className="mt-6 text-center text-xs text-[var(--sea-ink-faint,#7a9ba2)]">
+        <p className="mt-6 text-center text-xs text-[var(--ink-faint)]">
           By continuing you agree to our Terms of Service
         </p>
       </div>
@@ -67,8 +66,6 @@ function SignInPage() {
 }
 
 // Inline minimal SVG icons — no extra dependency.
-// These will be replaced with design-system icons in design-system-shell.
-
 function GoogleIcon() {
   return (
     <svg

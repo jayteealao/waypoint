@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T14:00:00Z"
-selected-slice: "accounts-data-layer"
+updated-at: "2026-07-11T14:08:04Z"
+selected-slice: "design-system-shell"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -32,6 +32,11 @@ runtime-evidence-deferrals:
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require this secret for HMAC-SHA-256 cookie signing. Ladder climbed: (rung 1) 2 always-run Playwright tests pass (sign-in UI, account redirect); (rung 2) BETTER_AUTH_SECRET env var checked — absent; (rung 3) seeded-session proxy requires the secret — residual: 3 proxy tests skip by design. Real OAuth flow is the original pre-registered plan residual. Plan pre-authorized constraint-resolution: proxy+deferral."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars, OR first deployed Google+GitHub sign-in on deployed environment"
     recorded-at: "2026-07-11T13:04:46Z"
+  - ac: "AC-DSS1 + AC-DSS3 + AC-DSS4 + AC-DSS5 — seeded-session design system Playwright tests (responsive layout, empty state, keyboard nav, reduced-motion drawer)"
+    slice: design-system-shell
+    reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require HMAC-SHA-256 cookie signing. AC-DSS5 reclassified from auth-free to auth-required (DrawerNav lives inside AppShell). Proxy evidence: AC-DSS2 contrast smoke test (13 WCAG AA assertions) passes; typecheck clean; pnpm test 29/30 passing. Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
+    cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
+    recorded-at: "2026-07-11T14:08:04Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -74,8 +79,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app design-system-shell"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -110,12 +115,19 @@ workflow-files:
   - 04-plan-accounts-data-layer.md
   - 04-plan-accounts-data-layer.yaml
   - 04-plan-accounts-data-layer.html.fragment
+  - 02c-craft.md
+  - 02c-craft.yaml
+  - 02c-craft.html.fragment
+  - 04-plan-design-system-shell.md
+  - 04-plan-design-system-shell.yaml
+  - 04-plan-design-system-shell.html.fragment
   - 04b-instrument.md
   - 04b-instrument.yaml
   - 05-implement.md
   - 05-implement-foundation.md
   - 05-implement-platform-proofs.md
   - 05-implement-accounts-data-layer.md
+  - 05-implement-design-system-shell.md
   - 06-verify-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md

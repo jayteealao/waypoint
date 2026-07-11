@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T12:52:05Z"
-slices-implemented: 3
+updated-at: "2026-07-11T14:08:04Z"
+slices-implemented: 4
 slices-total: 12
-metric-total-files-changed: 61
-metric-total-lines-added: 17376
-metric-total-lines-removed: 50
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth]
+metric-total-files-changed: 85
+metric-total-lines-added: 18726
+metric-total-lines-removed: 360
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app accounts-data-layer"
+next-invocation: "/wf verify waypoint-app design-system-shell"
 ---
 
 # Implement Index
@@ -83,11 +83,46 @@ next-invocation: "/wf verify waypoint-app accounts-data-layer"
   `requireOwnership(sessionUserId, resourceUserId)` throws 403 Response. Both are the exclusive
   entry points for session and ownership validation in server functions.
 
+- **Design-system-shell: OKLCH ember token set** — `src/styles.css` is the canonical token source.
+  Token names: `--paper`, `--paper-mid`, `--surface`, `--surface-raised`, `--ink`, `--ink-muted`,
+  `--ink-faint`, `--ember`, `--ember-dark`, `--ember-subtle`, `--border`, `--border-strong`,
+  `--shadow-card`, `--shadow-overlay`. Radius tokens: `--radius-sm/md/lg/xl/pill`. Motion tokens:
+  `--motion-fast/default/slow`. All subsequent slices must use these names; introducing new hardcoded
+  colour values is a lint failure. The WCAG AA test in `tests/smoke/contrast.test.ts` must stay green.
+
+- **Design-system-shell: `wp-*` CSS namespace** — Component classes follow the `wp-` prefix convention.
+  Slices adding new UI components must add classes to `src/styles.css` under `wp-<component-name>`
+  before writing JSX. Component classes live in `src/styles.css`; no separate CSS module files.
+
+- **Design-system-shell: pathless layout route** — `src/routes/_authenticated.tsx` is the single auth
+  gate. All pages requiring auth must be placed in `src/routes/_authenticated/`. Adding a route at
+  `src/routes/` root level creates a public (unauthenticated) page. New authenticated pages must NOT
+  add per-route `beforeLoad` auth guards; the layout route handles it.
+
+- **Design-system-shell: `AppShell` and `ShellContext`** — Authenticated pages are wrapped in
+  `AppShell`. The `ShellContext` (from `src/components/shell/AppShell.tsx`) provides
+  `{ drawerOpen, toggleDrawer, closeDrawer }` for any component that needs to control the mobile
+  drawer. Do not call `useState` for drawer state in child components; use `useShell()` instead.
+
+- **Design-system-shell: `useJourneys()` return-type** — `useLiveQuery` in `@tanstack/react-db@0.1.92`
+  returns `any`. The `JourneysDashboard` component normalises both `Journey[]` and `{journeys:Journey}[]`
+  return shapes. Slices building new collection consumers must include the same normalisation until the
+  library ships typed return values.
+
+- **Design-system-shell: Fraunces typeface** — `font-family: "Fraunces", Georgia, serif` is loaded via
+  the Google Fonts import in `src/styles.css`. Apply it with the `.display-title` utility class for
+  display-size headings (brand name, journey name, section titles). Body copy uses the system font stack.
+
+- **Design-system-shell: `prefers-reduced-motion` gates** — Every CSS transition and `@keyframes`
+  animation must be wrapped in `@media (prefers-reduced-motion: no-preference)` with an explicit
+  `transition: none` / `animation: none` override in the `reduce` branch. The contrast and motion
+  smoke tests verify both branches.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app accounts-data-layer` — Smoke tests pass; E2E tests
-  pass for UI-only assertions. Full seeded-session suite runs with `BETTER_AUTH_SECRET` set.
-- **Option B:** `/wf review waypoint-app accounts-data-layer` — Skip verify if smoke tests and
-  partial E2E evidence are sufficient.
-- **Option C:** `/wf implement waypoint-app design-system-shell` — Implement the next slice once
-  accounts-data-layer is verified/reviewed.
+- **Option A (default):** `/wf verify waypoint-app design-system-shell` — Contrast test passes; Playwright
+  tests skip gracefully without `BETTER_AUTH_SECRET`; typecheck clean. Ready for the verify gate.
+- **Option B:** `/wf review waypoint-app design-system-shell` — Skip verify if contrast smoke test
+  and typecheck are sufficient for the design review gate.
+- **Option C:** `/wf implement waypoint-app sample-journey` — Implement the next slice once
+  design-system-shell is verified/reviewed.

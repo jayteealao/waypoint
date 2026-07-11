@@ -1,0 +1,215 @@
+artifact: plan
+slice: design-system-shell
+modules:
+  - id: tokens
+    label: "Design tokens & CSS"
+    role: ui
+  - id: ui-components
+    label: "Core UI primitives"
+    role: ui
+  - id: shell
+    label: "App shell components"
+    role: ui
+  - id: dashboard
+    label: "Journeys dashboard"
+    role: ui
+  - id: routes
+    label: "Route files"
+    role: ui
+  - id: tests
+    label: "Test suites"
+    role: infra
+files:
+  - path: src/styles.css
+    status: modified
+    role: ui
+    module: tokens
+    delta: { add: 120, rem: 80 }
+    planned_change: "Replace teal/lagoon prototype palette with OKLCH warm-ember token set; add component CSS classes (.btn-primary, .btn-secondary, .btn-ghost, .wp-input, .wp-card, .wp-chip, .wp-meter, .wp-skeleton, .wp-shell, .wp-sidebar, .wp-drawer, .wp-dashboard); add @keyframes shimmer and wp-drawer-in; add prefers-reduced-motion block"
+  - path: src/components/ui/Button.tsx
+    status: new
+    role: ui
+    module: ui-components
+    delta: { add: 55, rem: 0 }
+    planned_change: "Primary/secondary/ghost/danger variants; sm/md/lg sizes; loading state with Loader2 spinner; disabled state; min-h-11 (44px) on all variants; forwards all button HTML props"
+  - path: src/components/ui/Input.tsx
+    status: new
+    role: ui
+    module: ui-components
+    delta: { add: 45, rem: 0 }
+    planned_change: "Label, error, helperText props; ember focus ring; error border + helper text; disabled state; wp-input CSS class"
+  - path: src/components/ui/Card.tsx
+    status: new
+    role: ui
+    module: ui-components
+    delta: { add: 20, rem: 0 }
+    planned_change: "default and raised variants; surface background, border, radius-lg, shadow-card; accepts className and children"
+  - path: src/components/ui/Chip.tsx
+    status: new
+    role: ui
+    module: ui-components
+    delta: { add: 25, rem: 0 }
+    planned_change: "label, selected, onClick props; pill shape; selected state uses ember-subtle fill + ember border; min touch target 44px; focus-visible ring"
+  - path: src/components/ui/Meter.tsx
+    status: new
+    role: ui
+    module: ui-components
+    delta: { add: 25, rem: 0 }
+    planned_change: "value 0-100, label props; role=progressbar with aria-valuenow/min/max; ember fill on paper-mid track; width transition suppressed under prefers-reduced-motion: reduce"
+  - path: src/components/ui/Skeleton.tsx
+    status: new
+    role: ui
+    module: ui-components
+    delta: { add: 20, rem: 0 }
+    planned_change: "className, width, height props; shimmer animation on paper-mid; aria-hidden=true; static (no shimmer) under prefers-reduced-motion: reduce"
+  - path: src/components/shell/AppShell.tsx
+    status: new
+    role: ui
+    module: shell
+    delta: { add: 60, rem: 0 }
+    planned_change: "ShellContext with drawerOpen + toggleDrawer + currentJourney; renders Sidebar + main content slot + DrawerNav; manages drawer state; accepts children and optional currentJourney prop"
+  - path: src/components/shell/Sidebar.tsx
+    status: new
+    role: ui
+    module: shell
+    delta: { add: 55, rem: 0 }
+    planned_change: "currentJourney, waypoints props; Fraunces journey title; empty waypoint list shell (content seam for later slices); Meter at bottom for journey progress; class=wp-sidebar hidden md:block"
+  - path: src/components/shell/DrawerNav.tsx
+    status: new
+    role: ui
+    module: shell
+    delta: { add: 70, rem: 0 }
+    planned_change: "Reads ShellContext; role=dialog aria-modal=true when open; focus trap (first interactive on open, return focus on close); Escape listener; backdrop click closes; wp-drawer CSS class with slide transition"
+  - path: src/components/dashboard/JourneysDashboard.tsx
+    status: new
+    role: ui
+    module: dashboard
+    delta: { add: 65, rem: 0 }
+    planned_change: "Calls useJourneys(); renders JourneyCard list or EmptyState; Skeleton placeholders while collection not ready; data-testid=journeys-dashboard; data-testid=empty-state on empty variant"
+  - path: src/components/dashboard/JourneyCard.tsx
+    status: new
+    role: ui
+    module: dashboard
+    delta: { add: 45, rem: 0 }
+    planned_change: "Journey prop; Fraunces title at text-xl; Meter with progress=0 (later slices populate); relative timestamp in ink-muted; Continue secondary Button; data-testid=journey-card"
+  - path: src/routes/_authenticated.tsx
+    status: new
+    role: ui
+    module: routes
+    delta: { add: 25, rem: 0 }
+    planned_change: "Pathless TanStack Router layout route; beforeLoad checks auth, redirects to /sign-in; component renders AppShell wrapping children; replaces per-route guards on index + account"
+  - path: src/routes/index.tsx
+    status: modified
+    role: ui
+    module: routes
+    delta: { add: 10, rem: 25 }
+    planned_change: "Remove marketing/landing content; render JourneysDashboard; use _authenticated layout for auth guard (no per-route beforeLoad needed); add head title"
+  - path: src/routes/sign-in.tsx
+    status: modified
+    role: ui
+    module: routes
+    delta: { add: 20, rem: 20 }
+    planned_change: "Restyle all hardcoded RGBA and hex values onto new --ember, --paper, --surface, --ink, --border tokens; replace inline input markup with new Input component; keep OAuth flow wiring unchanged"
+  - path: src/routes/account.tsx
+    status: modified
+    role: ui
+    module: routes
+    delta: { add: 15, rem: 20 }
+    planned_change: "Remove per-route beforeLoad guard (layout handles auth); update hardcoded colors to new tokens; replace sign-out button with Button component variant=danger; page renders inside AppShell via layout"
+  - path: src/routeTree.gen.ts
+    status: modified
+    role: infra
+    module: routes
+    delta: { add: 10, rem: 5 }
+    planned_change: "Auto-regenerated by pnpm generate-routes after adding _authenticated.tsx layout route; adds _authenticated and its children to the route tree"
+  - path: tests/smoke/contrast.test.ts
+    status: new
+    role: infra
+    module: tests
+    delta: { add: 60, rem: 0 }
+    planned_change: "Vitest WCAG 2.1 AA contrast validation; OKLCH→sRGB linearized luminance formula inline; asserts all text/background token pairs ≥4.5:1 (normal text) or ≥3:1 (large text) in both light and dark themes"
+  - path: tests/e2e/design-system.spec.ts
+    status: new
+    role: infra
+    module: tests
+    delta: { add: 100, rem: 0 }
+    planned_change: "Playwright: responsive layout sweep at 375/768/1280px (data-testid assertions + no-overflow check + screenshots); empty-state render (seeded zero-journey user); keyboard navigation tabIndex walk + focus ring assertion; reduced-motion transition check via page.emulateMedia()"
+edges:
+  - from: src/styles.css
+    to: src/components/ui/Button.tsx
+    kind: css-class
+    label: "btn-primary, btn-secondary, btn-ghost, btn-danger classes"
+  - from: src/styles.css
+    to: src/components/ui/Input.tsx
+    kind: css-class
+    label: "wp-input class"
+  - from: src/styles.css
+    to: src/components/ui/Card.tsx
+    kind: css-class
+    label: "wp-card class"
+  - from: src/styles.css
+    to: src/components/ui/Meter.tsx
+    kind: css-class
+    label: "wp-meter, wp-meter-fill classes"
+  - from: src/styles.css
+    to: src/components/ui/Skeleton.tsx
+    kind: css-class
+    label: "wp-skeleton, @keyframes shimmer"
+  - from: src/styles.css
+    to: src/components/shell/AppShell.tsx
+    kind: css-class
+    label: "wp-shell, wp-shell-content classes"
+  - from: src/styles.css
+    to: src/components/shell/Sidebar.tsx
+    kind: css-class
+    label: "wp-sidebar class"
+  - from: src/styles.css
+    to: src/components/shell/DrawerNav.tsx
+    kind: css-class
+    label: "wp-drawer, wp-drawer-backdrop, @keyframes wp-drawer-in"
+  - from: src/lib/store/journeys.ts
+    to: src/components/dashboard/JourneysDashboard.tsx
+    kind: import
+    label: "useJourneys() hook"
+  - from: src/db/schema.ts
+    to: src/components/dashboard/JourneyCard.tsx
+    kind: import
+    label: "Journey type"
+  - from: src/components/shell/AppShell.tsx
+    to: src/routes/_authenticated.tsx
+    kind: import
+    label: "AppShell component"
+  - from: src/components/dashboard/JourneysDashboard.tsx
+    to: src/routes/index.tsx
+    kind: import
+    label: "JourneysDashboard component"
+  - from: src/routes/_authenticated.tsx
+    to: src/routes/index.tsx
+    kind: contract
+    label: "layout route wraps index"
+  - from: src/routes/_authenticated.tsx
+    to: src/routes/account.tsx
+    kind: contract
+    label: "layout route wraps account, provides auth guard"
+risks:
+  - id: R1
+    title: "Token rename completeness — teal remnants break visuals"
+    level: med
+    body: "25+ .demo-* CSS classes reference old token names. A missed rename passes typecheck but renders visually wrong. Grep before/after step 1 is the only gate."
+    mitigation: "Run `grep -r '--sea-ink\\|--lagoon\\|--palm' src/ tests/` before and after the rename step; fail-fast if any hits survive."
+  - id: R2
+    title: "_authenticated layout route beforeLoad may not fire on direct / navigation in TanStack Router 1.170.x"
+    level: med
+    body: "Pathless layout route redirect behavior changed in some Router 1.x minor versions. If beforeLoad on the layout does not fire before the index route renders, the dashboard briefly flashes before redirecting to sign-in."
+    mitigation: "Verify in step 7 Playwright test: direct-navigate to / without a session and assert redirect to /sign-in within 200ms."
+  - id: R3
+    title: "OKLCH browser support — older mobile browsers"
+    level: low
+    body: "OKLCH is not supported in Chrome < 111, Firefox < 113, Safari < 16.4. A user on an older browser sees no color (black/white fallback)."
+    mitigation: "Acceptable for v1 modern-browser target. Add a CSS @supports fallback for --ember in styles.css pointing to a safe hex value (#c2611a)."
+  - id: R4
+    title: "Seeded-session Playwright tests behind BETTER_AUTH_SECRET wall"
+    level: low
+    body: "AC-DSS1, AC-DSS3, AC-DSS4 Playwright tests require a seeded user session (BETTER_AUTH_SECRET). Without the secret the tests skip/fail in CI."
+    mitigation: "Pre-registered deferral under the existing AC-ADL1+AC-ADL5 entry. Proxy: sign-in page token rendering, contrast.test.ts, reduced-motion test all pass without auth."
+history: "Initial plan — authored autonomously as part of design-system-shell planning stage."
