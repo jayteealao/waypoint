@@ -1,22 +1,23 @@
 # Dependencies
-node_modules/
+node_modules
 .pnp
 .pnp.js
 
 # Build output
-dist/
-.output/
-.vinxi/
-.wrangler/
+dist
+dist-ssr
+*.local
+.output
+.vinxi
+.nitro
+.tanstack
+.wrangler
 
 # Environment files
 .env
 .env.local
 .env.*.local
 !.env.example
-
-# Wrangler local overrides (keep wrangler.jsonc in repo; never commit secrets)
-wrangler.toml
 
 # Test output
 coverage/
@@ -28,10 +29,17 @@ test-results/
 Thumbs.db
 
 # Editor
-.vscode/settings.json
 .idea/
+.vscode/*.local.json
+
+# Local reference material (pedagogy source; read-only; not a runtime dep)
+.scratch/
 
 # Logs
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Wrangler generated
+__unconfig*
+todos.json

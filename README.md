@@ -1,22 +1,24 @@
 # Waypoint
 
-Waypoint is an AI-powered adaptive learning application that interviews you about your goal, builds a personalized course roadmap, teaches through progressively streamed lessons with interactive checkpoints, and tracks your progress with spaced-repetition-based mastery tracking — all in a web app built on TanStack Start and Cloudflare Workers.
+Waypoint is an AI-powered adaptive learning application. Give it a goal — anything from "understand TCP/IP" to "learn to cook Thai food" — and it interviews you about what you already know, builds a personalized course roadmap, teaches through progressively streamed lessons with interactive checkpoints, quizzes you with spaced-repetition-based pacing, and tracks your mastery concept by concept.
+
+Built on TanStack Start + Cloudflare Workers. OAuth-only sign-in. AI generation via OpenRouter.
 
 ## Prerequisites
 
-- **Node.js** 22+ (exact: 22.15.0 tested)
-- **pnpm** 10+ (exact: 10.26.2 tested)
-- A Cloudflare account (Workers + D1)
+- **Node.js** 22+ (tested: 22.15.0)
+- **pnpm** 10+ (tested: 10.26.2)
+- A Cloudflare account with Workers + D1 access
 - Google and GitHub OAuth apps (for sign-in)
 - An OpenRouter API key (for AI generation)
 
 ## Quick Start
 
 ```bash
-# Install dependencies (exact versions from lockfile)
+# Install exact-pinned dependencies
 pnpm install
 
-# Start the development server
+# Start the dev server
 pnpm dev
 # → http://localhost:3000
 ```
@@ -24,7 +26,7 @@ pnpm dev
 ## Running Tests
 
 ```bash
-# Vitest unit / component tests
+# Unit / component tests (Vitest)
 pnpm test
 
 # Watch mode
@@ -33,7 +35,7 @@ pnpm test:watch
 # Coverage report
 pnpm test:coverage
 
-# Playwright end-to-end tests (requires dev server)
+# End-to-end tests (Playwright, requires dev server)
 pnpm test:e2e
 
 # Supply-chain audit
@@ -48,11 +50,30 @@ Copy `.env.example` to `.env.local` and fill in the three external prerequisites
 cp .env.example .env.local
 ```
 
-Then populate the values — see `.env.example` for descriptions of each variable.
+Populate each value — see `.env.example` for descriptions and setup links.
+
+## Deployment
+
+```bash
+# Build for production
+pnpm build
+
+# Deploy to Cloudflare Workers
+pnpm deploy
+```
+
+Production secrets (not in `.env.local`) must be pushed via Wrangler:
+
+```bash
+wrangler secret put OPENROUTER_API_KEY
+wrangler secret put BETTER_AUTH_SECRET
+# etc.
+```
 
 ## Documentation
 
-See `docs/` for:
-- `docs/architecture.md` — stack overview, data flow, trust model
+- `docs/architecture.md` — stack decisions, data flow, widget-registry trust model
 - `docs/pedagogy.md` — how the tutoring rules map to Waypoint's mechanics
 - `docs/reference.md` — environment variables, widget catalog, quota config
+
+*(These files are created in later development slices.)*

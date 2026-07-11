@@ -1,0 +1,92 @@
+<div style="margin:1.5rem 0; font-family:'Nunito Sans','Segoe UI',system-ui,sans-serif;">
+  <p style="font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6B6257;margin:0 0 .6rem;">The shaped core loop &amp; the Cloudflare-only spine</p>
+  <div style="overflow-x:auto;">
+    <svg width="860" height="380" viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Waypoint core loop: sign-in, interview, roadmap, lesson, quiz, FSRS learner model, with adaptation looping back to the roadmap; beneath it the client, server-function, and D1 architecture layers.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B6257"/>
+        </marker>
+        <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#C7502F"/>
+        </marker>
+      </defs>
+
+      <!-- loop row -->
+      <g font-family="Nunito Sans, system-ui, sans-serif" font-size="13" font-weight="700">
+        <rect x="20" y="40" width="110" height="52" rx="12" fill="#FBF6EF" stroke="#C7502F" stroke-width="1.5"/>
+        <text x="75" y="62" text-anchor="middle" fill="#2E2A25">Sign in</text>
+        <text x="75" y="79" text-anchor="middle" fill="#6B6257" font-size="10" font-weight="400">OAuth only · sample journey</text>
+
+        <rect x="160" y="40" width="120" height="52" rx="12" fill="#FBF6EF" stroke="#C7502F" stroke-width="1.5"/>
+        <text x="220" y="62" text-anchor="middle" fill="#2E2A25">Interview</text>
+        <text x="220" y="79" text-anchor="middle" fill="#6B6257" font-size="10" font-weight="400">chat + chips · consent-gated</text>
+
+        <rect x="310" y="40" width="120" height="52" rx="12" fill="#C7502F"/>
+        <text x="370" y="62" text-anchor="middle" fill="#FFFFFF">Roadmap</text>
+        <text x="370" y="79" text-anchor="middle" fill="#F3D9CE" font-size="10" font-weight="400">waypoints · adaptive</text>
+
+        <rect x="460" y="40" width="120" height="52" rx="12" fill="#FBF6EF" stroke="#C7502F" stroke-width="1.5"/>
+        <text x="520" y="62" text-anchor="middle" fill="#2E2A25">Lesson</text>
+        <text x="520" y="79" text-anchor="middle" fill="#6B6257" font-size="10" font-weight="400">streamed · trusted widgets</text>
+
+        <rect x="610" y="40" width="110" height="52" rx="12" fill="#FBF6EF" stroke="#C7502F" stroke-width="1.5"/>
+        <text x="665" y="62" text-anchor="middle" fill="#2E2A25">Quiz</text>
+        <text x="665" y="79" text-anchor="middle" fill="#6B6257" font-size="10" font-weight="400">MC + AI-graded free text</text>
+
+        <rect x="750" y="40" width="95" height="52" rx="12" fill="#2F7D57"/>
+        <text x="797" y="62" text-anchor="middle" fill="#FFFFFF">FSRS</text>
+        <text x="797" y="79" text-anchor="middle" fill="#D7EAE0" font-size="10" font-weight="400">per-concept cards</text>
+      </g>
+
+      <!-- forward arrows -->
+      <g stroke="#6B6257" stroke-width="1.5" fill="none">
+        <line x1="130" y1="66" x2="156" y2="66" marker-end="url(#arr)"/>
+        <line x1="280" y1="66" x2="306" y2="66" marker-end="url(#arr)"/>
+        <line x1="430" y1="66" x2="456" y2="66" marker-end="url(#arr)"/>
+        <line x1="580" y1="66" x2="606" y2="66" marker-end="url(#arr)"/>
+        <line x1="720" y1="66" x2="746" y2="66" marker-end="url(#arr)"/>
+      </g>
+
+      <!-- feedback loops -->
+      <g fill="none" stroke="#C7502F" stroke-width="1.5">
+        <path d="M 797 92 C 797 150, 370 150, 370 96" marker-end="url(#arrw)"/>
+        <path d="M 665 92 C 665 128, 545 128, 524 96" stroke-dasharray="4 3" marker-end="url(#arrw)"/>
+      </g>
+      <text x="583" y="146" text-anchor="middle" font-family="Nunito Sans, system-ui, sans-serif" font-size="11" fill="#C7502F">soft gate → propose + confirm adaptation</text>
+      <text x="608" y="118" text-anchor="middle" font-family="Nunito Sans, system-ui, sans-serif" font-size="10" fill="#C7502F">due concepts resurface</text>
+
+      <!-- architecture strip -->
+      <g font-family="Nunito Sans, system-ui, sans-serif">
+        <text x="20" y="205" font-size="11" font-weight="700" letter-spacing=".06em" fill="#6B6257">CLOUDFLARE-ONLY SPINE (PO CONSTRAINT: NO THIRD-PARTY DATA SERVICES)</text>
+
+        <rect x="20" y="220" width="255" height="120" rx="12" fill="#FFFFFF" stroke="#E8DFD2" stroke-width="1.5"/>
+        <text x="147" y="243" text-anchor="middle" font-size="13" font-weight="700" fill="#2E2A25">Client (browser)</text>
+        <text x="147" y="263" text-anchor="middle" font-size="11" fill="#6B6257">TanStack DB — QueryCollections</text>
+        <text x="147" y="280" text-anchor="middle" font-size="11" fill="#6B6257">live queries · optimistic writes</text>
+        <text x="147" y="297" text-anchor="middle" font-size="11" fill="#6B6257">Router · Form · widget registry</text>
+        <text x="147" y="322" text-anchor="middle" font-size="10" fill="#8A8175">local-first feel, no sync engine in v1</text>
+
+        <rect x="315" y="220" width="255" height="120" rx="12" fill="#FFFFFF" stroke="#E8DFD2" stroke-width="1.5"/>
+        <text x="442" y="243" text-anchor="middle" font-size="13" font-weight="700" fill="#2E2A25">Workers (Start server fns)</text>
+        <text x="442" y="263" text-anchor="middle" font-size="11" fill="#6B6257">TanStack AI → OpenRouter (tiered models)</text>
+        <text x="442" y="280" text-anchor="middle" font-size="11" fill="#6B6257">better-auth ≥ 1.6.23 (API route)</text>
+        <text x="442" y="297" text-anchor="middle" font-size="11" fill="#6B6257">quota + usage metering · source fetch</text>
+        <text x="442" y="322" text-anchor="middle" font-size="10" fill="#8A8175">SSE streaming under workerd = AC-15 proof</text>
+
+        <rect x="610" y="220" width="235" height="120" rx="12" fill="#FFFFFF" stroke="#E8DFD2" stroke-width="1.5"/>
+        <text x="727" y="243" text-anchor="middle" font-size="13" font-weight="700" fill="#2E2A25">D1 (SQLite)</text>
+        <text x="727" y="263" text-anchor="middle" font-size="11" fill="#6B6257">journeys · roadmaps · lessons</text>
+        <text x="727" y="280" text-anchor="middle" font-size="11" fill="#6B6257">FSRS cards · quiz history · usage</text>
+        <text x="727" y="297" text-anchor="middle" font-size="11" fill="#6B6257">auth tables</text>
+        <text x="727" y="322" text-anchor="middle" font-size="10" fill="#8A8175">roadmap: Durable Objects live sync</text>
+
+        <g stroke="#6B6257" stroke-width="1.5" fill="none">
+          <line x1="275" y1="270" x2="311" y2="270" marker-end="url(#arr)"/>
+          <line x1="311" y1="290" x2="275" y2="290" marker-end="url(#arr)"/>
+          <line x1="570" y1="270" x2="606" y2="270" marker-end="url(#arr)"/>
+          <line x1="606" y1="290" x2="570" y2="290" marker-end="url(#arr)"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+</div>

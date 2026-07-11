@@ -1,0 +1,84 @@
+component: waypoint-button
+themes: [light, dark]
+states: [default, hover, pressed]
+sizes:
+  - id: sm
+    height: 32
+    padx: 12
+    pady: 6
+  - id: md
+    height: 40
+    padx: 16
+    pady: 8
+  - id: lg
+    height: 48
+    padx: 20
+    pady: 12
+  - id: xl
+    height: 56
+    padx: 24
+    pady: 14
+tokens:
+  - name: color-primary
+    category: color
+    value: "#C7502F"
+  - name: color-primary-hover
+    category: color
+    value: "#B34527"
+  - name: color-primary-pressed
+    category: color
+    value: "#97391F"
+  - name: color-bg-light
+    category: color
+    value: "#FBF6EF"
+  - name: color-surface-light
+    category: color
+    value: "#FFFFFF"
+  - name: color-ink-light
+    category: color
+    value: "#2E2A25"
+  - name: color-ink-muted-light
+    category: color
+    value: "#6B6257"
+  - name: color-bg-dark
+    category: color
+    value: "#221E19"
+  - name: color-surface-dark
+    category: color
+    value: "#2D2822"
+  - name: color-ink-dark
+    category: color
+    value: "#F3EDE2"
+  - name: color-mastery
+    category: color
+    value: "#2F7D57"
+  - name: color-info
+    category: color
+    value: "#35678A"
+  - name: font-ui
+    category: typography
+    value: "'Nunito Sans', 'Segoe UI Rounded', system-ui, sans-serif"
+  - name: font-lesson
+    category: typography
+    value: "'Literata', Georgia, serif"
+  - name: space-2
+    category: spacing
+    value: "8px"
+  - name: space-4
+    category: spacing
+    value: "16px"
+  - name: radius-md
+    category: radius
+    value: "10px"
+  - name: radius-lg
+    category: radius
+    value: "16px"
+  - name: ease-warm
+    category: motion
+    value: "cubic-bezier(0.2, 0.8, 0.2, 1)"
+  - name: duration-quick
+    category: motion
+    value: "160ms"
+specs:
+  reference: md/default/light
+  annotate: [height, padding-x, padding-y, border-radius, gap]
