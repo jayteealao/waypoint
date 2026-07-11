@@ -27,8 +27,11 @@ const SANITIZE_CONFIG = {
  * Strip all HTML tags — used as SSR-safe fallback when DOMPurify is not
  * available. Prose displays as plain text; hydration upgrades to DOMPurify.
  * Does NOT preserve any markup — it is NOT a sanitizer, only an SSR guard.
+ *
+ * Exported so ProseSection can use it as a stable initial value that always
+ * matches what the SSR render produces (avoiding React 19 hydration mismatches).
  */
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s.replace(/<[^>]*>/g, '')
 }
 

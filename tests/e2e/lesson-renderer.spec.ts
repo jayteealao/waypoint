@@ -87,12 +87,12 @@ async function makeAuthContext(browser: import('@playwright/test').Browser, base
   const ctx = await browser.newContext()
   await ctx.addCookies([
     {
-      name: 'better-auth.session_token',
+      name: '__Secure-better-auth.session_token',
       value: cookieValue,
       domain: new URL(baseURL).hostname,
       path: '/',
       httpOnly: false,
-      secure: false,
+      secure: true,
     },
   ])
   return ctx

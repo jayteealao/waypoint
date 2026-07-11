@@ -5,17 +5,50 @@
  * dangerouslySetInnerHTML. Widget sections go through the registry's
  * validation gate — unresolved widgets render a graceful fallback.
  *
- * The sanitizeHtml call is synchronous; the first render uses the escapeHtml
- * fallback until DOMPurify loads on the client (see sanitize.ts).
+ * Hydration note: the SSR path uses escapeHtml() (tag-strip) while the
+ * client path uses DOMPurify. suppressHydrationWarning prevents React 19
+ * from treating this expected delta as a fatal mismatch. A useEffect
+ * upgrades the innerHTML to the DOMPurify version after hydration.
  */
 
+import { useState, useEffect } from 'react'
 import type React from 'react'
 import type { LessonSection as LessonSectionType } from '#/types/lesson-document'
-import { sanitizeHtml } from '#/lib/lesson/sanitize'
+import { sanitizeHtml, sanitizerReady, escapeHtml } from '#/lib/lesson/sanitize'
 import { resolveWidget } from '#/lib/lesson/widget-registry'
 
 interface LessonSectionProps {
   section: LessonSectionType
+}
+
+/**
+ * Prose section sub-component — handles the DOMPurify hydration upgrade.
+ *
+ * SSR produces escapeHtml() (plain tag-strip). To prevent a React 19
+ * hydration mismatch, the initial client-side state is ALSO escapeHtml() —
+ * this ensures SSR and hydration produce identical HTML. After mount, a
+ * useEffect awaits sanitizerReady and upgrades to DOMPurify-sanitized HTML.
+ * suppressHydrationWarning is kept as a belt-and-suspenders guard.
+ */
+function ProseSection({ id, html }: { id: string; html: string }) {
+  // Always start with the SSR-identical escapeHtml value to avoid hydration mismatch
+  const [safeHtml, setSafeHtml] = useState(() => escapeHtml(html))
+
+  useEffect(() => {
+    sanitizerReady.then(() => {
+      setSafeHtml(sanitizeHtml(html))
+    })
+  }, [html])
+
+  return (
+    <div
+      className="wp-lesson-prose"
+      data-testid={`lesson-section-${id}`}
+      suppressHydrationWarning
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
+    />
+  )
 }
 
 export function LessonSection({ section }: LessonSectionProps) {
@@ -40,14 +73,7 @@ export function LessonSection({ section }: LessonSectionProps) {
       )
 
     case 'prose':
-      return (
-        <div
-          className="wp-lesson-prose"
-          data-testid={`lesson-section-${id}`}
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(section.html) }}
-        />
-      )
+      return <ProseSection id={id} html={section.html} />
 
     case 'code':
       return (
