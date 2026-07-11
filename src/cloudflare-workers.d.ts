@@ -16,6 +16,7 @@ declare namespace Cloudflare {
     GITHUB_CLIENT_SECRET: string
     BETTER_AUTH_SECRET: string
     BETTER_AUTH_BASE_URL: string | undefined
+    BETTER_AUTH_API_KEY: string | undefined
   }
 }
 
@@ -27,4 +28,5 @@ interface Env {
   GITHUB_CLIENT_SECRET: string
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_BASE_URL: string | undefined
+  BETTER_AUTH_API_KEY: string | undefined
 }

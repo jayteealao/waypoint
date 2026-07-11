@@ -20,6 +20,7 @@
     "deploy": "pnpm run build && wrangler deploy"
   },
   "dependencies": {
+    "@better-auth/infra": "0.3.6",
     "@tanstack/ai": "0.40.0",
     "@tanstack/ai-openai": "0.16.0",
     "@tanstack/ai-openrouter": "0.15.8",

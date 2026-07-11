@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth'
+import { dash } from '@better-auth/infra'
 
 /**
  * Per-request better-auth factory.
@@ -37,6 +38,15 @@ export function createAuth(env: Env) {
         clientSecret: env.GITHUB_CLIENT_SECRET,
       },
     },
+
+    // Better Auth Infrastructure dashboard (@better-auth/infra). Reads the API
+    // key from the Worker `env` binding (NOT process.env — secrets are injected
+    // via .dev.vars locally / `wrangler secret` in prod, not the Node env).
+    plugins: [
+      dash({
+        apiKey: env.BETTER_AUTH_API_KEY,
+      }),
+    ],
   })
 }
 
