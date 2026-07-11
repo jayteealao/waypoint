@@ -6,7 +6,7 @@ slice-slug: platform-proofs
 status: complete
 stage-number: 6
 created-at: "2026-07-11T10:11:55Z"
-updated-at: "2026-07-11T10:16:17Z"
+updated-at: "2026-07-11T10:44:31Z"
 result: partial
 metric-checks-run: 7
 metric-checks-passed: 7
@@ -29,7 +29,7 @@ interactive-verification-defer-reason: ""
 adapters-used: [web]
 bootstrap-failures: []
 evidence-dir: ".ai/workflows/waypoint-app/verify-evidence/platform-proofs/"
-evidence-run-count: 2
+evidence-run-count: 3
 security-scan-result: pass
 metric-a11y-violations-new: 0
 a11y-result: not-automatable
@@ -63,11 +63,11 @@ next-invocation: "/wf review waypoint-app platform-proofs"
 
 ## The Verification
 
-Run 2 confirms what run 1 established: all three platform bets hold. SSE chunks arrive progressively on the workerd runtime (5 chunks, 1.7 s elapsed, well above the 600 ms threshold), the AI adapter mock completes a tool-call round trip proving the OpenAI-fallback adapter is a zero-callsite swap, and better-auth mounts cleanly with a local D1 binding — two sequential requests confirm no module-scope state leaks across invocations.
+Run 3 confirms what runs 1 and 2 established: all three platform bets hold across every invocation. SSE chunks arrive progressively on the workerd runtime (5 chunks, 1.6 s elapsed, well above the 600 ms threshold), the AI adapter mock completes a tool-call round trip proving the OpenAI-fallback adapter is a zero-callsite swap, and better-auth mounts cleanly with a local D1 binding — two sequential requests confirm no module-scope state leaks across invocations.
 
-No new issues were found in this pass. The wrangler config fix from run 1 (commit 7da0ab7) continues to hold; the build pipeline produces a correct `dist/server/wrangler.json` and all three Playwright wrangler proof tests pass in 6.9 s. TypeScript is clean at zero errors. pnpm audit reports no vulnerabilities. The one source-file sdlc-debt marker (`db as any` in `src/lib/auth.ts`) is well-formed and recorded in the implementation record.
+No new issues were found in this pass. The wrangler config fix from run 1 (commit 7da0ab7) continues to hold; the build pipeline produces a correct `dist/server/wrangler.json` and all three Playwright wrangler proof tests pass in 8.1 s. TypeScript is clean at zero errors. pnpm audit reports no vulnerabilities. The one source-file sdlc-debt marker (`db as any` in `src/lib/auth.ts`) is well-formed and recorded in the implementation record.
 
-The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the pre-registered plan-time residual (`constraint-resolution: proxy+deferral`); the mocked tool-call proof (AC-PP2a) is the immediate proxy evidence. No new deferral is recorded — this is the same entry pre-authorized at plan time.
+The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the pre-registered plan-time residual (`constraint-resolution: proxy+deferral`); the mocked tool-call proof (AC-PP2a) is the immediate proxy evidence. No new deferral is recorded — this entry is already pre-authorized in `00-index.md` `runtime-evidence-deferrals`.
 
 ## Verification Summary
 
@@ -77,7 +77,7 @@ The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the
 | Lint / format | `pnpm lint` (alias for tsc --noEmit) | pass |
 | Vitest unit tests | `pnpm test` | pass — 3/4 pass, 1 skipped (live OpenRouter, expected) |
 | Build | `pnpm build` | pass — 775 modules transformed, dist/server/wrangler.json written |
-| Playwright wrangler proofs | `pnpm exec playwright test --config playwright.wrangler.config.ts` | pass — 3/3 in 6.9 s |
+| Playwright wrangler proofs | `pnpm exec playwright test --config playwright.wrangler.config.ts` | pass — 3/3 in 8.1 s |
 | pnpm audit | `pnpm audit --audit-level=high` | pass — no vulnerabilities |
 | sdlc-debt markers (source files) | grep on source diff | 1 marker found; 0 malformed; 0 unrecorded |
 
@@ -94,7 +94,7 @@ The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the
 - `pnpm build`: pass — 775 modules transformed; `dist/server/wrangler.json` written by Cloudflare Vite plugin; `dist/server/index.js` 633.35 kB (gzip: 133.57 kB); `dist/server/assets/router-*.js` 848.33 kB (gzip: 189.59 kB)
 - `pnpm audit --audit-level=high`: pass — "No known vulnerabilities found"
 - Secret scan (grep on source diff for credential patterns): pass — no hardcoded API keys, tokens, or credentials; `createOpenRouterClient(apiKey)` and `createOpenAIFallbackClient(apiKey)` take keys as arguments from env vars; `'dev-secret-replace-in-prod'` is a clearly-labeled placeholder
-- sdlc-debt markers in source files: 1 found (`src/lib/auth.ts:14`: `` `db as any` cast ``); well-formed (names ceiling: untyped cast, upgrade path: `wrangler types` in accounts-data-layer); recorded in `05-implement-platform-proofs.md` § Anything Deferred ✓
+- sdlc-debt markers in source files: 1 found (`src/lib/auth.ts:14`: `db as any` cast); well-formed (names ceiling: untyped cast, upgrade path: `wrangler types` in accounts-data-layer); recorded in `05-implement-platform-proofs.md` § Anything Deferred ✓
 
 ## Interactive Verification Results
 
@@ -106,9 +106,9 @@ The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the
   1. `pnpm build` — compiled the app to `dist/server/` with Cloudflare Vite plugin
   2. Playwright webServer started `pnpm build && pnpm exec wrangler dev --config dist/server/wrangler.json --port 8787`
   3. In-page `fetch('/api/demo-stream')` with ReadableStream timing harness, collecting `data:` lines and measuring total elapsed time
-- **Evidence**: `ok 3 [chromium-wrangler] › tests/e2e/sse-streaming.wrangler.spec.ts:8:1 › SSE demo stream delivers 5 chunks progressively (AC-PP1) (1.7s)` — test output from run 2 (2026-07-11T10:17:xx)
-- **Observation**: 5 `data: chunk-N` lines received; elapsed ≥ 600 ms (1.7 s total). Progressive delivery confirmed — workerd does not buffer SSE into a single flush.
-- **Stability**: consistent with run 1 (also 1.7 s); no flakiness observed.
+- **Evidence**: `ok 3 [chromium-wrangler] › tests/e2e/sse-streaming.wrangler.spec.ts:8:1 › SSE demo stream delivers 5 chunks progressively (AC-PP1) (1.6s)` — test output from run 3 (2026-07-11T10:44:xx)
+- **Observation**: 5 `data: chunk-N` lines received; elapsed ≥ 600 ms (1.6 s total). Progressive delivery confirmed — workerd does not buffer SSE into a single flush.
+- **Stability**: consistent across runs 1, 2, and 3 (1.7 s, 1.7 s, 1.6 s); no flakiness observed.
 - **Result**: pass
 
 **AC-PP4a/b — D1 + better-auth on API route (code-only, wrangler evidence)**
@@ -116,7 +116,7 @@ The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the
 - **Criterion**: Given wrangler dev with a local D1 binding, When the auth spike route is exercised, Then better-auth responds on its file route mount, D1 read/write round-trips, and no module-scope client leaks across requests.
 - **Platform & tool**: Web — Playwright `request` API, `playwright.wrangler.config.ts`, running against `wrangler dev` with miniflare D1
 - **Steps performed**: GET `/api/auth/get-session` once (AC-PP4a), then two sequential GETs (AC-PP4b)
-- **Evidence**: `ok 1 ... better-auth responds on createFileRoute mount (346ms)` and `ok 2 ... no module-scope client leak across sequential requests (324ms)` — test output from run 2
+- **Evidence**: `ok 1 ... better-auth responds on createFileRoute mount (345ms)` and `ok 2 ... no module-scope client leak across sequential requests (317ms)` — test output from run 3
 - **Observation**: Both requests return HTTP 200 (not 500). better-auth processes requests independently per invocation. better-auth warnings in wrangler log (base URL not set, short secret) are expected for the spike configuration.
 - **Result**: pass
 
@@ -124,31 +124,31 @@ The one partial item remains AC-PP2b: the live OpenRouter key smoke. This is the
 
 | # | Criterion | Kind | Status | Method | Evidence |
 |---|-----------|------|--------|--------|----------|
-| AC-PP1 | SSE chunks arrive progressively on workerd | user-observable | met | interactive (Playwright wrangler) | Test pass: 5 chunks, elapsed 1.7 s ≥ 600 ms (run 1 and run 2) |
+| AC-PP1 | SSE chunks arrive progressively on workerd | user-observable | met | interactive (Playwright wrangler) | Test pass: 5 chunks, elapsed 1.6 s ≥ 600 ms (runs 1, 2, 3 consistent) |
 | AC-PP2a | Mocked tool-call round trip validates schema | code-only | met | automated (Vitest node) | `mocked tool-call round trip validates schema: PASS` |
 | AC-PP2b | Live OpenRouter tool call passes real endpoint | code-only | partially met — pre-registered residual | automated (Vitest, skipped) | `test.skipIf(!OPENROUTER_API_KEY)` — skipped; `constraint-resolution: proxy+deferral` pre-authorized at plan time; cleared by tagged live run with key |
 | AC-PP3 | Adapter-swap: OpenAI fallback zero-callsite | code-only | met | automated (Vitest + TypeScript compile) | `adapter-swap: OpenAI fallback satisfies AIClient interface: PASS` |
-| AC-PP4 | D1 + better-auth mounts, D1 round-trips, no leak | code-only | met | automated (Playwright wrangler) | `better-auth responds (346ms): PASS`, `no module-scope leak (324ms): PASS` |
+| AC-PP4 | D1 + better-auth mounts, D1 round-trips, no leak | code-only | met | automated (Playwright wrangler) | `better-auth responds (345ms): PASS`, `no module-scope leak (317ms): PASS` |
 
 Notes:
 - AC-PP4 is annotated `<!-- observable: false -->` in the slice definition; Playwright wrangler evidence is the authorized automated-test proof (real local runtime, real miniflare D1).
-- AC-PP2b live variant: no new deferral — this is the plan-pre-registered `proxy+deferral` residual from shape. No addition to `00-index.md` runtime-evidence-deferrals required.
+- AC-PP2b live variant: no new deferral — this is the plan-pre-registered `proxy+deferral` residual already recorded in `00-index.md` `runtime-evidence-deferrals`.
 
 ## Issues Found
 
-No issues found in run 2.
+No issues found in run 3.
 
-(Run 1 issue WRANGLER-1 — `playwright.wrangler.config.ts` incorrect webServer command — was fixed in run 1, commit 7da0ab7. Fix continues to hold.)
+(Run 1 issue WRANGLER-1 — `playwright.wrangler.config.ts` incorrect webServer command — was fixed in run 1, commit 7da0ab7. Fix continues to hold across runs 2 and 3.)
 
 ## Verify-Owned Fixes
 
-No fixes applied in run 2. metric-issues-found-initial: 0 → convergence: not-needed.
+No fixes applied in run 3. metric-issues-found-initial: 0 → convergence: not-needed.
 
 Previous run 1 fix (preserved for audit trail):
 
 | ID | Type | Triage | Sub-agent outcome | Regression test | Re-check result |
 |----|------|--------|-------------------|-----------------|-----------------|
-| WRANGLER-1 | config failure | Fix (auto-selected, run 1) | Patched `playwright.wrangler.config.ts` webServer command | n-a (config fix, not a code bug) | Pass — all 3 Playwright wrangler tests pass (confirmed again in run 2) |
+| WRANGLER-1 | config failure | Fix (auto-selected, run 1) | Patched `playwright.wrangler.config.ts` webServer command | n-a (config fix, not a code bug) | Pass — all 3 Playwright wrangler tests pass (confirmed in runs 2 and 3) |
 
 Commit (run 1): 7da0ab7
 Regression tests added: 0
@@ -175,7 +175,7 @@ Regression tests added: 0
 ## Performance Gate
 
 - **Bundle size delta:** skipped — base branch (main) has only the initial commit with no build target; absolute size recorded: `dist/server/index.js` 633.35 kB gzip 133.57 kB
-- **Build time delta:** not-measured (build completed in 379 ms; no base-branch comparison possible)
+- **Build time delta:** not-measured (build completed in 422 ms; no base-branch comparison possible)
 - **Cold-start delta:** not-applicable (SSR app, not a service or CLI)
 
 ## Cross-Slice Regression
@@ -186,9 +186,9 @@ Regression tests added: 0
 
 ## Longitudinal Delta
 
-- **Baseline source:** run 1 evidence (2026-07-11T10:11:55Z)
+- **Baseline source:** runs 1 and 2 evidence
 - **Visual delta:** N/A — no UI surfaces in this slice; API-only routes
-- **Timing consistency:** AC-PP1 elapsed 1.7 s (run 1: 1.7 s); AC-PP4a latency 346 ms (run 1: 343 ms); AC-PP4b latency 324 ms (run 1: 315 ms) — consistent within normal variance; no regression.
+- **Timing consistency:** AC-PP1 elapsed 1.6 s (run 1: 1.7 s, run 2: 1.7 s); AC-PP4a latency 345 ms (run 2: 346 ms); AC-PP4b latency 317 ms (run 2: 324 ms) — consistent within normal variance; no regression.
 
 ## Friction Notes
 
@@ -232,15 +232,23 @@ Regression tests added: 0
 
 ## Freshness Research
 
-Not conducted — the plan's freshness sweep (2026-07-10) is current; no AC names an external API that could have changed in one day. `@tanstack/ai` (0.40.0), `@tanstack/ai-openrouter` (0.15.8), `@tanstack/ai-openai` (0.16.0), `better-auth` (1.6.23) are exact-pinned; no dependency drift risk.
+Not conducted for run 3 — plan age is < 2 days (written 2026-07-11) and no AC names an external API that could have changed materially overnight. `@tanstack/ai` (0.40.0), `@tanstack/ai-openrouter` (0.15.8), `@tanstack/ai-openai` (0.16.0), `better-auth` (1.6.23) are exact-pinned; no dependency drift risk.
+
+## Assumptions
+
+All resolved autonomously per autonomous override policy. No new assumptions introduced in run 3 beyond those recorded in runs 1 and 2.
+
+## Triage Decisions
+
+- metric-issues-found-initial: 0 — no triage required; fix loop skipped.
 
 ## Recommendation
 
-The platform-proofs slice is verified (run 2 confirms run 1). All three platform bets are confirmed: workerd SSE streaming works, the AI adapter interface is solid and swap-transparent, and better-auth mounts cleanly on a file-based API route with D1. No new issues were found. The one partial item (live OpenRouter key) is the pre-planned residual and is not a blocker for review.
+The platform-proofs slice is verified (run 3 confirms runs 1 and 2). All three platform bets are confirmed: workerd SSE streaming works, the AI adapter interface is solid and swap-transparent, and better-auth mounts cleanly on a file-based API route with D1. No new issues were found. The one partial item (live OpenRouter key) is the pre-planned residual and is not a blocker for review.
 
 ## Recommended Next Stage
 
-- **Option A (recommended):** proceed to review — `convergence: not-needed` (no issues in run 2, all checks pass); all code-only ACs met; user-observable AC (SSE streaming) has runtime evidence in both runs. `result: partial` only because of the pre-registered plan-time live-key residual.
+- **Option A (recommended):** proceed to review — `convergence: not-needed` (no issues in run 3, all checks pass); all code-only ACs met; user-observable AC (SSE streaming) has runtime evidence in all three runs. `result: partial` only because of the pre-registered plan-time live-key residual.
 - **Option B:** re-invoke verify — not needed; all checks pass with no new issues.
 - **Option C:** escalate to implement — not needed; no code issues found.
 - **Option D:** skip review, go to handoff — possible for solo projects; review adds value for the API-surface decisions in this slice.

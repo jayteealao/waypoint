@@ -5,7 +5,7 @@ slug: waypoint-app
 status: in-progress
 stage-number: 6
 created-at: "2026-07-11T00:56:06Z"
-updated-at: "2026-07-11T10:16:17Z"
+updated-at: "2026-07-11T10:44:31Z"
 slices-verified: 2
 slices-total: 12
 tags: []
@@ -20,8 +20,8 @@ next-invocation: "/wf review waypoint-app platform-proofs"
 
 | Slice | Result | Convergence | Fix rounds | Run count | Notes |
 |-------|--------|-------------|------------|-----------|-------|
-| foundation | partial | converged | 1 | 4 | All ACs met; AC-F4 (CI run) carries plan-pre-authorized proxy+deferral; 1 issue (Playwright port-conflict) found and fixed (commit fb4f5dd) in run-4 |
-| platform-proofs | partial | not-needed | 0 | 2 | All ACs met except AC-PP2b live OpenRouter (pre-registered plan-time residual, no key); run 2 found 0 new issues; wrangler config fix from run 1 (commit 7da0ab7) holds |
+| foundation | partial | not-needed | 0 | 5 | All ACs met; AC-F4 (CI run) carries plan-pre-authorized proxy+deferral; run-5 found 0 issues (clean re-run; prior port-fix fb4f5dd holds; platform-proofs sibling tests pass, 0 regressions) |
+| platform-proofs | partial | not-needed | 0 | 3 | All ACs met except AC-PP2b live OpenRouter (pre-registered plan-time residual, no key); run 3 found 0 new issues; wrangler config fix from run 1 (commit 7da0ab7) holds |
 
 ## Recommended Next Stage
 

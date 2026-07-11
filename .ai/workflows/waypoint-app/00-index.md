@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T10:16:17Z"
+updated-at: "2026-07-11T10:44:31Z"
 selected-slice: "platform-proofs"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -22,6 +22,11 @@ runtime-evidence-deferrals:
     reason: "No GitHub remote / no PR to main exists; the CI workflow only triggers on PRs targeting main, and yolo never opens PRs. Plan pre-authorized constraint-resolution: proxy+deferral. Local proxies (typecheck, lint, Vitest 1/1, Playwright e2e 1/1, pnpm audit clean, exact-pin check) all pass; .github/workflows/ci.yml structurally complete with all required gates."
     cleared-by: "first PR targeting main (at handoff) triggering a green GitHub Actions run"
     recorded-at: "2026-07-11T08:30:00Z"
+  - ac: "AC-PP2b — live OpenRouter tool-call smoke"
+    slice: platform-proofs
+    reason: "OPENROUTER_API_KEY (PO-provided secret) not present in the automated environment; the live-smoke test's skipIf gate fires as designed. Plan pre-authorized constraint-resolution: proxy+deferral. Proxy evidence: mocked tool-call proof (AC-PP2a) passes; wrangler-dev SSE + D1 proofs pass under workerd (commit 7da0ab7)."
+    cleared-by: "a tagged live-smoke run with OPENROUTER_API_KEY present (or /wf probe in a keyed environment)"
+    recorded-at: "2026-07-11T10:30:00Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
