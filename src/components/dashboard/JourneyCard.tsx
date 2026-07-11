@@ -56,7 +56,7 @@ export function JourneyCard({ journey }: JourneyCardProps) {
       <div className="flex items-center justify-between gap-3 mt-auto pt-1">
         <time
           dateTime={new Date(journey.updated_at).toISOString()}
-          className="text-xs text-[var(--ink-faint)]"
+          className="text-xs text-[var(--ink-muted)]"
         >
           {formatRelativeTime(journey.updated_at)}
         </time>

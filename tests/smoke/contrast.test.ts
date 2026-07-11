@@ -142,6 +142,24 @@ describe('OKLCH ember token pairs — WCAG 2.1 AA contrast audit', () => {
       const ratio = oklchContrast(TOKENS.light.white, TOKENS.light.success)
       expect(ratio, `white / success = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(AA_LARGE)
     })
+
+    // Regression guard: after replacing --ink-faint with --ink-muted for informational
+    // text on --paper-mid (sidebar labels, card timestamps), verify the substituted
+    // token passes AA. --ink-faint (L=0.64) fails at ~2.85:1; --ink-muted (L=0.44)
+    // must pass ≥ 4.5:1.
+    it('--ink-muted text on --paper-mid (sidebar labels, card timestamps) ≥ 4.5:1', () => {
+      const ratio = oklchContrast(TOKENS.light.inkMuted, TOKENS.light.paperMid)
+      expect(ratio, `ink-muted / paper-mid = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(AA_NORMAL)
+    })
+
+    // Documentation: --ink-faint is ONLY valid for placeholder/disabled labels
+    // where WCAG AA does not apply (SC 1.4.3 exception for disabled UI). It must
+    // NOT be used for informational text. Expected: ~2.85:1 (below AA 4.5:1).
+    it('--ink-faint is below AA on --paper-mid — valid ONLY for disabled/placeholder labels', () => {
+      const ratio = oklchContrast(TOKENS.light.inkFaint, TOKENS.light.paperMid)
+      // This ratio is intentionally < 4.5 — do not increase; fix callsites instead.
+      expect(ratio, `ink-faint / paper-mid = ${ratio.toFixed(2)}:1 (expected < 4.5)`).toBeLessThan(AA_NORMAL)
+    })
   })
 
   // ── Dark theme ──────────────────────────────────────────────────────── //

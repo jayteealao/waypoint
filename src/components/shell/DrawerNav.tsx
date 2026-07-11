@@ -160,7 +160,7 @@ export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
 
           {currentJourney && (
             <div className="mt-4 border-t border-[var(--border)] pt-4">
-              <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-widest text-[var(--ink-faint)]">
+              <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-widest text-[var(--ink-muted)]">
                 Current journey
               </p>
               <p className="px-2 text-sm font-semibold text-[var(--ink)] display-title">
