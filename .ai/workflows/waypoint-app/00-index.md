@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: verify
+stage-number: 6
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T19:15:37Z"
+updated-at: "2026-07-11T19:49:36Z"
 selected-slice: "lesson-renderer"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -42,6 +42,8 @@ runtime-evidence-deferrals:
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /_authenticated/lesson/fixture require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5 and AC-DSS1/3/4/5). AC-LR4 (security/trust-model) fully covered by 19 adversarial Vitest unit tests (all passing). Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
     recorded-at: "2026-07-11T19:15:37Z"
+    cleared-at: "2026-07-11T19:49:36Z"
+    cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 6 Playwright tests pass after cookie prefix fix (__Secure- required for HTTPS base URL) and React 19 hydration fix; commit 5b6cde1"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -84,8 +86,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app lesson-renderer"
+next-command: wf-review
+next-invocation: "/wf review waypoint-app lesson-renderer"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -270,13 +272,14 @@ workflow-files:
   - 04-plan-lesson-renderer.md
   - 04-plan-lesson-renderer.yaml
   - 05-implement-lesson-renderer.md
+  - 06-verify-lesson-renderer.md
 progress:
   intake: complete
   shape: complete
   slice: complete
   plan: complete
-  implement: in-progress
-  verify: not-started
+  implement: complete
+  verify: in-progress
   review: not-started
   handoff: not-started
   ship: not-started

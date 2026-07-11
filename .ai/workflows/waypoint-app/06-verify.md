@@ -5,15 +5,15 @@ slug: waypoint-app
 status: in-progress
 stage-number: 6
 created-at: "2026-07-11T00:56:06Z"
-updated-at: "2026-07-11T15:02:19Z"
-slices-verified: 4
+updated-at: "2026-07-11T19:49:36Z"
+slices-verified: 5
 slices-total: 12
 tags: []
 refs:
   index: 00-index.md
   implement-index: 05-implement.md
 next-command: wf-review
-next-invocation: "/wf review waypoint-app design-system-shell"
+next-invocation: "/wf review waypoint-app lesson-renderer"
 ---
 
 # Verify Index
@@ -24,7 +24,8 @@ next-invocation: "/wf review waypoint-app design-system-shell"
 | platform-proofs | partial | not-needed | 0 | 4 | All ACs met except AC-PP2b live OpenRouter (pre-registered plan-time residual, no key); run 4 found 0 new issues; wrangler config fix from run 1 (commit 7da0ab7) holds; accounts-data-layer in-progress tests (13 new) all pass with 0 regressions |
 | accounts-data-layer | partial | not-needed | 0 | 1 | 4 code-only ACs fully met; 2 user-observable ACs evidenced at always-run level (sign-in UI, account redirect); seeded-session proxy tests deferred (BETTER_AUTH_SECRET absent); real OAuth deferred (pre-registered); 0 regressions; 1 LOW issue (build EBUSY, Skip) |
 | design-system-shell | partial | not-needed | 0 | 1 | 2 code-only ACs fully met (contrast 13/13, reduced-motion CSS inspection); 3 user-observable ACs deferred (BETTER_AUTH_SECRET, accepted into existing ADL deferral); sign-in ember styling + sibling redirect regression pass; 0 regressions; 1 LOW issue (build EBUSY, Skip) |
+| lesson-renderer | pass | converged | 1 | 1 | All 4 ACs met: AC-LR1/2/3 at full Playwright interactive level (screenshots + interaction + timing), AC-LR4 via 19/19 adversarial Vitest unit tests; 2 verify-owned fixes committed (5b6cde1): React 19 hydration mismatch in prose sections (ProseSection + useState escapeHtml seed) + E2E session cookie prefix (__Secure- required for HTTPS BETTER_AUTH_BASE_URL); pre-registered AC-LR1/2/3 deferral CLEARED; 0 regressions across 50/51 tests (1 skip = OpenRouter, pre-existing) |
 
 ## Recommended Next Stage
 
-- **Option A (recommended):** `/wf review waypoint-app design-system-shell` — all code-only ACs met; user-observable ACs deferred to pre-registered clearing event; no code regressions; ready for review
+- **Option A (recommended):** `/wf review waypoint-app lesson-renderer` — all 4 ACs met at full interactive level (no deferrals); 2 verify-time fixes committed and re-verified; 50/51 tests passing (1 skip pre-registered); ready for code review
