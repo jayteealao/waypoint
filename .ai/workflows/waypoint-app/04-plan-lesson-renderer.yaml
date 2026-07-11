@@ -1,0 +1,269 @@
+artifact: plan
+slice: lesson-renderer
+
+modules:
+  - id: schema
+    label: "Lesson Document Schema"
+    role: domain
+  - id: widget-registry
+    label: "Widget Registry & Stream Driver"
+    role: domain
+  - id: sanitize
+    label: "Sanitization Layer"
+    role: infra
+  - id: lesson-ui
+    label: "Lesson Renderer Components"
+    role: ui
+  - id: route
+    label: "Lesson Route"
+    role: ui
+  - id: styles
+    label: "Reading Styles"
+    role: ui
+  - id: tests
+    label: "Tests"
+    role: infra
+
+files:
+  - path: src/types/lesson-document.ts
+    status: new
+    role: domain
+    module: schema
+    loc: ~90
+    delta: { add: 90, rem: 0 }
+    planned_change:
+      intent: "Define versioned LessonDocument TypeScript types — sections (prose/code/heading/citation/widget), LessonSource, PartialLessonDocument for progressive rendering"
+      diff: "New file; all types; exported for consumption by renderer, registry, server function, and fixture"
+
+  - path: src/fixtures/lesson-fixture.ts
+    status: new
+    role: domain
+    module: schema
+    loc: ~80
+    delta: { add: 80, rem: 0 }
+    planned_change:
+      intent: "FIXTURE_LESSON constant: a LessonDocument exercising every schema node type (heading, prose, code, citation, widget×2) plus HOSTILE_INPUTS array for adversarial unit tests"
+      diff: "New file; static data only; imported by the fixture route and test suites"
+
+  - path: src/server/lessons.ts
+    status: new
+    role: domain
+    module: schema
+    loc: ~40
+    delta: { add: 40, rem: 0 }
+    planned_change:
+      intent: "Server function getLesson(lessonId) — queries D1 lessons table, parses content JSON as LessonDocument, returns null when not found"
+      diff: "New file; createServerFn pattern matching src/server/journeys.ts; exports getLesson"
+
+  - path: src/lib/lesson/widget-registry.ts
+    status: new
+    role: domain
+    module: widget-registry
+    loc: ~80
+    delta: { add: 80, rem: 0 }
+    planned_change:
+      intent: "Widget registry: Map<string, WidgetDefinition>, typed registration, manual type-guard props validation for checkpoint-question and flipcard, reject returns null + console.warn for unknown/malformed"
+      diff: "New file; exports registerWidget, resolveWidget, createRegistry; the registry singleton is the only interactivity path"
+
+  - path: src/lib/lesson/stream-driver.ts
+    status: new
+    role: domain
+    module: widget-registry
+    loc: ~60
+    delta: { add: 60, rem: 0 }
+    planned_change:
+      intent: "useSimulatedStream(fullDoc, opts) React hook — delivers sections progressively via setInterval, returns PartialLessonDocument that grows chunk by chunk; for dev/test progressive rendering"
+      diff: "New file; hook only; no production code path — activated by ?stream=simulate query param on the fixture route"
+
+  - path: src/lib/lesson/sanitize.ts
+    status: new
+    role: infra
+    module: sanitize
+    loc: ~40
+    delta: { add: 40, rem: 0 }
+    planned_change:
+      intent: "sanitizeHtml(html): guards typeof document before calling DOMPurify.sanitize; ALLOWED_TAGS: inline only (b/i/em/strong/code/a/span/br); no SAFE_FOR_XML, no IN_PLACE; returns escaped plain text on server context where document is absent"
+      diff: "New file; exports sanitizeHtml; the ONLY place dangerouslySetInnerHTML content passes through"
+
+  - path: src/components/lesson/LessonView.tsx
+    status: new
+    role: ui
+    module: lesson-ui
+    loc: ~80
+    delta: { add: 80, rem: 0 }
+    planned_change:
+      intent: "Root lesson renderer — accepts LessonDocument or PartialLessonDocument; renders title, sections list (LessonSection or LessonSkeleton per null slot), sources list, recommended-primary-source block; 65–75ch max-width, Fraunces serif voice"
+      diff: "New file; imports LessonSection, LessonSkeleton, design tokens; data-testid='lesson-view' on root"
+
+  - path: src/components/lesson/LessonSkeleton.tsx
+    status: new
+    role: ui
+    module: lesson-ui
+    loc: ~40
+    delta: { add: 40, rem: 0 }
+    planned_change:
+      intent: "Placeholder section skeleton — uses Skeleton component from ui/ for multiple line widths simulating a prose paragraph or code block; reduced-motion: static background"
+      diff: "New file; renders section-shaped Skeleton stack; aria-hidden; data-testid='lesson-section-skeleton'"
+
+  - path: src/components/lesson/LessonSection.tsx
+    status: new
+    role: ui
+    module: lesson-ui
+    loc: ~80
+    delta: { add: 80, rem: 0 }
+    planned_change:
+      intent: "Renders a single LessonSection node: switch on type → prose (sanitizeHtml + dangerouslySetInnerHTML), code (<pre><code> with language class), heading (<h2>/<h3> Fraunces), citation (blockquote + source), widget (resolveWidget from registry or rejection fallback)"
+      diff: "New file; all rendering dispatch; data-testid='lesson-section-{id}' on each"
+
+  - path: src/components/lesson/widgets/CheckpointQuestion.tsx
+    status: new
+    role: ui
+    module: lesson-ui
+    loc: ~70
+    delta: { add: 70, rem: 0 }
+    planned_change:
+      intent: "Inline checkpoint question widget — radio-style MC question, 2–4 options, answer recorded to localStorage under key 'wp:checkpoint:{id}'; shows explanation after answer; data-testid='checkpoint-question'"
+      diff: "New file; no server calls; localStorage for local persistence (quiz-fsrs slice will migrate to server)"
+
+  - path: src/components/lesson/widgets/Flipcard.tsx
+    status: new
+    role: ui
+    module: lesson-ui
+    loc: ~50
+    delta: { add: 50, rem: 0 }
+    planned_change:
+      intent: "CSS flip card — front/back faces, toggle on click or Enter/Space, 180° Y-axis rotation gated on prefers-reduced-motion (instant swap under reduced-motion); data-testid='flipcard'"
+      diff: "New file; purely visual; no state persistence"
+
+  - path: src/routes/_authenticated/lesson/fixture.tsx
+    status: new
+    role: ui
+    module: route
+    loc: ~50
+    delta: { add: 50, rem: 0 }
+    planned_change:
+      intent: "Dev fixture route — renders FIXTURE_LESSON via LessonView; when ?stream=simulate query param present, uses useSimulatedStream hook for progressive reveal; authenticated via _authenticated layout; data-testid='lesson-fixture-page'"
+      diff: "New file; createFileRoute('/_authenticated/lesson/fixture'); no D1 read — pure fixture data"
+
+  - path: src/styles.css
+    status: modified
+    role: ui
+    module: styles
+    loc: ~320
+    delta: { add: 110, rem: 0 }
+    imports: ["tailwindcss", "@tailwindcss/typography"]
+    planned_change:
+      intent: "Add reading typography classes: .wp-lesson (max-width 72ch, font-serif, line-height 1.75), .wp-lesson-prose (Fraunces, --ink), .wp-lesson-code (pre/code, monospace, --paper-mid background, horizontal scroll), .wp-lesson-citation (blockquote border-l ember, italic), .wp-lesson-heading (Fraunces h2/h3 weights), .wp-lesson-source-block (recommended-primary-source panel), .wp-checkpoint (interactive answer surface), .wp-flipcard / .wp-flipcard-inner / .wp-flipcard-front / .wp-flipcard-back (3D flip), all reduced-motion gated"
+      diff: "Append to existing styles.css; no removal of existing classes"
+
+  - path: package.json
+    status: modified
+    role: infra
+    module: sanitize
+    loc: ~60
+    delta: { add: 2, rem: 0 }
+    planned_change:
+      intent: "Add dompurify (exact pin ≥3.4.7) and @types/dompurify as production and devDependency respectively"
+      diff: "Two new dependency lines; exact version pin per project policy"
+
+  - path: pnpm-lock.yaml
+    status: modified
+    role: infra
+    module: sanitize
+    loc: ~2000
+    delta: { add: 50, rem: 0 }
+    planned_change:
+      intent: "Lock file update after pnpm add dompurify"
+      diff: "Auto-generated by pnpm install"
+
+  - path: src/routeTree.gen.ts
+    status: modified
+    role: infra
+    module: route
+    loc: ~220
+    delta: { add: 15, rem: 0 }
+    planned_change:
+      intent: "Route tree regenerated after adding /_authenticated/lesson/fixture.tsx"
+      diff: "Auto-generated by pnpm generate-routes"
+
+  - path: tests/smoke/lesson-widget-registry.test.ts
+    status: new
+    role: infra
+    module: tests
+    loc: ~110
+    delta: { add: 110, rem: 0 }
+    planned_change:
+      intent: "Vitest adversarial unit tests: registry rejects unknown widget type, registry rejects malformed props, sanitizeHtml strips script tags, sanitizeHtml strips event handlers, sanitizeHtml preserves allowed inline markup, valid widgets resolve to components; all tests from the hostile direction per slice trust-model contract"
+      diff: "New file; Vitest; no DOM dependency (widget-registry.ts is pure functions)"
+
+  - path: tests/e2e/lesson-renderer.spec.ts
+    status: new
+    role: infra
+    module: tests
+    loc: ~120
+    delta: { add: 120, rem: 0 }
+    planned_change:
+      intent: "Playwright tests for AC-LR1 (screenshot sweep at 375/768/1280px, no overflow), AC-LR2 (checkpoint answer + flipcard flip interaction), AC-LR3 (DOM mutation timestamps during ?stream=simulate progressive reveal); all use seeded-session fixture + fixture route; BETTER_AUTH_SECRET guard with descriptive skipIf"
+      diff: "New file; Playwright; reuses seeded-session helpers from auth-flow.spec.ts"
+
+edges:
+  - from: src/types/lesson-document.ts
+    to: src/lib/lesson/widget-registry.ts
+    kind: import
+  - from: src/types/lesson-document.ts
+    to: src/components/lesson/LessonView.tsx
+    kind: import
+  - from: src/types/lesson-document.ts
+    to: src/server/lessons.ts
+    kind: import
+  - from: src/types/lesson-document.ts
+    to: src/fixtures/lesson-fixture.ts
+    kind: import
+  - from: src/lib/lesson/widget-registry.ts
+    to: src/components/lesson/LessonSection.tsx
+    kind: import
+  - from: src/lib/lesson/sanitize.ts
+    to: src/components/lesson/LessonSection.tsx
+    kind: import
+  - from: src/lib/lesson/stream-driver.ts
+    to: src/routes/_authenticated/lesson/fixture.tsx
+    kind: import
+  - from: src/fixtures/lesson-fixture.ts
+    to: src/routes/_authenticated/lesson/fixture.tsx
+    kind: import
+  - from: src/components/lesson/LessonView.tsx
+    to: src/routes/_authenticated/lesson/fixture.tsx
+    kind: import
+  - from: src/components/lesson/LessonSection.tsx
+    to: src/components/lesson/LessonView.tsx
+    kind: import
+  - from: src/components/lesson/LessonSkeleton.tsx
+    to: src/components/lesson/LessonView.tsx
+    kind: import
+  - from: src/components/lesson/widgets/CheckpointQuestion.tsx
+    to: src/components/lesson/LessonSection.tsx
+    kind: import
+  - from: src/components/lesson/widgets/Flipcard.tsx
+    to: src/components/lesson/LessonSection.tsx
+    kind: import
+
+risks:
+  - id: risk-schema-contract
+    title: "Lesson schema is a 3-slice contract"
+    severity: high
+    detail: "sample-journey, roadmap-lesson-generation, and quiz-fsrs all write against the LessonDocument type. An unversioned field rename or type change after those slices begin forces coordinated rework across 3 slices."
+    mitigation: "Ship LessonDocumentV1 with a version: 1 discriminant on day one. Additive changes (new section type) are backward-compatible; removal or rename requires a migration. Plan review covers the schema before any implementation proceeds."
+
+  - id: risk-dompurify-ssr
+    title: "DOMPurify requires browser DOM — not available in Worker SSR"
+    severity: high
+    detail: "TanStack Start SSR runs in Cloudflare Workers (workerd). DOMPurify's isSupported check may return false in the Worker context because document.createHTMLDocument may not be available. If sanitize.ts calls DOMPurify unconditionally during SSR, the Worker crashes."
+    mitigation: "sanitize.ts guards typeof document !== 'undefined' AND DOMPurify.isSupported before calling sanitize(); on SSR fallback it returns the plain-text-escaped version of the input (HTML tags stripped via regex, not parsed). Hydration then re-sanitizes with the full DOMPurify call client-side. This is the minimum-surprise approach."
+
+  - id: risk-progressive-playwright
+    title: "DOM-mutation timing tests are inherently flaky"
+    severity: med
+    detail: "AC-LR3 measures that content appears before the stream completes. If the test assertion fires too early or the stream finishes faster than expected, assertions fail intermittently in CI."
+    mitigation: "useSimulatedStream uses a fixed 200ms/section interval with a fixture that has ≥6 sections (total stream ~1.2s). The Playwright test asserts visible content BEFORE a 600ms mark (halfway point), giving 600ms of margin. The stream delay is a test-only constant, not production behavior."
+
+history: []

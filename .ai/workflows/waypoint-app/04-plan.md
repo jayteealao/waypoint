@@ -5,9 +5,9 @@ slug: waypoint-app
 status: complete
 stage-number: 4
 created-at: "2026-07-11T00:13:07Z"
-updated-at: "2026-07-11T11:17:17Z"
+updated-at: "2026-07-11T13:37:14Z"
 planning-mode: single
-slices-planned: 3
+slices-planned: 4
 slices-total: 12
 implementation-order: [foundation, platform-proofs, accounts-data-layer, design-system-shell, lesson-renderer, sample-journey, ai-gateway, tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress, source-grounding]
 conflicts-found: 0
@@ -16,7 +16,7 @@ refs:
   index: 00-index.md
   slice-index: 03-slice.md
 next-command: wf-implement
-next-invocation: "/wf implement waypoint-app accounts-data-layer"
+next-invocation: "/wf implement waypoint-app design-system-shell"
 ---
 
 # Plan Index
@@ -55,8 +55,21 @@ next-invocation: "/wf implement waypoint-app accounts-data-layer"
   Playwright proxy keeps the build green. TanStack DB beta API may drift; fallback to plain
   TanStack Query documented per AC.
 
-### Plans not yet written (9 remaining slices)
-Plans for slices 4–12 will be authored before or during their respective implement stages.
+### `design-system-shell`
+- **Files to touch:** 19 files (12 new, 7 modified/auto) across tokens/CSS, UI components, shell
+  components, dashboard components, routes, and tests
+- **Strategy:** Palette-first, then compose. Replace the teal prototype palette with the OKLCH
+  warm-ember token set validated by a Vitest contrast test before any component work opens.
+  Twelve React components across `ui/`, `shell/`, and `dashboard/` directories. A `_authenticated`
+  pathless layout route provides the AppShell wrapper; sign-in sits outside it.
+- **Visual contract:** `02c-craft.md` authored as part of this plan (image gate skipped per
+  autonomous-override policy; direction fully specified in brief).
+- **Key risk:** Token rename completeness — 25+ `.demo-*` CSS classes reference old token names;
+  the pre/post-rename grep audit is the only gate. AC-DSS1/3/4 Playwright tests are behind the
+  existing BETTER_AUTH_SECRET deferral wall (no new deferral entry needed).
+
+### Plans not yet written (8 remaining slices)
+Plans for slices 5–12 will be authored before or during their respective implement stages.
 Each will follow the same sub-agent research + autonomous-override pattern.
 
 ## Cross-Cutting Concerns
@@ -127,10 +140,11 @@ Key facts carried forward from shape:
 
 ## Recommended Next Stage
 
-- **Option A (default): implement accounts-data-layer** — Foundation and platform-proofs are
-  implemented and reviewed (verdict: SHIP). The accounts-data-layer plan is complete, all ACs
-  resolved. Consider `/compact` before implementing.
-- **Option B: plan design-system-shell** — Author the next slice's plan before coding if you
-  prefer all plans written up front. Note: design-system-shell depends on accounts-data-layer;
-  its plan will author the visual contract (`02c-craft.md`) from the design brief.
+- **Option A (default): implement design-system-shell** — Foundation, platform-proofs, and
+  accounts-data-layer are fully implemented and reviewed (all verdict: SHIP). The design-system-shell
+  plan is now complete; visual contract (`02c-craft.md`) authored. All ACs resolved, no blockers.
+  Consider `/compact` before implementing — four slice planning cycles of research are in context.
+- **Option B: plan lesson-renderer** — Author the lesson-renderer plan in parallel while
+  design-system-shell implements; not blocked, though lesson-renderer renders inside the AppShell
+  so its plan benefits from the shell being implemented first.
 - **Option C: revisit slice** — Not indicated; no slice-boundary issues found.

@@ -709,3 +709,323 @@ pre code {
   outline: 3px solid oklch(0.54 0.19 32 / 0.4);
   outline-offset: 2px;
 }
+
+/* ─── Lesson reading surface ─────────────────────────────────────────────── */
+
+.wp-lesson {
+  max-width: 72ch;
+  margin-inline: auto;
+  padding: 1.5rem 1rem;
+  font-family: var(--font-serif);
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+.wp-lesson-prose {
+  /* inherits .wp-lesson measure; inline HTML from sanitizeHtml lands here */
+}
+
+.wp-lesson-prose a {
+  color: var(--ember);
+}
+
+.wp-lesson-code {
+  background: var(--paper-mid);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-block: 1rem;
+}
+
+.wp-lesson-code pre {
+  margin: 0;
+}
+
+.wp-lesson-heading-2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.25;
+}
+
+.wp-lesson-heading-3 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: 2rem;
+  margin-bottom: 0.375rem;
+  line-height: 1.3;
+}
+
+.wp-lesson-citation {
+  border-left: 3px solid var(--ember);
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-block: 1.25rem;
+}
+
+.wp-lesson-citation-source {
+  font-style: normal;
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+  margin-top: 0.375rem;
+}
+
+.wp-lesson-citation-source a {
+  color: var(--ember);
+}
+
+.wp-lesson-source-block {
+  background: var(--ember-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-top: 2rem;
+}
+
+.wp-lesson-source-block-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.wp-lesson-source-block-link {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--ember-dark);
+}
+
+.wp-lesson-source-block-link:hover {
+  color: var(--ember);
+}
+
+.wp-lesson-sources {
+  border-top: 1px solid var(--border);
+  margin-top: 2rem;
+  padding-top: 1rem;
+}
+
+.wp-lesson-sources-heading {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.wp-lesson-sources-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.wp-lesson-sources-list li {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.wp-lesson-widget-rejected {
+  background: var(--paper-mid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  text-align: center;
+  margin-block: 1rem;
+}
+
+/* ─── Checkpoint widget ──────────────────────────────────────────────────── */
+
+.wp-checkpoint {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  background: var(--surface);
+  margin-block: 1.25rem;
+}
+
+.wp-checkpoint-question {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+.wp-checkpoint-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.wp-checkpoint-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  color: var(--ink);
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  transition: background-color var(--motion-fast), border-color var(--motion-fast);
+  min-height: 2.75rem;
+}
+
+.wp-checkpoint-option:hover:not([aria-disabled="true"]) {
+  background: var(--ember-subtle);
+  border-color: oklch(0.54 0.19 32 / 0.2);
+}
+
+.wp-checkpoint-option:focus-visible {
+  outline: 3px solid oklch(0.54 0.19 32 / 0.5);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.wp-checkpoint-option[aria-checked="true"] {
+  background: var(--ember-subtle);
+  border-color: var(--ember);
+  color: var(--ember-dark);
+  font-weight: 600;
+}
+
+.wp-checkpoint-explanation {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--paper-mid);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  color: var(--ink);
+  border-left: 3px solid var(--ember);
+}
+
+/* ─── Flipcard widget ────────────────────────────────────────────────────── */
+
+.wp-flipcard {
+  perspective: 600px;
+  cursor: pointer;
+  margin-block: 1.25rem;
+}
+
+.wp-flipcard-inner {
+  position: relative;
+  width: 100%;
+  min-height: 8rem;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wp-flipcard-inner {
+    transition: transform var(--motion-slow);
+  }
+
+  .wp-flipcard-inner.flipped {
+    transform: rotateY(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wp-flipcard-inner.flipped .wp-flipcard-front {
+    display: none;
+  }
+
+  .wp-flipcard-inner:not(.flipped) .wp-flipcard-back {
+    display: none;
+  }
+}
+
+.wp-flipcard-front,
+.wp-flipcard-back {
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wp-flipcard-front,
+  .wp-flipcard-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  .wp-flipcard-back {
+    transform: rotateY(180deg);
+    background: var(--ember-subtle);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wp-flipcard-front,
+  .wp-flipcard-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1rem;
+    color: var(--ink);
+    min-height: 8rem;
+  }
+
+  .wp-flipcard-back {
+    background: var(--ember-subtle);
+  }
+}
+
+.wp-flipcard-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  margin-bottom: 0.5rem;
+}
+
+.wp-flipcard-hint {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+/* ─── Lesson skeleton placeholder ─────────────────────────────────────────── */
+
+.wp-lesson-skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}

@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as ApiDemoStreamRouteImport } from './routes/api/demo-stream'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthenticatedLessonFixtureRouteImport } from './routes/_authenticated/lesson/fixture'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -51,6 +52,12 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedLessonFixtureRoute =
+  AuthenticatedLessonFixtureRouteImport.update({
+    id: '/lesson/fixture',
+    path: '/lesson/fixture',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/account': typeof AuthenticatedAccountRoute
   '/api/demo-stream': typeof ApiDemoStreamRoute
+  '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/': typeof AuthenticatedIndexRoute
+  '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -76,6 +85,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/account'
     | '/api/demo-stream'
+    | '/lesson/fixture'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/api/demo-stream'
     | '/'
+    | '/lesson/fixture'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -103,6 +115,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/api/demo-stream'
     | '/_authenticated/'
+    | '/_authenticated/lesson/fixture'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -165,17 +178,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/lesson/fixture': {
+      id: '/_authenticated/lesson/fixture'
+      path: '/lesson/fixture'
+      fullPath: '/lesson/fixture'
+      preLoaderRoute: typeof AuthenticatedLessonFixtureRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedLessonFixtureRoute: typeof AuthenticatedLessonFixtureRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedLessonFixtureRoute: AuthenticatedLessonFixtureRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -192,12 +214,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

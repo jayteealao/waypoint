@@ -5,13 +5,13 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T14:08:04Z"
-slices-implemented: 4
+updated-at: "2026-07-11T19:15:37Z"
+slices-implemented: 5
 slices-total: 12
-metric-total-files-changed: 85
-metric-total-lines-added: 18726
-metric-total-lines-removed: 360
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard]
+metric-total-files-changed: 103
+metric-total-lines-added: 20411
+metric-total-lines-removed: 369
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
@@ -118,11 +118,41 @@ next-invocation: "/wf verify waypoint-app design-system-shell"
   `transition: none` / `animation: none` override in the `reduce` branch. The contrast and motion
   smoke tests verify both branches.
 
+- **Lesson-renderer: `LessonDocumentV1` is the 3-slice contract** — `src/types/lesson-document.ts`
+  is consumed by sample-journey (fixture authoring), roadmap-lesson-generation (AI output schema),
+  and quiz-fsrs (checkpoint-question concept tagging). The `version: 1` discriminant allows additive
+  changes safely. Rename/delete/narrow fields requires a `version: 2` migration.
+
+- **Lesson-renderer: widget registry** — `resolveWidget(type, props)` in
+  `src/lib/lesson/widget-registry.ts` is the only interactivity path. New widget types must be
+  registered there with a `validate` type-guard and a React component. The registry is a module
+  singleton; registrations happen at import time.
+
+- **Lesson-renderer: `sanitizeHtml` + `sanitizerReady`** — `src/lib/lesson/sanitize.ts` exports
+  both. Prose content from AI output must go through `sanitizeHtml()` before `dangerouslySetInnerHTML`.
+  Tests that call `sanitizeHtml` must `await sanitizerReady` in `beforeAll` (jsdom environment required
+  for DOMPurify).
+
+- **Lesson-renderer: `getLesson` server function** — Returns raw `Lesson` with `content: string | null`.
+  Callers parse with `JSON.parse(row.content) as LessonDocumentV1`. TanStack Start's serialization
+  validator rejects `Record<string, unknown>` so parsing is deferred to the route loader.
+
+- **Lesson-renderer: fixture route** — `/_authenticated/lesson/fixture` serves the canonical
+  FIXTURE_LESSON. `?stream=simulate` activates `useSimulatedStream` for progressive-rendering tests.
+  Not exposed in the sidebar nav; dev/E2E use only.
+
+- **Lesson-renderer: CSS wp-lesson namespace** — `.wp-lesson`, `.wp-checkpoint`, `.wp-flipcard` class
+  families are appended to `src/styles.css`. No existing classes were modified.
+
+- **Lesson-renderer: `getLesson` does NOT parse content** — returns `Lesson` (content: string | null).
+  Route loaders call `JSON.parse(row.content) as LessonDocumentV1` after receiving the row.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app design-system-shell` — Contrast test passes; Playwright
-  tests skip gracefully without `BETTER_AUTH_SECRET`; typecheck clean. Ready for the verify gate.
-- **Option B:** `/wf review waypoint-app design-system-shell` — Skip verify if contrast smoke test
-  and typecheck are sufficient for the design review gate.
-- **Option C:** `/wf implement waypoint-app sample-journey` — Implement the next slice once
-  design-system-shell is verified/reviewed.
+- **Option A (default):** `/wf verify waypoint-app lesson-renderer` — AC-LR4 unit tests pass on
+  every `pnpm test` run. Playwright ACs deferred under existing ADL deferral
+  (BETTER_AUTH_SECRET wall); proxy evidence recorded.
+- **Option B:** `/wf review waypoint-app lesson-renderer` — Skip verify if proxy evidence is
+  sufficient for the code review gate.
+- **Option C:** `/wf implement waypoint-app sample-journey` — Can start immediately since
+  `LessonDocumentV1` schema and `LessonView` component are both available.

@@ -89,3 +89,23 @@ Cumulative log of product-owner Q&A across all stages.
 → Recorded: **Config, Ranger, and Hotkeys move from DON'T to LATER ("likely")** in the TanStack adoption matrix. **React Charts stays DON'T** (deprecated). **Workflow stays DON'T for v1, flagged watch** (pre-alpha; candidate for future lesson-gen pipelines). No v1 slice is affected — none of the three reclassified libraries appears in any slice scope; this changes the roadmap posture only. The 02-shape.md matrix formally picks this up at its next revision; this log entry is the authoritative record until then.
 
 **Related fact update (web-verified 2026-07-10):** since June 18, 2026, PlanetScale Postgres/MySQL can be provisioned from the Cloudflare dashboard and billed to the Cloudflare account (via Hyperdrive). This softens the shape's "Cloudflare doesn't host Postgres" fact — Cloudflare-billed but PlanetScale-hosted. PO has not ruled on whether this satisfies the "Cloudflare options only" constraint; v1 architecture (D1 + QueryCollections, DO sync as roadmap) is unchanged.
+
+## 2026-07-11T13:37Z — Stage 4 (plan) — design-system-shell autonomous discovery decisions
+
+All eight implementation-detail questions were answered autonomously per the autonomous-override policy (no human in the loop). Each decision is recorded here for auditability; a human PO would have been asked these had the policy not applied.
+
+1. **Visual contract image gate**: Skipped — the imagery skill is unavailable in the automated environment. The design brief's direction (scene sentence, OKLCH warm-ember palette, Duolingo/Headspace/Stripe Press anchors, explicit anti-goals) is specific enough to write the visual contract (`02c-craft.md`) without a generated mock. The palette is validated programmatically (Vitest contrast test) rather than visually, which is strictly more reliable. Recorded in `02c-craft.md` frontmatter as `image-gate: "skipped:autonomous-mode-imagery-skill-unavailable-direction-fully-specified-in-brief"`.
+
+2. **Palette naming strategy**: New token names (`--ember-*`, `--paper`, `--surface`, `--ink-*`) replace the old teal prototype names (`--sea-ink`, `--lagoon`, etc.) completely. Chosen over a coexistence approach to avoid confusion and double-maintenance. The grep audit in plan step 1 ensures no teal token survives.
+
+3. **No new package dependencies**: Design system implemented with CSS custom properties + Tailwind utilities + React components only. No component library (Radix, shadcn, Headless UI) added. Smallest blast radius: no new CVE surface, no new pinning requirement. If a later slice needs a complex interactive component, that slice adds the dependency.
+
+4. **DrawerNav: React state + CSS, not a portal**: The drawer renders in-tree with `position: fixed` for the visual overlay. A `createPortal` is needed only if a parent sets `overflow: hidden` or `transform`, which AppShell does not. Chosen over the portal approach to reduce complexity.
+
+5. **`_authenticated.tsx` layout route strategy**: A single pathless layout route provides the AppShell wrapper and auth guard for all signed-in surfaces (index + account). This replaces per-route `beforeLoad` guards. The TanStack Router 1.x file-based convention supports this pattern; behavior is verified in plan step 7's Playwright test.
+
+6. **Fraunces as dual-voice serif**: Already installed and used as `.display-title` for display text. Adopted as the lesson reading serif (Fraunces has an optical size axis suitable for reading text at `opsz` 9–144). Chosen over importing a second serif font to stay at the current bundle size.
+
+7. **OKLCH browser support accepted**: Chrome 111+, Firefox 113+, Safari 16.4+ — all modern browsers. Older mobile browsers see a hex fallback (`@supports` block in styles.css). Acceptable for v1 modern-browser target; no `will-change` or forced transform to work around it.
+
+8. **Seeded-session Playwright tests folded into existing ADL deferral**: AC-DSS1/3/4 Playwright tests need BETTER_AUTH_SECRET (same wall as AC-ADL1/ADL5). Rather than creating a second deferral entry for this slice, the existing deferral's clearing event covers these ACs simultaneously. Recorded as `harness-declined: accepted-into-existing-ADL-deferral` in the plan.

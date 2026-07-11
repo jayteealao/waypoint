@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: handoff
-stage-number: 8
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T15:45:00Z"
-selected-slice: "design-system-shell"
+updated-at: "2026-07-11T19:15:37Z"
+selected-slice: "lesson-renderer"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -37,6 +37,11 @@ runtime-evidence-deferrals:
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require HMAC-SHA-256 cookie signing. AC-DSS5 reclassified from auth-free to auth-required (DrawerNav lives inside AppShell). Proxy evidence: AC-DSS2 contrast smoke test (13 WCAG AA assertions) passes; typecheck clean; pnpm test 29/30 passing. Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
     recorded-at: "2026-07-11T14:08:04Z"
+  - ac: "AC-LR1 + AC-LR2 + AC-LR3 — seeded-session lesson renderer Playwright tests (reading experience at 3 breakpoints, widget interaction, progressive rendering)"
+    slice: lesson-renderer
+    reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /_authenticated/lesson/fixture require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5 and AC-DSS1/3/4/5). AC-LR4 (security/trust-model) fully covered by 19 adversarial Vitest unit tests (all passing). Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
+    cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
+    recorded-at: "2026-07-11T19:15:37Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -79,8 +84,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app lesson-renderer"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -262,14 +267,17 @@ workflow-files:
   - 07-review-design-system-shell.md
   - 07-review-design-system-shell.yaml
   - 07-review-design-system-shell.html.fragment
+  - 04-plan-lesson-renderer.md
+  - 04-plan-lesson-renderer.yaml
+  - 05-implement-lesson-renderer.md
 progress:
   intake: complete
   shape: complete
   slice: complete
   plan: complete
-  implement: complete
-  verify: complete
-  review: complete
+  implement: in-progress
+  verify: not-started
+  review: not-started
   handoff: not-started
   ship: not-started
   retro: not-started
