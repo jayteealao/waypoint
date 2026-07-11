@@ -17,6 +17,7 @@ declare namespace Cloudflare {
     BETTER_AUTH_SECRET: string
     BETTER_AUTH_BASE_URL: string | undefined
     BETTER_AUTH_API_KEY: string | undefined
+    OPENROUTER_API_KEY: string
   }
 }
 
@@ -29,4 +30,5 @@ interface Env {
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_BASE_URL: string | undefined
   BETTER_AUTH_API_KEY: string | undefined
+  OPENROUTER_API_KEY: string
 }

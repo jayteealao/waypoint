@@ -1229,3 +1229,75 @@ pre code {
   background: oklch(0.96 0.04 145);
   color: var(--success);
 }
+
+/* ── Quota card ───────────────────────────────────────────────────────────────
+   Shown when the user's daily AI generation allowance is exhausted.
+   Uses ember tokens for a warm, non-alarming feel. No red; no paywall styling.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.quota-card {
+  max-width: 32rem;
+  margin-inline: auto;
+}
+
+.quota-card__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.quota-card__heading {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--ember-dark);
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .quota-card__heading {
+    color: var(--ember-light);
+  }
+}
+
+:root[data-theme="dark"] .quota-card__heading {
+  color: var(--ember-light);
+}
+
+:root[data-theme="light"] .quota-card__heading {
+  color: var(--ember-dark);
+}
+
+.quota-card__body {
+  font-size: var(--font-size-base);
+  color: var(--ink);
+  margin: 0;
+}
+
+.quota-card__meter {
+  margin-block: var(--space-1);
+}
+
+.quota-card__meter .wp-meter-fill {
+  background: var(--ember);
+}
+
+.quota-card__reset {
+  font-size: var(--font-size-sm);
+  color: var(--ember-dark);
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .quota-card__reset {
+    color: var(--ember-light);
+  }
+}
+
+:root[data-theme="dark"] .quota-card__reset {
+  color: var(--ember-light);
+}
+
+:root[data-theme="light"] .quota-card__reset {
+  color: var(--ember-dark);
+}

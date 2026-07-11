@@ -9,6 +9,33 @@ import {
   createOpenAIFallbackClient,
   createOpenRouterClient,
 } from '#/lib/ai-client'
+import { callGateway } from '#/lib/ai/gateway'
+
+// ── Gateway-tier live smoke helpers ──────────────────────────────────────────
+
+/** In-memory D1 stub — quota always satisfied, inserts captured for assertions. */
+function makeLiveTestDb(): { db: D1Database; inserts: Record<string, unknown>[] } {
+  const inserts: Record<string, unknown>[] = []
+  const db: D1Database = {
+    prepare(sql: string) {
+      return {
+        bind(...args: unknown[]) {
+          return {
+            async first() { return { used: 0 } },
+            async run() {
+              if (sql.includes('INSERT INTO usage_events')) {
+                inserts.push({ sql, args })
+              }
+              return { meta: { changes: 1 }, success: true, results: [] }
+            },
+            async all() { return { results: [] } },
+          }
+        },
+      }
+    },
+  } as unknown as D1Database
+  return { db, inserts }
+}
 
 const TEST_MESSAGES: Array<{ role: 'user'; content: string }> = [
   {
@@ -53,6 +80,86 @@ describe('AI tool-call smoke test', () => {
       expect(typeof result.tool_use.name).toBe('string')
       expect(result.tool_use.name.length).toBeGreaterThan(0)
       expect(result.tool_use.input).toBeDefined()
+    },
+  )
+
+  // ── Gateway-tier live smoke (gateway slice) ─────────────────────────────
+  // Three tests: interview (tool-call), lesson (text), structured (roadmap, no tools).
+  // All skip when OPENROUTER_API_KEY is absent — pre-registered deferral (same as AC-PP2b).
+  // Cleared by: a tagged live run with the key present in environment.
+
+  test.skipIf(!process.env['OPENROUTER_API_KEY'])(
+    'gateway smoke: interview tier live tool-call (requires OPENROUTER_API_KEY)',
+    async () => {
+      const apiKey = process.env['OPENROUTER_API_KEY']!
+      const { db, inserts } = makeLiveTestDb()
+
+      const result = await callGateway({
+        env: { DB: db, OPENROUTER_API_KEY: apiKey },
+        userId: 'smoke-user',
+        journeyId: null,
+        type: 'interview',
+        messages: [
+          { role: 'user', content: 'Please call the echo_tool with text "pong". Return only the tool call.' },
+        ],
+        tools: [
+          { name: 'echo_tool', description: 'Echo back the provided text. Input: { text: string }' },
+        ],
+      })
+
+      expect(result).toBeDefined()
+      expect(result.toolUse).toBeDefined()
+      expect(typeof result.toolUse?.name).toBe('string')
+      // Usage row should have been inserted.
+      expect(inserts.length).toBeGreaterThanOrEqual(1)
+      expect(result.usage.model).toBeTruthy()
+    },
+  )
+
+  test.skipIf(!process.env['OPENROUTER_API_KEY'])(
+    'gateway smoke: lesson tier live text generation (requires OPENROUTER_API_KEY)',
+    async () => {
+      const apiKey = process.env['OPENROUTER_API_KEY']!
+      const { db, inserts } = makeLiveTestDb()
+
+      const result = await callGateway({
+        env: { DB: db, OPENROUTER_API_KEY: apiKey },
+        userId: 'smoke-user',
+        journeyId: null,
+        type: 'lesson',
+        messages: [
+          { role: 'user', content: 'In one sentence: what is a function in programming?' },
+        ],
+      })
+
+      expect(result).toBeDefined()
+      // Usage row should have been inserted.
+      expect(inserts.length).toBeGreaterThanOrEqual(1)
+      expect(result.usage.model).toBeTruthy()
+    },
+  )
+
+  test.skipIf(!process.env['OPENROUTER_API_KEY'])(
+    'gateway smoke: roadmap tier live structured call (requires OPENROUTER_API_KEY)',
+    async () => {
+      const apiKey = process.env['OPENROUTER_API_KEY']!
+      const { db, inserts } = makeLiveTestDb()
+
+      const result = await callGateway({
+        env: { DB: db, OPENROUTER_API_KEY: apiKey },
+        userId: 'smoke-user',
+        journeyId: null,
+        type: 'roadmap',
+        messages: [
+          { role: 'user', content: 'Reply with just the JSON: {"ok": true}' },
+        ],
+        // responseFormat drives structured-output path; no tools — invariant enforced.
+        responseFormat: { type: 'json_object' },
+      })
+
+      expect(result).toBeDefined()
+      expect(inserts.length).toBeGreaterThanOrEqual(1)
+      expect(result.usage.model).toBeTruthy()
     },
   )
 

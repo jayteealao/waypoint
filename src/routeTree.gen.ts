@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ApiDemoStreamRouteImport } from './routes/api/demo-stream'
 import { Route as AuthenticatedSampleRouteImport } from './routes/_authenticated/sample'
+import { Route as AuthenticatedQuotaFixtureRouteImport } from './routes/_authenticated/quota-fixture'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedSampleIndexRouteImport } from './routes/_authenticated/sample/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -52,6 +53,12 @@ const AuthenticatedSampleRoute = AuthenticatedSampleRouteImport.update({
   path: '/sample',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedQuotaFixtureRoute =
+  AuthenticatedQuotaFixtureRouteImport.update({
+    id: '/quota-fixture',
+    path: '/quota-fixture',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -97,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/sign-in': typeof SignInRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
@@ -110,6 +118,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/sign-in': typeof SignInRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/': typeof AuthenticatedIndexRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
@@ -125,6 +134,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/sign-in': typeof SignInRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/_authenticated/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/sign-in'
     | '/account'
+    | '/quota-fixture'
     | '/sample'
     | '/api/demo-stream'
     | '/lesson/fixture'
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/sign-in'
     | '/account'
+    | '/quota-fixture'
     | '/api/demo-stream'
     | '/'
     | '/lesson/fixture'
@@ -169,6 +181,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/sign-in'
     | '/_authenticated/account'
+    | '/_authenticated/quota-fixture'
     | '/_authenticated/sample'
     | '/api/demo-stream'
     | '/_authenticated/'
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/sample'
       fullPath: '/sample'
       preLoaderRoute: typeof AuthenticatedSampleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/quota-fixture': {
+      id: '/_authenticated/quota-fixture'
+      path: '/quota-fixture'
+      fullPath: '/quota-fixture'
+      preLoaderRoute: typeof AuthenticatedQuotaFixtureRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/account': {
@@ -303,6 +323,7 @@ const AuthenticatedSampleRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedQuotaFixtureRoute: typeof AuthenticatedQuotaFixtureRoute
   AuthenticatedSampleRoute: typeof AuthenticatedSampleRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedLessonFixtureRoute: typeof AuthenticatedLessonFixtureRoute
@@ -310,6 +331,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedQuotaFixtureRoute: AuthenticatedQuotaFixtureRoute,
   AuthenticatedSampleRoute: AuthenticatedSampleRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedLessonFixtureRoute: AuthenticatedLessonFixtureRoute,

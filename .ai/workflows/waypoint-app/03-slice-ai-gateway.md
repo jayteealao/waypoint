@@ -3,10 +3,10 @@ schema: sdlc/v1
 type: slice
 slug: waypoint-app
 slice-slug: ai-gateway
-status: defined
+status: complete
 stage-number: 3
 created-at: "2026-07-10T22:43:12Z"
-updated-at: "2026-07-10T22:43:12Z"
+updated-at: "2026-07-11T23:11:57Z"
 complexity: m
 depends-on: [platform-proofs, accounts-data-layer]
 tags: [tanstack-ai, model-tiering, quotas, instrumentation, fallback]

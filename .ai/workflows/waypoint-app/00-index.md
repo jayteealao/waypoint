@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T22:39:34Z"
-selected-slice: "sample-journey"
+updated-at: "2026-07-11T23:11:57Z"
+selected-slice: "ai-gateway"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -93,8 +93,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app ai-gateway"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -281,6 +281,9 @@ workflow-files:
   - 04-plan-sample-journey.md
   - 04-plan-sample-journey.yaml
   - 04-plan-sample-journey.html.fragment
+  - 04-plan-ai-gateway.md
+  - 04-plan-ai-gateway.yaml
+  - 04-plan-ai-gateway.html.fragment
   - 05-implement-lesson-renderer.md
   - 06-verify-lesson-renderer.md
   - 07-review-lesson-renderer-correctness.md
@@ -329,6 +332,7 @@ workflow-files:
   - 07-review-lesson-renderer.html.fragment
   - 05-implement-sample-journey.md
   - 06-verify-sample-journey.md
+  - 05-implement-ai-gateway.md
   - 07-review-sample-journey-correctness.md
   - 07-review-sample-journey-correctness.yaml
   - 07-review-sample-journey-correctness.html.fragment

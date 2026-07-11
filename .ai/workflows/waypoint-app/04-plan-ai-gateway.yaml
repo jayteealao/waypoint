@@ -1,0 +1,149 @@
+artifact: plan
+slice: ai-gateway
+
+modules:
+  - id: gateway
+    label: AI Gateway Core
+    role: domain
+  - id: quota
+    label: Quota Engine
+    role: domain
+  - id: ui
+    label: Quota UI
+    role: ui
+  - id: tests
+    label: Tests & Harness
+    role: test
+
+files:
+  - path: src/cloudflare-workers.d.ts
+    status: modified
+    role: infra
+    module: gateway
+    loc: 22
+    delta: { add: 2, rem: 0 }
+    planned_change: "Add OPENROUTER_API_KEY to Cloudflare.Env interface so gateway.ts can read it via env binding"
+
+  - path: src/lib/ai/tiers.ts
+    status: new
+    role: domain
+    module: gateway
+    loc: 60
+    delta: { add: 60, rem: 0 }
+    planned_change: "Model tier config: interview/lesson/structured model IDs, per-tier fallback chains, and pricing metadata ($/1M tokens). All values are typed constants — env-override pattern documented but no new env vars required"
+
+  - path: src/lib/ai/quota.ts
+    status: new
+    role: domain
+    module: quota
+    loc: 80
+    delta: { add: 80, rem: 0 }
+    planned_change: "D1-backed quota engine: checkQuota() sums cost_usd from usage_events over a daily window; enforces $0.50/day default limit. Returns QuotaStatus { allowed, used, limit, resetAt } for both gate and UI"
+
+  - path: src/lib/ai/gateway.ts
+    status: new
+    role: domain
+    module: gateway
+    loc: 130
+    delta: { add: 130, rem: 0 }
+    planned_change: "Core gateway: callGateway({ env, userId, journeyId, type, messages, tools }) → AIResponse. Applies quota gate, selects tier adapter, runs retry/fallback loop, records usage to D1, emits instrumentation signals from 04b-instrument.md"
+
+  - path: src/components/quota/QuotaCard.tsx
+    status: new
+    role: ui
+    module: ui
+    loc: 50
+    delta: { add: 50, rem: 0 }
+    planned_change: "Warm blocking card: renders when quota exhausted. Shows human-readable daily usage, limit, and next reset time. No paywall language, no upsell — friendly friction per shape's 'warm, no dark patterns' requirement"
+
+  - path: src/styles.css
+    status: modified
+    role: ui
+    module: ui
+    loc: 420
+    delta: { add: 18, rem: 0 }
+    planned_change: "Add .quota-card, .quota-card__reset, .quota-card__bar styles using existing ember design tokens (--color-ember-*, --radius-*, --space-*)"
+
+  - path: src/server/ai.ts
+    status: new
+    role: domain
+    module: gateway
+    loc: 50
+    delta: { add: 50, rem: 0 }
+    planned_change: "TanStack Start server function: getQuotaStatus() — reads current quota state for the authenticated user via quota.ts. Used by fixture route and future consumers"
+
+  - path: src/routes/_authenticated/quota-fixture.tsx
+    status: new
+    role: ui
+    module: tests
+    loc: 40
+    delta: { add: 40, rem: 0 }
+    planned_change: "Test harness route at /_authenticated/quota-fixture. Exercises the quota gate: if quota not exhausted shows 'quota OK'; if exhausted renders QuotaCard. Mirrors lesson-renderer fixture pattern for Playwright seeded-session tests"
+
+  - path: tests/smoke/ai-gateway.test.ts
+    status: new
+    role: test
+    module: tests
+    loc: 130
+    delta: { add: 130, rem: 0 }
+    planned_change: "Vitest unit tests (// @vitest-environment node): quota enforcement (zero LLM calls when exhausted), usage recording, fallback chain execution order, tier routing to correct model, structured+tool-call separation invariant"
+
+  - path: tests/smoke/ai-tool-call.test.ts
+    status: modified
+    role: test
+    module: tests
+    loc: 84
+    delta: { add: 25, rem: 0 }
+    planned_change: "Append three gateway-tier live smoke tests (skipIf !OPENROUTER_API_KEY): one interview-tier turn, one lesson-tier text generation, one structured-tier call — each asserting usage payload recorded"
+
+edges:
+  - from: src/lib/ai/gateway.ts
+    to: src/lib/ai/tiers.ts
+    kind: import
+  - from: src/lib/ai/gateway.ts
+    to: src/lib/ai/quota.ts
+    kind: import
+  - from: src/lib/ai/gateway.ts
+    to: src/lib/ai-client.ts
+    kind: import
+    label: "wraps existing adapter factories"
+  - from: src/server/ai.ts
+    to: src/lib/ai/gateway.ts
+    kind: import
+  - from: src/server/ai.ts
+    to: src/lib/ai/quota.ts
+    kind: import
+  - from: src/routes/_authenticated/quota-fixture.tsx
+    to: src/server/ai.ts
+    kind: import
+  - from: src/components/quota/QuotaCard.tsx
+    to: src/styles.css
+    kind: import
+    label: "ember token styles"
+  - from: tests/smoke/ai-gateway.test.ts
+    to: src/lib/ai/gateway.ts
+    kind: import
+  - from: tests/smoke/ai-gateway.test.ts
+    to: src/lib/ai/quota.ts
+    kind: import
+
+risks:
+  - id: cost-math-precision
+    title: OpenRouter usage payload cost precision
+    severity: high
+    body: "The OpenRouter usage payload includes usage.total_cost (in USD). Prefer this over recomputing from token counts + pricing table to avoid model-swap mispricing. If total_cost is absent (adapter difference), fall back to the pricing table and log a warning."
+    mitigation: "Prefer usage.total_cost; treat pricing metadata as config in tiers.ts, not hardcoded constants; unit test the cost path with both present and absent total_cost."
+
+  - id: quota-unit-pivot
+    title: Quota unit is daily cost_usd — consumer slices must not assume token counts
+    severity: med
+    body: "All four generation consumer slices (tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress) will call callGateway(). If the quota unit ever pivots to tokens, the gate logic changes in quota.ts only — consumers never see token arithmetic."
+    mitigation: "Gateway returns QuotaStatus shape; consumers receive an already-typed result. The usage_events table records prompt_tokens + completion_tokens + cost_usd so a future pivot needs no schema migration."
+
+  - id: structured-tool-call-separation
+    title: Structured-output calls and tool calls must never be combined
+    severity: med
+    body: "Shape's rule: a single request may not use both structured output (JSON mode / response_format) and tool calls. The structured tier enforces this; tiers.ts documents the invariant and a unit test asserts it."
+    mitigation: "Encode the invariant as a TypeScript discriminated union on TierCall (either tools OR responseFormat, never both). Unit test asserts callGateway throws on invalid input."
+
+history: []

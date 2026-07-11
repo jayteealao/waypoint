@@ -5,13 +5,13 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T20:51:58Z"
-slices-implemented: 6
+updated-at: "2026-07-11T23:11:57Z"
+slices-implemented: 7
 slices-total: 12
-metric-total-files-changed: 118
-metric-total-lines-added: 21834
+metric-total-files-changed: 129
+metric-total-lines-added: 23018
 metric-total-lines-removed: 430
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model]
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
@@ -170,8 +170,34 @@ next-invocation: "/wf verify waypoint-app sample-journey"
   interface. `QuizView` is parameterised on `SampleQuizQuestion[]`; if the real question type is
   compatible, `QuizView` can be reused directly.
 
+- **AI-gateway: `callGateway()` is the exclusive LLM entry point** — `tutor-interview`,
+  `roadmap-lesson-generation`, `quiz-fsrs`, and `adaptation-progress` MUST call `callGateway()`
+  from `src/lib/ai/gateway.ts`. Direct use of `createOpenRouterClient` / `createOpenAIFallbackClient`
+  / `createMockAIClient` from `src/lib/ai-client.ts` is only for unit tests and the gateway's own
+  fallback chain internals. Consumer slices that bypass `callGateway()` silently skip quota enforcement
+  and usage recording.
+
+- **AI-gateway: `GenerationType` is `'interview' | 'lesson' | 'quiz' | 'roadmap'`** — matches the
+  `usage_events.type` CHECK constraint in D1. Slices must use one of these four values as `type` in
+  their `callGateway()` call. Adding a new generation type requires both a `tiers.ts` entry AND a
+  D1 schema migration updating the CHECK constraint.
+
+- **AI-gateway: `getQuotaStatus` returns `QuotaStatusSerialized`** — `resetAt` is an ISO-8601 string
+  (not a `Date`) for JSON transport across the server function boundary. Route loaders that use the
+  result must `new Date(status.resetAt)` before passing to components. The `quota-fixture.tsx` route
+  shows the canonical deserialization pattern.
+
+- **AI-gateway: `QuotaCard` expects `QuotaStatus` (Date, not string)** — the component takes
+  `{ status: QuotaStatus }` where `resetAt` is a `Date`. Always deserialize before rendering.
+
+- **AI-gateway: `checkQuota` takes an optional `requestType`** — the third arg is `GenerationType | undefined`
+  and is included in the `quota.rejected` signal for attribution. Consumer slices must pass `type` as the third arg.
+
+- **AI-gateway: quota card `data-testid="quota-card"` is on a wrapper `<div>`** — not on the inner `<Card>`.
+  Playwright selectors must use `[data-testid="quota-card"]` not a Card class selector.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app sample-journey` — 11 Vitest unit tests pass (equal-length lint, scoring, attempt format). Playwright ACs deferred under existing ADL deferral (BETTER_AUTH_SECRET wall); proxy evidence recorded.
-- **Option B:** `/wf review waypoint-app sample-journey` — Skip verify if proxy evidence is sufficient.
-- **Option C:** `/wf implement waypoint-app ai-gateway` — Next in the ordered sequence; can start immediately as sample-journey has no blocking dependency on ai-gateway.
+- **Option A (default):** `/wf verify waypoint-app ai-gateway` — 8 unit tests pass; Playwright harness route live; BETTER_AUTH_SECRET + OPENROUTER_API_KEY walls pre-registered.
+- **Option B:** `/wf review waypoint-app ai-gateway` — Skip verify; unit tests provide strong proxy evidence for all observable-false ACs.
+- **Option C (from prior state):** `/wf verify waypoint-app sample-journey` — 11 Vitest unit tests pass; Playwright ACs deferred under existing ADL deferral (BETTER_AUTH_SECRET wall); proxy evidence recorded.
