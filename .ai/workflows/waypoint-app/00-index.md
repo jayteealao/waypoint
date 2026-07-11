@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T01:10:00Z"
+updated-at: "2026-07-11T08:47:58Z"
 selected-slice: "foundation"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -16,6 +16,12 @@ review-scope: per-slice
 pr-url: ""
 pr-number: 0
 open-questions: []
+runtime-evidence-deferrals:
+  - ac: "AC-F4 — CI gates run on push (lint, typecheck, tests, pnpm audit)"
+    slice: foundation
+    reason: "No GitHub remote / no PR to main exists; the CI workflow only triggers on PRs targeting main, and yolo never opens PRs. Plan pre-authorized constraint-resolution: proxy+deferral. Local proxies (typecheck, lint, Vitest 1/1, Playwright e2e 1/1, pnpm audit clean, exact-pin check) all pass; .github/workflows/ci.yml structurally complete with all required gates."
+    cleared-by: "first PR targeting main (at handoff) triggering a green GitHub Actions run"
+    recorded-at: "2026-07-11T08:30:00Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
