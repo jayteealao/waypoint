@@ -22,9 +22,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm exec wrangler dev --port 8787',
+    // @cloudflare/vite-plugin projects require a Vite build before wrangler dev
+    // can serve the worker entry. The build outputs dist/server/wrangler.json with
+    // main: "index.js". reuseExistingServer allows pre-starting manually in dev.
+    command: 'pnpm build && pnpm exec wrangler dev --config dist/server/wrangler.json --port 8787',
     url: 'http://localhost:8787',
     reuseExistingServer: !process.env['CI'],
-    timeout: 60_000,
+    timeout: 120_000,
   },
 })
