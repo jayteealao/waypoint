@@ -14,13 +14,13 @@ import { createAuthClient } from 'better-auth/react'
  * plugin-specific types would be added here in later slices if custom
  * better-auth plugins are introduced.
  */
-const _baseURL =
+const baseURL =
   typeof window !== 'undefined'
     ? `${window.location.origin}/api/auth`
     : `${process.env['VITE_APP_URL'] ?? 'http://localhost:3000'}/api/auth`
 
 export const authClient = createAuthClient({
-  baseURL: _baseURL,
+  baseURL,
 })
 
 // Named re-exports for ergonomic imports in route components.

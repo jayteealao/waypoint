@@ -21,7 +21,14 @@ function AccountPage() {
   const user = sessionData?.user
 
   const handleSignOut = async () => {
-    await signOut()
+    try {
+      await signOut()
+    } catch (err) {
+      // Log the failure but do not navigate — the user remains signed in
+      // and can retry. A future slice can surface a toast or error message here.
+      console.error('Sign out failed:', err)
+      return
+    }
     await navigate({ to: '/sign-in' })
   }
 

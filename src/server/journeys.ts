@@ -86,21 +86,24 @@ export const updateJourney = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data, context }): Promise<Journey> => {
     const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
-    const journey = await env.DB.prepare('SELECT * FROM journeys WHERE id = ?')
+
+    // Fetch current values (needed to fill unpatched fields).
+    const current = await env.DB.prepare('SELECT * FROM journeys WHERE id = ?')
       .bind(data.id)
       .first<Journey>()
-    if (!journey) throw new Response(null, { status: 404 })
-    requireOwnership(session.user.id, journey.user_id)
+    if (!current) throw new Response(null, { status: 404 })
 
-    const updated: Journey = {
-      ...journey,
-      ...data.patch,
-      updated_at: Date.now(),
-    }
-    await env.DB.prepare(
-      'UPDATE journeys SET title = ?, goal = ?, status = ?, updated_at = ? WHERE id = ?',
+    // Apply patch in TypeScript, then write atomically with ownership in the WHERE
+    // clause — if the row doesn't belong to this user, meta.changes === 0 → 403.
+    const now = Date.now()
+    const updated: Journey = { ...current, ...data.patch, updated_at: now }
+    const meta = await env.DB.prepare(
+      'UPDATE journeys SET title = ?, goal = ?, status = ?, updated_at = ? WHERE id = ? AND user_id = ?',
     )
-      .bind(updated.title, updated.goal, updated.status, updated.updated_at, data.id)
+      .bind(updated.title, updated.goal, updated.status, updated.updated_at, data.id, session.user.id)
       .run()
+
+    // D1 meta.changes is the number of rows affected; 0 means ownership check failed.
+    if (meta.meta.changes === 0) throw new Response(null, { status: 403 })
     return updated
   })

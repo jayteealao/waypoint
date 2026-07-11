@@ -47,9 +47,15 @@ export const journeysCollection = createCollection<Journey, string>({
           commit()
           markReady()
         })
-        .catch(() => {
-          // Auth errors (401/403): mark ready so the collection unblocks;
-          // the collection will be empty and the component handles the empty state.
+        .catch((err: unknown) => {
+          // Auth errors (401/403): expected when the user is unauthenticated or
+          // unauthorized — mark ready with an empty collection. The route guard
+          // will redirect to sign-in before the component renders.
+          // All other errors (D1 unavailable, network failure, etc.) are logged
+          // so they surface in developer tools and Cloudflare Logpush.
+          if (!(err instanceof Response) || (err.status !== 401 && err.status !== 403)) {
+            console.error('[journeys-collection] unexpected sync error:', err)
+          }
           markReady()
         })
     },

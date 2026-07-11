@@ -48,14 +48,24 @@ async function signSessionToken(token: string, secret: string): Promise<string> 
   return encodeURIComponent(`${token}.${sig}`)
 }
 
+/** Escape single quotes for SQL string literals (SQLite convention: double the quote). */
+function sqlEsc(s: string): string {
+  return s.replace(/'/g, "''")
+}
+
 /** Seed a user and session row into local D1 using the wrangler CLI. */
 function seedUser(userId: string, name: string, email: string, sessionToken: string) {
   const now = Date.now()
   const expiresAt = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString()
   const createdAt = new Date(now).toISOString()
 
-  const userSql = `INSERT OR REPLACE INTO user (id, name, email, emailVerified, image, createdAt, updatedAt) VALUES ('${userId}', '${name}', '${email}', 1, NULL, '${createdAt}', '${createdAt}');`
-  const sessionSql = `INSERT OR REPLACE INTO session (id, userId, token, expiresAt, ipAddress, userAgent, createdAt, updatedAt) VALUES ('${sessionToken}-session', '${userId}', '${sessionToken}', '${expiresAt}', NULL, 'playwright-e2e', '${createdAt}', '${createdAt}');`
+  const uId = sqlEsc(userId)
+  const uName = sqlEsc(name)
+  const uEmail = sqlEsc(email)
+  const uToken = sqlEsc(sessionToken)
+
+  const userSql = `INSERT OR REPLACE INTO user (id, name, email, emailVerified, image, createdAt, updatedAt) VALUES ('${uId}', '${uName}', '${uEmail}', 1, NULL, '${createdAt}', '${createdAt}');`
+  const sessionSql = `INSERT OR REPLACE INTO session (id, userId, token, expiresAt, ipAddress, userAgent, createdAt, updatedAt) VALUES ('${uToken}-session', '${uId}', '${uToken}', '${expiresAt}', NULL, 'playwright-e2e', '${createdAt}', '${createdAt}');`
 
   execSync(
     `pnpm exec wrangler d1 execute waypoint-dev --local --command="${userSql.replace(/"/g, '\\"')}"`,
