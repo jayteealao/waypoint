@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: verify
+stage-number: 6
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T12:52:05Z"
+updated-at: "2026-07-11T13:04:46Z"
 selected-slice: "accounts-data-layer"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -27,6 +27,11 @@ runtime-evidence-deferrals:
     reason: "OPENROUTER_API_KEY (PO-provided secret) not present in the automated environment; the live-smoke test's skipIf gate fires as designed. Plan pre-authorized constraint-resolution: proxy+deferral. Proxy evidence: mocked tool-call proof (AC-PP2a) passes; wrangler-dev SSE + D1 proofs pass under workerd (commit 7da0ab7)."
     cleared-by: "a tagged live-smoke run with OPENROUTER_API_KEY present (or /wf probe in a keyed environment)"
     recorded-at: "2026-07-11T10:30:00Z"
+  - ac: "AC-ADL1 + AC-ADL5 — seeded-session proxy tests (session persistence, cross-account isolation, identity display, sign-out)"
+    slice: accounts-data-layer
+    reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require this secret for HMAC-SHA-256 cookie signing. Ladder climbed: (rung 1) 2 always-run Playwright tests pass (sign-in UI, account redirect); (rung 2) BETTER_AUTH_SECRET env var checked — absent; (rung 3) seeded-session proxy requires the secret — residual: 3 proxy tests skip by design. Real OAuth flow is the original pre-registered plan residual. Plan pre-authorized constraint-resolution: proxy+deferral."
+    cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars, OR first deployed Google+GitHub sign-in on deployed environment"
+    recorded-at: "2026-07-11T13:04:46Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -69,8 +74,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app accounts-data-layer"
+next-command: wf-review
+next-invocation: "/wf review waypoint-app accounts-data-layer"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -114,6 +119,7 @@ workflow-files:
   - 06-verify-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md
+  - 06-verify-accounts-data-layer.md
   - 07-review-foundation-correctness.md
   - 07-review-foundation-correctness.yaml
   - 07-review-foundation-correctness.html.fragment
@@ -179,8 +185,8 @@ progress:
   slice: complete
   plan: complete
   implement: complete
-  verify: complete
-  review: complete
+  verify: in-progress
+  review: in-progress
   handoff: not-started
   ship: not-started
   retro: not-started
