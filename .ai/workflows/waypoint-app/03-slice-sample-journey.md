@@ -3,10 +3,10 @@ schema: sdlc/v1
 type: slice
 slug: waypoint-app
 slice-slug: sample-journey
-status: defined
+status: complete
 stage-number: 3
 created-at: "2026-07-10T22:43:12Z"
-updated-at: "2026-07-10T22:43:12Z"
+updated-at: "2026-07-11T20:51:58Z"
 complexity: m
 depends-on: [lesson-renderer]
 tags: [first-run, fixtures, quiz-surface, milestone]
