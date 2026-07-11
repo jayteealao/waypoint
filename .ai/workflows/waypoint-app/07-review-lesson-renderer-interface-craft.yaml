@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: interface-craft
+parent: 07-review-lesson-renderer.md
+rev: 1
+verdict: caveats
+summary: "One LOW finding (deferred): LessonView uses inline style objects for h1, summary, and author spans instead of CSS classes. The reading surface correctly uses Fraunces at 72ch measure; no alignment, radius, or shadow issues."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: IC-1
+    severity: LOW
+    file: src/components/lesson/LessonView.tsx
+    line: 22
+    confidence: Med
+    action: defer
+    msg: "Inline style objects for h1 spacing/size and summary/author spans — should be CSS classes for design-token-based future changes"
+    evidence: "style={{ marginBottom: '0.25rem', fontSize: '2rem', fontWeight: 700 }} on h1; style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-sans)' }} on summary and author spans"
+    fix: "Move inline styles to .wp-lesson-title and .wp-lesson-summary CSS classes in src/styles.css"
+    status: deferred
+    surfaced-at: "2026-07-11T20:02:45Z"
+    pre-existing: false

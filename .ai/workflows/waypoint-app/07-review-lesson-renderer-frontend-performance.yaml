@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: frontend-performance
+parent: 07-review-lesson-renderer.md
+rev: 1
+verdict: caveats
+summary: "One LOW finding (deferred): DOMPurify 74KB gzipped appears in the SSR bundle due to Rollup bundling the dynamic import. No performance issues in the client rendering path."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: FP-1
+    severity: LOW
+    file: src/lib/lesson/sanitize.ts
+    line: 50
+    confidence: Med
+    action: defer
+    msg: "DOMPurify 74KB gzipped ends up in SSR bundle despite typeof-document guard — Rollup bundles the dynamic import target"
+    evidence: "dist/server/assets/purify.es-B5YO6vAB.js present in server build; documented in verify record"
+    fix: "Use a virtual module or ssr.external Vite config to exclude dompurify from SSR bundle. Not localized — requires build config investigation."
+    status: deferred
+    surfaced-at: "2026-07-11T20:02:45Z"
+    pre-existing: false

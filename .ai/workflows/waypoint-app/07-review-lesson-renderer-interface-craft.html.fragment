@@ -1,0 +1,21 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.rd-ic .rd-chip { display:inline-flex; align-items:center; gap:0.4rem; padding:0.35rem 0.75rem; border-radius:9999px; font-size:0.8rem; font-weight:600; background:oklch(0.80 0.10 250/0.15); color:oklch(0.40 0.10 250); border:1px solid oklch(0.80 0.10 250/0.3); margin-bottom:0.75rem; }
+.rd-ic .rd-note { border:1px solid oklch(0.85 0.01 260/0.35); border-radius:0.5rem; padding:0.75rem 1rem; font-size:0.84rem; }
+@media (prefers-color-scheme:dark) { .rd-ic .rd-note { border-color:oklch(0.30 0.01 260/0.5); } .rd-ic .rd-chip { background:oklch(0.25 0.08 250/0.3); color:oklch(0.70 0.10 250); } }
+:root[data-theme="dark"] .rd-ic .rd-note { border-color:oklch(0.30 0.01 260/0.5); }
+:root[data-theme="dark"] .rd-ic .rd-chip { background:oklch(0.25 0.08 250/0.3); color:oklch(0.70 0.10 250); }
+</style>
+<div class="rd-ic">
+  <span class="rd-chip">LOW · deferred</span>
+  <div class="rd-note">
+    <strong>IC-1 — Inline styles in LessonView</strong><br>
+    <code>LessonView.tsx:22-27</code> — <code>h1</code> title, summary paragraph, and author spans use inline <code>style={{}}</code> objects instead of CSS classes. Design token changes (font size, spacing) would require code changes rather than CSS updates. Deferred: requires parallel CSS change to <code>src/styles.css</code>, outside the current fix scope.
+  </div>
+</div>
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', { detail:{name:'review-dimension',artifact:'review-dimension',dimension:'interface-craft',counts:{findings:1,blockers:0}} }));
+})();
+</script>
+</section>

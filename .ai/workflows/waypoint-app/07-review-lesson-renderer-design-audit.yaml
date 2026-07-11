@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: design-audit
+parent: 07-review-lesson-renderer.md
+rev: 1
+verdict: ship
+summary: "Clean. The lesson reading surface honors all craft doc constraints: Fraunces serif via --font-serif, OKLCH ember token set for citations and source cards, 72ch reading measure, dual-theme via CSS custom properties. Playwright screenshots at 3 breakpoints (verified in 06-verify) confirm no overflow."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

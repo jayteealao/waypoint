@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T19:49:36Z"
+updated-at: "2026-07-11T20:30:00Z"
 selected-slice: "lesson-renderer"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -86,8 +86,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app lesson-renderer"
+next-command: wf-implement
+next-invocation: "/wf implement waypoint-app sample-journey"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -273,14 +273,58 @@ workflow-files:
   - 04-plan-lesson-renderer.yaml
   - 05-implement-lesson-renderer.md
   - 06-verify-lesson-renderer.md
+  - 07-review-lesson-renderer-correctness.md
+  - 07-review-lesson-renderer-correctness.yaml
+  - 07-review-lesson-renderer-correctness.html.fragment
+  - 07-review-lesson-renderer-security.md
+  - 07-review-lesson-renderer-security.yaml
+  - 07-review-lesson-renderer-security.html.fragment
+  - 07-review-lesson-renderer-code-simplification.md
+  - 07-review-lesson-renderer-code-simplification.yaml
+  - 07-review-lesson-renderer-code-simplification.html.fragment
+  - 07-review-lesson-renderer-accessibility.md
+  - 07-review-lesson-renderer-accessibility.yaml
+  - 07-review-lesson-renderer-accessibility.html.fragment
+  - 07-review-lesson-renderer-frontend-accessibility.md
+  - 07-review-lesson-renderer-frontend-accessibility.yaml
+  - 07-review-lesson-renderer-frontend-accessibility.html.fragment
+  - 07-review-lesson-renderer-frontend-performance.md
+  - 07-review-lesson-renderer-frontend-performance.yaml
+  - 07-review-lesson-renderer-frontend-performance.html.fragment
+  - 07-review-lesson-renderer-interface-craft.md
+  - 07-review-lesson-renderer-interface-craft.yaml
+  - 07-review-lesson-renderer-interface-craft.html.fragment
+  - 07-review-lesson-renderer-ux-copy.md
+  - 07-review-lesson-renderer-ux-copy.yaml
+  - 07-review-lesson-renderer-ux-copy.html.fragment
+  - 07-review-lesson-renderer-testing.md
+  - 07-review-lesson-renderer-testing.yaml
+  - 07-review-lesson-renderer-testing.html.fragment
+  - 07-review-lesson-renderer-maintainability.md
+  - 07-review-lesson-renderer-maintainability.yaml
+  - 07-review-lesson-renderer-reliability.md
+  - 07-review-lesson-renderer-reliability.yaml
+  - 07-review-lesson-renderer-reliability.html.fragment
+  - 07-review-lesson-renderer-motion.md
+  - 07-review-lesson-renderer-motion.yaml
+  - 07-review-lesson-renderer-architecture.md
+  - 07-review-lesson-renderer-architecture.yaml
+  - 07-review-lesson-renderer-architecture.html.fragment
+  - 07-review-lesson-renderer-design-audit.md
+  - 07-review-lesson-renderer-design-audit.yaml
+  - 07-review-lesson-renderer-design-critique.md
+  - 07-review-lesson-renderer-design-critique.yaml
+  - 07-review-lesson-renderer.md
+  - 07-review-lesson-renderer.yaml
+  - 07-review-lesson-renderer.html.fragment
 progress:
   intake: complete
   shape: complete
   slice: complete
   plan: complete
   implement: complete
-  verify: in-progress
-  review: not-started
+  verify: complete
+  review: complete
   handoff: not-started
   ship: not-started
   retro: not-started

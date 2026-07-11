@@ -1,0 +1,37 @@
+artifact: review-dimension
+dimension: code-simplification
+parent: 07-review-lesson-renderer.md
+rev: 1
+verdict: ship
+summary: "Two NITs: justified any-cast in LessonSection widget dispatch, and PartialLessonDocument could be a utility type. Both are deferred — the any cast has an explanatory comment and the interface is readable. Overall the code is appropriately minimal."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 2
+findings:
+  - id: CS-1
+    severity: NIT
+    file: src/components/lesson/LessonSection.tsx
+    line: 127
+    confidence: Med
+    action: defer
+    msg: "eslint-disable any cast in widget dispatch — justified but could use generic typed helper"
+    evidence: "const WidgetComponent = resolved.component as React.ComponentType<any>"
+    fix: "Extract a typed renderWidget<P> helper that carries the generic. Or accept the any — the comment explains the TypeScript limitation."
+    status: deferred
+    surfaced-at: "2026-07-11T20:02:45Z"
+    pre-existing: false
+  - id: CS-2
+    severity: NIT
+    file: src/types/lesson-document.ts
+    line: 82
+    confidence: Low
+    action: defer
+    msg: "PartialLessonDocument interface is a manual repetition of LessonDocumentV1 — could be a utility type"
+    evidence: "PartialLessonDocument repeats all LessonDocumentV1 fields with sections: (LessonSection|null)[]"
+    fix: "type PartialLessonDocument = Omit<LessonDocumentV1,'sections'> & { sections: (LessonSection | null)[] }"
+    status: deferred
+    surfaced-at: "2026-07-11T20:02:45Z"
+    pre-existing: false

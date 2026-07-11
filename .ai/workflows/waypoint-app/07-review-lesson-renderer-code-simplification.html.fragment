@@ -1,0 +1,22 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.rd-cs .rd-nit-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.5rem; }
+.rd-cs .rd-nit { padding:0.5rem 0.875rem; border:1px solid oklch(0.85 0.01 260/0.3); border-radius:0.375rem; font-size:0.83rem; display:flex; gap:0.5rem; align-items:baseline; }
+.rd-cs .rd-nit-badge { font-size:0.68rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:0.2rem; background:oklch(0.88 0.005 260/0.5); color:oklch(0.50 0.01 260); white-space:nowrap; }
+.rd-cs .rd-loc { font-family:ui-monospace,monospace; font-size:0.77rem; color:oklch(0.55 0.05 260); }
+@media (prefers-color-scheme:dark) { .rd-cs .rd-nit { border-color:oklch(0.30 0.01 260/0.4); } .rd-cs .rd-nit-badge { background:oklch(0.22 0.01 260/0.5); color:oklch(0.65 0.01 260); } }
+:root[data-theme="dark"] .rd-cs .rd-nit { border-color:oklch(0.30 0.01 260/0.4); }
+:root[data-theme="dark"] .rd-cs .rd-nit-badge { background:oklch(0.22 0.01 260/0.5); color:oklch(0.65 0.01 260); }
+</style>
+<div class="rd-cs">
+  <ul class="rd-nit-list" role="list">
+    <li class="rd-nit"><span class="rd-nit-badge">NIT · CS-1 · deferred</span><span><code>any</code> cast in widget dispatch — justified, comment present — <span class="rd-loc">LessonSection.tsx:127</span></span></li>
+    <li class="rd-nit"><span class="rd-nit-badge">NIT · CS-2 · deferred</span><span><code>PartialLessonDocument</code> repeats <code>LessonDocumentV1</code> fields — could be <code>Omit&lt;...&gt; &amp; { sections }</code> — <span class="rd-loc">lesson-document.ts:82</span></span></li>
+  </ul>
+</div>
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', { detail:{name:'review-dimension',artifact:'review-dimension',dimension:'code-simplification',counts:{findings:2,blockers:0}} }));
+})();
+</script>
+</section>

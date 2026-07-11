@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: architecture
+parent: 07-review-lesson-renderer.md
+rev: 1
+verdict: ship
+summary: "One NIT: widget-registry.ts imports both widget components at module load (no lazy registration). Acceptable for v1 with 2 widgets. Schema-first design is sound; the module boundaries (types / registry / sanitize / components / routes) are clean."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 1
+findings:
+  - id: ARCH-1
+    severity: NIT
+    file: src/lib/lesson/widget-registry.ts
+    line: 18
+    confidence: Low
+    action: defer
+    msg: "Widget components imported at module level — always bundled even if a lesson has no widgets"
+    evidence: "import { CheckpointQuestion } from '#/components/lesson/widgets/CheckpointQuestion'"
+    fix: "Use dynamic imports in register() for lazy loading. Not needed until widget count grows or bundle size becomes a concern."
+    status: deferred
+    surfaced-at: "2026-07-11T20:02:45Z"
+    pre-existing: false

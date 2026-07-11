@@ -1,0 +1,86 @@
+<section class="fragment-review" data-artifact="review" data-rev="1">
+<style>
+/* Review fragment styles — scoped under .fragment-review */
+.fragment-review .fr-heatmap { display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:0.5rem; margin-bottom:1.25rem; }
+.fragment-review .fr-dim-chip { padding:0.5rem 0.75rem; border-radius:0.5rem; font-size:0.78rem; border:1px solid oklch(0.85 0.01 260/0.35); }
+.fragment-review .fr-dim-chip .fr-dim-name { font-weight:600; margin-bottom:0.2rem; font-size:0.75rem; }
+.fragment-review .fr-dim-chip .fr-dim-verdict { font-size:0.7rem; }
+.fragment-review .fr-dim-chip[data-verdict="ship"] { background:oklch(0.96 0.02 150/0.25); border-color:oklch(0.70 0.12 150/0.3); }
+.fragment-review .fr-dim-chip[data-verdict="caveats"] { background:oklch(0.97 0.02 60/0.25); border-color:oklch(0.75 0.12 60/0.3); }
+.fragment-review .fr-finding-row { display:flex; align-items:baseline; gap:0.5rem; padding:0.45rem 0.75rem; border-radius:0.375rem; font-size:0.83rem; border:1px solid oklch(0.85 0.01 260/0.25); margin-bottom:0.35rem; }
+.fragment-review .fr-sev { font-size:0.68rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:0.2rem; white-space:nowrap; }
+.fragment-review .fr-sev-LOW { background:oklch(0.80 0.10 250/0.2); color:oklch(0.35 0.10 250); }
+.fragment-review .fr-sev-NIT { background:oklch(0.88 0.005 260/0.5); color:oklch(0.50 0.01 260); }
+.fragment-review .fr-sev-FIXED { background:oklch(0.80 0.12 150/0.2); color:oklch(0.35 0.12 150); }
+.fragment-review .fr-badge { font-size:0.68rem; padding:0.1rem 0.35rem; border-radius:0.2rem; font-weight:500; }
+.fragment-review .fr-deferred { background:oklch(0.88 0.005 260/0.35); color:oklch(0.45 0.01 260); }
+.fragment-review .fr-fixed { background:oklch(0.80 0.12 150/0.2); color:oklch(0.35 0.12 150); }
+.fragment-review .fr-loc { font-family:ui-monospace,monospace; font-size:0.77rem; color:oklch(0.55 0.05 260); margin-left:auto; }
+.fragment-review .fr-section-head { font-size:0.8rem; font-weight:700; color:oklch(0.50 0.03 260); margin:1rem 0 0.4rem; text-transform:uppercase; letter-spacing:0.04em; }
+@media (prefers-color-scheme:dark) {
+  .fragment-review .fr-dim-chip { border-color:oklch(0.30 0.01 260/0.4); }
+  .fragment-review .fr-dim-chip[data-verdict="ship"] { background:oklch(0.18 0.05 150/0.2); border-color:oklch(0.40 0.12 150/0.3); }
+  .fragment-review .fr-dim-chip[data-verdict="caveats"] { background:oklch(0.20 0.05 60/0.2); border-color:oklch(0.50 0.10 60/0.3); }
+  .fragment-review .fr-finding-row { border-color:oklch(0.30 0.01 260/0.35); }
+  .fragment-review .fr-sev-LOW { background:oklch(0.25 0.08 250/0.3); color:oklch(0.70 0.10 250); }
+  .fragment-review .fr-sev-NIT { background:oklch(0.22 0.01 260/0.5); color:oklch(0.65 0.01 260); }
+  .fragment-review .fr-deferred { background:oklch(0.22 0.01 260/0.4); color:oklch(0.65 0.01 260); }
+  .fragment-review .fr-fixed { background:oklch(0.18 0.08 150/0.3); color:oklch(0.65 0.12 150); }
+  .fragment-review .fr-section-head { color:oklch(0.65 0.03 260); }
+}
+:root[data-theme="dark"] .fragment-review .fr-dim-chip { border-color:oklch(0.30 0.01 260/0.4); }
+:root[data-theme="dark"] .fragment-review .fr-dim-chip[data-verdict="ship"] { background:oklch(0.18 0.05 150/0.2); border-color:oklch(0.40 0.12 150/0.3); }
+:root[data-theme="dark"] .fragment-review .fr-dim-chip[data-verdict="caveats"] { background:oklch(0.20 0.05 60/0.2); border-color:oklch(0.50 0.10 60/0.3); }
+:root[data-theme="dark"] .fragment-review .fr-finding-row { border-color:oklch(0.30 0.01 260/0.35); }
+:root[data-theme="dark"] .fragment-review .fr-sev-LOW { background:oklch(0.25 0.08 250/0.3); color:oklch(0.70 0.10 250); }
+:root[data-theme="dark"] .fragment-review .fr-sev-NIT { background:oklch(0.22 0.01 260/0.5); color:oklch(0.65 0.01 260); }
+:root[data-theme="dark"] .fragment-review .fr-deferred { background:oklch(0.22 0.01 260/0.4); color:oklch(0.65 0.01 260); }
+:root[data-theme="dark"] .fragment-review .fr-fixed { background:oklch(0.18 0.08 150/0.3); color:oklch(0.65 0.12 150); }
+:root[data-theme="dark"] .fragment-review .fr-section-head { color:oklch(0.65 0.03 260); }
+</style>
+
+<!-- Dimension heatmap -->
+<div class="fr-heatmap">
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">correctness</div><div class="fr-dim-verdict">Ship — 1 NIT</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">security</div><div class="fr-dim-verdict">Fixed 2 — clean</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">code-simplification</div><div class="fr-dim-verdict">Ship — 2 NITs</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">accessibility</div><div class="fr-dim-verdict">Fixed A11Y-1 — clean</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">frontend-a11y</div><div class="fr-dim-verdict">Fixed A11Y-1 — clean</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">frontend-perf</div><div class="fr-dim-verdict">1 LOW deferred</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">interface-craft</div><div class="fr-dim-verdict">1 LOW deferred</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">ux-copy</div><div class="fr-dim-verdict">Ship — 1 NIT</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">testing</div><div class="fr-dim-verdict">Fixed TST-1 — clean</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">maintainability</div><div class="fr-dim-verdict">Clean</div></div>
+  <div class="fr-dim-chip" data-verdict="caveats"><div class="fr-dim-name">reliability</div><div class="fr-dim-verdict">Fixed REL-1 — clean</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">motion</div><div class="fr-dim-verdict">Clean</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">architecture</div><div class="fr-dim-verdict">Ship — 1 NIT</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">design-audit</div><div class="fr-dim-verdict">Clean</div></div>
+  <div class="fr-dim-chip" data-verdict="ship"><div class="fr-dim-name">design-critique</div><div class="fr-dim-verdict">Clean</div></div>
+</div>
+
+<!-- Open (deferred) findings -->
+<div class="fr-section-head">Open / Deferred</div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-LOW">LOW</span><span><strong>FP-1</strong> DOMPurify 74KB in SSR bundle despite guard</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">sanitize.ts:50</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-LOW">LOW</span><span><strong>IC-1</strong> Inline styles in LessonView — should be CSS classes</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">LessonView.tsx:22</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-NIT">NIT</span><span><strong>CS-1</strong> any cast in widget dispatch</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">LessonSection.tsx:127</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-NIT">NIT</span><span><strong>CS-2</strong> PartialLessonDocument verbose</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">lesson-document.ts:82</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-NIT">NIT</span><span><strong>UX-1</strong> Flipcard "Question"/"Answer" labels hardcoded</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">Flipcard.tsx:51</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-NIT">NIT</span><span><strong>ARCH-1</strong> Widget components eagerly imported</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">widget-registry.ts:18</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-NIT">NIT</span><span><strong>CR-1</strong> Switch default null return without console.warn</span><span class="fr-badge fr-deferred">deferred</span><span class="fr-loc">LessonSection.tsx:136</span></div>
+
+<!-- Fixed this run -->
+<div class="fr-section-head">Fixed this run (commit ebf81c8)</div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-FIXED">MED</span><span><strong>SEC-1</strong> getLesson missing ownership enforcement</span><span class="fr-badge fr-fixed">fixed</span><span class="fr-loc">lessons.ts:41</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-FIXED">MED</span><span><strong>A11Y-1</strong> &lt;button role="radio"&gt; ARIA conflict</span><span class="fr-badge fr-fixed">fixed</span><span class="fr-loc">CheckpointQuestion.tsx:80</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-FIXED">LOW</span><span><strong>SEC-2</strong> ALLOWED_ATTR 'class' enables CSS injection</span><span class="fr-badge fr-fixed">fixed</span><span class="fr-loc">sanitize.ts:22</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-FIXED">LOW</span><span><strong>TST-1</strong> useSimulatedStream missing unit test</span><span class="fr-badge fr-fixed">fixed</span><span class="fr-loc">tests/smoke/stream-driver.test.ts (added)</span></div>
+<div class="fr-finding-row"><span class="fr-sev fr-sev-FIXED">LOW</span><span><strong>REL-1</strong> D1 query missing error handling</span><span class="fr-badge fr-fixed">fixed</span><span class="fr-loc">lessons.ts:41</span></div>
+
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review', artifact: 'review', counts: { findings: 7, blockers: 0 } }
+  }));
+})();
+</script>
+</section>
