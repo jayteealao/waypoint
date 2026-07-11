@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T00:56:06Z"
+updated-at: "2026-07-11T01:10:00Z"
 selected-slice: "foundation"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -36,6 +36,22 @@ stack:
     - {name: verify, hint: "End-to-end behavior verification of changes"}
     - {name: run, hint: "Launch and drive the app to confirm changes"}
     - {name: code-review, hint: "Diff review for correctness and quality"}
+  tanstack-intent:
+    installed-at: "2026-07-11"
+    guidance-file: "none — AGENTS.md removed; skills are installed natively in .claude/skills/ instead"
+    list-command: "pnpm dlx @tanstack/intent@latest list"
+    load-command: "pnpm dlx @tanstack/intent@latest load <package>#<skill>"
+    note: "Skills ship inside node_modules and version with the pinned packages. All 31 are copied into .claude/skills/ (flattened names, e.g. start-core-server-functions) for automatic Claude Code triggering. Re-sync after bumping @tanstack/* deps: node scripts/sync-tanstack-skills.mjs"
+    packages:
+      - {name: "@tanstack/router-core", skills: 10, hint: "router-core + sub-skills: navigation, data-loading, search-params, path-params, auth-and-guards, code-splitting, ssr, type-safety, not-found-and-errors"}
+      - {name: "@tanstack/start-client-core", skills: 7, hint: "start-core + sub-skills: server-functions, server-routes, middleware, execution-model, deployment, auth-server-primitives"}
+      - {name: "@tanstack/react-start", skills: 3, hint: "react-start (createStart/StartClient/useServerFn), react-start/server-components, lifecycle/migrate-from-nextjs"}
+      - {name: "@tanstack/devtools", skills: 4, hint: "devtools-app-setup, devtools-plugin-panel, devtools-production, devtools-marketplace"}
+      - {name: "@tanstack/devtools-event-client", skills: 3, hint: "devtools-event-client, devtools-bidirectional, devtools-instrumentation"}
+      - {name: "@tanstack/devtools-vite", skills: 1, hint: "devtools-vite-plugin (must be first Vite plugin; console piping, source inspection, removeDevtoolsOnBuild)"}
+      - {name: "@tanstack/router-plugin", skills: 1, hint: "router-plugin (file-based route generation config)"}
+      - {name: "@tanstack/start-server-core", skills: 1, hint: "start-server-core (server entry/runtime)"}
+      - {name: "@tanstack/virtual-file-routes", skills: 1, hint: "virtual-file-routes (programmatic route tree definition)"}
   available-mcp:
     - {name: Claude_Browser, hint: "In-app browser for driving/verifying the web app"}
     - {name: web-search-prime / web-reader, hint: "Web search + page reading for research"}
