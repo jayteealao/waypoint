@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: security
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: ship
+summary: "No security vulnerabilities. Auth guard fails closed (redirects when auth absent). All user content rendered via React JSX (XSS-safe). No secrets or credentials in diff. Focus trap is browser-native safe."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

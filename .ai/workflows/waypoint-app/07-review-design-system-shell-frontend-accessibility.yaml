@@ -1,0 +1,46 @@
+artifact: review-dimension
+dimension: frontend-accessibility
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: caveats
+summary: "ink-faint contrast failure on light backgrounds (same as accessibility A-1); input outline:none uses :focus box-shadow replacement (acceptable but inconsistent)."
+counts:
+  blocker: 0
+  high: 0
+  med: 1
+  low: 0
+  nit: 1
+findings:
+  - id: FA-1
+    severity: MED
+    file: src/components/shell/Sidebar.tsx
+    line: 57
+    confidence: High
+    action: fix
+    msg: "WCAG 1.4.3 contrast failure: --ink-faint informational text on --paper-mid / --surface background (~2.85:1 for normal text, requires 4.5:1). Cross-dim: same root as A-1."
+    evidence: |
+      Sidebar.tsx:57,68 — text-[var(--ink-faint)] on sidebar (paper-mid)
+      JourneyCard.tsx:59 — timestamp on card (surface)
+      DrawerNav.tsx:163 — section label on drawer (surface)
+      ink-faint estimated luminance: 0.258; paper-mid estimated luminance: 0.829
+      Contrast: (0.829+0.05)/(0.258+0.05) ≈ 2.85:1 — fails AA normal text (4.5:1)
+    fix: "Replace text-[var(--ink-faint)] with text-[var(--ink-muted)] at all 4 informational text locations."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+  - id: FA-2
+    severity: NIT
+    file: src/styles.css
+    line: 364
+    confidence: Med
+    action: defer
+    msg: ".wp-input { outline: none } suppresses the global :focus-visible outline for inputs. The :focus box-shadow replacement is visually correct but inconsistent with the :focus-visible pattern used everywhere else."
+    evidence: |
+      .wp-input { ... outline: none; ... }
+      .wp-input:focus { border-color: var(--ember); box-shadow: 0 0 0 3px oklch(0.54 0.19 32 / 0.2); }
+      Global rule: :focus-visible { outline: 3px solid oklch(0.54 0.19 32 / 0.5); }
+      The :focus (not :focus-visible) box-shadow shows for both keyboard and pointer users — more accessible, but inconsistent.
+    fix: "Consider using :focus-visible for box-shadow (same as global) and removing outline:none. Or document the intentional difference in a CSS comment."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"

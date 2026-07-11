@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: frontend-performance
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: ship
+summary: "Performance is good. Google Fonts uses display=swap. Skeleton shimmer uses GPU-composited background animation. Drawer animation uses transform (composited). One accepted trade-off: box-shadow on journey card hover triggers repaint (acceptable at max 8 cards)."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

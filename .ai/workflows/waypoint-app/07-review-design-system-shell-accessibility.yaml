@@ -1,0 +1,45 @@
+artifact: review-dimension
+dimension: accessibility
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: caveats
+summary: "ink-faint token misused for informational text on light backgrounds, failing WCAG 2.1 AA contrast; btn-sm touch target below 44px commitment."
+counts:
+  blocker: 0
+  high: 0
+  med: 1
+  low: 1
+  nit: 0
+findings:
+  - id: A-1
+    severity: MED
+    file: src/components/shell/Sidebar.tsx
+    line: 57
+    confidence: High
+    action: fix
+    msg: "--ink-faint text on --paper-mid (sidebar background) fails WCAG 2.1 AA contrast ratio (~2.85:1, below 4.5:1 for normal text). Affects section labels and placeholder copy."
+    evidence: |
+      Sidebar.tsx:57: text-[var(--ink-faint)] on wp-paper-mid background
+      Sidebar.tsx:68: text-[var(--ink-faint)] italic on wp-paper-mid
+      DrawerNav.tsx:163: text-[var(--ink-faint)] on --surface in drawer
+      JourneyCard.tsx:59: text-xs text-[var(--ink-faint)] on wp-journey-card (--surface)
+      Contrast estimate: ink-faint (lum≈0.258) on paper-mid (lum≈0.829) = ~2.85:1 < 4.5:1 AA
+    fix: "Replace text-[var(--ink-faint)] with text-[var(--ink-muted)] at these 4 locations. Reserve --ink-faint for HTML placeholder attributes and disabled-state labels (which are WCAG 1.4.3 exempt)."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+  - id: A-2
+    severity: LOW
+    file: src/styles.css
+    line: 248
+    confidence: High
+    action: defer
+    msg: ".btn-sm overrides .btn-base min-height to 2.25rem (36px), below the 44px touch-target goal in AC-DSS1 and 02c-craft.md."
+    evidence: |
+      .btn-sm { font-size: 0.8125rem; padding: 0.375rem 0.875rem; border-radius: var(--radius-md); min-height: 2.25rem; }
+      .btn-base has min-height: 2.75rem (44px) but btn-sm overrides to 36px.
+      Used in: DrawerNav close button, ThemeToggle compact override.
+    fix: "Raise btn-sm min-height to 2.75rem (44px), OR restrict btn-sm to desktop-only non-touch contexts with explicit CSS comment. WCAG 2.2 AA (2.5.8) requires only 24px minimum, so not a WCAG AA violation—but violates AC's stated 44px commitment."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"

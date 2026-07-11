@@ -1,0 +1,216 @@
+artifact: review
+rev: 1
+run_at: "2026-07-11T15:45:00Z"
+verdict: ship
+summary: >
+  15 dimensions reviewed. One MED contrast violation (sub-AA token on informational
+  text) fixed inline. Four LOWs and two NITs deferred with documented rationale.
+  No open MED+ findings after fix loop. Verdict: SHIP.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 4
+  nit: 1
+dimensions:
+  - key: correctness
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: security
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: code-simplification
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: testing
+    status: fixed
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: maintainability
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: reliability
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - key: accessibility
+    status: fixed
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - key: frontend-accessibility
+    status: fixed
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: frontend-performance
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: interface-craft
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - key: ux-copy
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 1
+  - key: design-audit
+    status: fixed
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: design-critique
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: motion
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - key: refactor-safety
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+findings:
+  - id: DSS-1
+    severity: med
+    dimension: accessibility
+    file: src/components/shell/Sidebar.tsx
+    line: 57
+    confidence: high
+    action: accept
+    status: fixed
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    fixed-at: "2026-07-11T15:45:00Z"
+    msg: >
+      Informational text used --ink-faint (OKLCH L=0.64, ~2.85:1) on --paper-mid
+      backgrounds — below WCAG 2.1 AA 4.5:1 threshold for normal-size text. Fixed
+      by replacing with --ink-muted (L=0.44, ~5.3:1) in 4 locations.
+    fix: "Replaced text-[var(--ink-faint)] with text-[var(--ink-muted)] in Sidebar.tsx:57,68; JourneyCard.tsx:59; DrawerNav.tsx:163"
+  - id: DSS-2
+    severity: low
+    dimension: accessibility
+    file: src/styles.css
+    line: 248
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    msg: >
+      Global :focus-visible border-radius (6px) mismatches btn-md (10px) and btn-lg
+      (16px) corner radii. Fix requires per-variant outline overrides.
+  - id: DSS-3
+    severity: low
+    dimension: motion
+    file: src/styles.css
+    line: 599
+    confidence: high
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    msg: >
+      Drawer has entry animation (wp-drawer-in) but no exit animation. Exit requires
+      AnimatePresence or data-closing + CSS approach. Deferred to UX-polish slice.
+  - id: DSS-4
+    severity: low
+    dimension: interface-craft
+    file: src/styles.css
+    line: 195
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    msg: >
+      btn-sm overrides min-height to 36px (below the 44px enhanced touch target).
+      Passes WCAG 2.2 AA (24px minimum). Deferred pending mobile audit.
+  - id: DSS-5
+    severity: low
+    dimension: reliability
+    file: src/components/dashboard/JourneysDashboard.tsx
+    line: 96
+    confidence: low
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    msg: >
+      useJourneys() normalizes two @tanstack/db row shapes (pre-1.0 API instability).
+      Documented sdlc-debt comment with upgrade path. Remove when API stabilizes.
+  - id: DSS-6
+    severity: nit
+    dimension: testing
+    file: tests/smoke/contrast.test.ts
+    line: null
+    confidence: high
+    action: accept
+    status: fixed
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    fixed-at: "2026-07-11T15:45:00Z"
+    msg: >
+      Contrast smoke tests were missing ink-muted/paper-mid regression guard and
+      ink-faint/paper-mid documentation assertion. Both added in commit 7702f83.
+  - id: DSS-7
+    severity: nit
+    dimension: ux-copy
+    file: src/components/shell/Sidebar.tsx
+    line: 68
+    confidence: low
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
+    msg: >
+      Sidebar placeholder uses "Waypoints" internal term. Low confidence — product
+      may intend this. Placeholder text replaced by lesson-renderer slice.

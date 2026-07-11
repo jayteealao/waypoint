@@ -1,0 +1,29 @@
+artifact: review-dimension
+dimension: design-audit
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: caveats
+summary: "Visual contract fully honored (all 10 mock fidelity items). One anti-goal violation: ink-faint token used for informational text (co-flagged with accessibility A-1). Score: 3.5/4 — caveats pending contrast fix."
+counts:
+  blocker: 0
+  high: 0
+  med: 1
+  low: 0
+  nit: 0
+findings:
+  - id: DA-1
+    severity: MED
+    file: src/components/shell/Sidebar.tsx
+    line: 57
+    confidence: High
+    action: fix
+    msg: "02c-craft.md anti-goal: '--ink-faint' is designated for 'placeholder, disabled labels' but used for informational section text and timestamps, violating the token's semantic contract and failing AA contrast on light surfaces."
+    evidence: |
+      02c-craft.md §4: "Ink / ink-muted: all text; headings use --ink, descriptive copy --ink-muted, placeholders --ink-faint"
+      Violation: Sidebar section labels ('Current journey'), placeholder text, JourneyCard timestamp all use --ink-faint
+      Anti-goal check: "No gradient opacity hacks for contrast" — not violated; but token misuse produces same effect
+      All 10 mock fidelity items otherwise honored per verify record and code inspection.
+    fix: "Replace --ink-faint with --ink-muted for informational/descriptive text at 4 locations."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"

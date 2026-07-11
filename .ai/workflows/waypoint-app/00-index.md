@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: handoff
+stage-number: 8
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T15:02:19Z"
+updated-at: "2026-07-11T15:45:00Z"
 selected-slice: "design-system-shell"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -79,8 +79,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app design-system-shell"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -229,6 +229,39 @@ workflow-files:
   - 07-review-accounts-data-layer.md
   - 07-review-accounts-data-layer.yaml
   - 07-review-accounts-data-layer.html.fragment
+  - 07-review-design-system-shell-correctness.md
+  - 07-review-design-system-shell-correctness.yaml
+  - 07-review-design-system-shell-security.md
+  - 07-review-design-system-shell-security.yaml
+  - 07-review-design-system-shell-code-simplification.md
+  - 07-review-design-system-shell-code-simplification.yaml
+  - 07-review-design-system-shell-testing.md
+  - 07-review-design-system-shell-testing.yaml
+  - 07-review-design-system-shell-maintainability.md
+  - 07-review-design-system-shell-maintainability.yaml
+  - 07-review-design-system-shell-reliability.md
+  - 07-review-design-system-shell-reliability.yaml
+  - 07-review-design-system-shell-accessibility.md
+  - 07-review-design-system-shell-accessibility.yaml
+  - 07-review-design-system-shell-frontend-accessibility.md
+  - 07-review-design-system-shell-frontend-accessibility.yaml
+  - 07-review-design-system-shell-frontend-performance.md
+  - 07-review-design-system-shell-frontend-performance.yaml
+  - 07-review-design-system-shell-interface-craft.md
+  - 07-review-design-system-shell-interface-craft.yaml
+  - 07-review-design-system-shell-ux-copy.md
+  - 07-review-design-system-shell-ux-copy.yaml
+  - 07-review-design-system-shell-design-audit.md
+  - 07-review-design-system-shell-design-audit.yaml
+  - 07-review-design-system-shell-design-critique.md
+  - 07-review-design-system-shell-design-critique.yaml
+  - 07-review-design-system-shell-motion.md
+  - 07-review-design-system-shell-motion.yaml
+  - 07-review-design-system-shell-refactor-safety.md
+  - 07-review-design-system-shell-refactor-safety.yaml
+  - 07-review-design-system-shell.md
+  - 07-review-design-system-shell.yaml
+  - 07-review-design-system-shell.html.fragment
 progress:
   intake: complete
   shape: complete

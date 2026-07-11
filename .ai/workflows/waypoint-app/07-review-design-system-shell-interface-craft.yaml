@@ -1,0 +1,33 @@
+artifact: review-dimension
+dimension: interface-craft
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: caveats
+summary: "Interface craft is strong: concentric radius honored, shadow vocabulary correct, touch targets mostly correct. One low-severity finding: global focus ring border-radius (6px) mismatches element radii (10px/16px)."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: IC-1
+    severity: LOW
+    file: src/styles.css
+    line: 195
+    confidence: Med
+    action: defer
+    msg: "Global :focus-visible rule uses border-radius: var(--radius-sm) (6px), but buttons with --radius-md (10px) or --radius-lg (16px) show a focus ring with tighter corners than the element itself — a visual mismatch that's visible with high-contrast focus inspection."
+    evidence: |
+      :focus-visible {
+        outline: 3px solid oklch(0.54 0.19 32 / 0.5);
+        outline-offset: 2px;
+        border-radius: var(--radius-sm);  /* 6px */
+      }
+      .btn-md { border-radius: var(--radius-md); }  /* 10px */
+      .btn-lg { border-radius: var(--radius-lg); }  /* 16px */
+      Result: btn-lg with radius 16px shows a focus ring with 6px corners — mismatched.
+    fix: "Either remove border-radius from :focus-visible (let the outline inherit the element's natural shape, or use 'inherit'), or use a slightly larger value like var(--radius-md) for the global rule. Most cleanly fixed with 'outline-radius: inherit' but browser support is limited — consider per-component focus overrides instead."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"

@@ -1,0 +1,31 @@
+artifact: review-dimension
+dimension: reliability
+parent: 07-review-design-system-shell.md
+rev: 1
+verdict: caveats
+summary: "Error handling is lightweight in the authenticated shell. Missing ErrorBoundary on AppShell/JourneysDashboard means a useJourneys() throw crashes the entire authenticated layout."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: RE-1
+    severity: LOW
+    file: src/components/dashboard/JourneysDashboard.tsx
+    line: 96
+    confidence: Med
+    action: defer
+    msg: "No React ErrorBoundary wraps JourneysDashboard or AppShell. If useJourneys() or the TanStack DB syncer throws an uncaught exception, the entire authenticated layout crashes to a blank/error screen without user guidance."
+    evidence: |
+      export function JourneysDashboard() {
+        const rawRows: any = useJourneys()
+        // no try/catch; no ErrorBoundary in parent chain
+      }
+      _authenticated.tsx: component: AuthenticatedLayout — no ErrorBoundary.
+      TanStack DB@0.6.14 — unknown error characteristics under D1 connection failure.
+    fix: "Add a React ErrorBoundary around JourneysDashboard or at the AppShell level to catch rendering errors and show a friendly fallback UI. Recommend as part of the next slice's work (lesson-renderer) rather than retroactively added here."
+    status: open
+    pre-existing: false
+    surfaced-at: "2026-07-11T15:17:15Z"
