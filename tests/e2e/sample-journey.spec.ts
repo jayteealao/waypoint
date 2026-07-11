@@ -14,6 +14,10 @@ import { test, expect } from '@playwright/test'
 import { execSync } from 'child_process'
 import crypto from 'crypto'
 
+// Run tests sequentially in one worker so the beforeAll seeding calls
+// do not conflict on the shared local D1 database (SQLITE_BUSY_RECOVERY).
+test.describe.configure({ mode: 'serial' })
+
 // ---------------------------------------------------------------------------
 // Helpers (shared pattern with auth-flow.spec.ts and lesson-renderer.spec.ts)
 // ---------------------------------------------------------------------------
@@ -200,6 +204,10 @@ test(
 
     await page.goto('/sample/quiz')
     await expect(page.getByTestId('quiz-view')).toBeVisible()
+    // Wait for the sample layout's setWaypoints effect to settle so React
+    // finishes processing all pending state updates before we interact.
+    // The sidebar showing the 'sw-quiz' waypoint proves effects have run.
+    await page.locator('[data-waypoint="sw-quiz"]').first().waitFor({ state: 'visible' })
 
     // Walk through all 4 questions, selecting option 0 each time
     for (let i = 0; i < 4; i++) {
@@ -259,8 +267,9 @@ test(
     // Give the progress event a moment to fire and the sidebar to update
     await page.waitForTimeout(200)
 
-    // Sidebar should show sw-lesson-1 as completed
-    const waypointEl = page.locator('[data-waypoint="sw-lesson-1"]')
+    // Sidebar should show sw-lesson-1 as completed (scope to sidebar to avoid
+    // strict-mode violation — DrawerNav also renders the same waypoint element)
+    const waypointEl = page.getByTestId('sidebar').locator('[data-waypoint="sw-lesson-1"]')
     await expect(waypointEl).toBeVisible()
     await expect(waypointEl).toHaveAttribute('data-completed', 'true')
 
