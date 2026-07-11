@@ -22,12 +22,16 @@ const withSession = createMiddleware({ type: 'request' }).server(
 )
 
 /**
- * Fetch a single lesson row by id.
- * Returns null if the lesson does not exist.
- * The `content` field is a JSON string — callers parse it with
- * `JSON.parse(row.content) as LessonDocumentV1` after receiving the row.
- * Does not enforce waypoint ownership — callers must check the lesson belongs
- * to the authenticated user's journey before rendering.
+ * Fetch a single lesson row by id, scoped to the owning waypoint.
+ *
+ * Ownership is enforced at the query level: `WHERE id = ? AND waypoint_id = ?`.
+ * A lesson that exists but belongs to a different waypoint returns null — callers
+ * cannot distinguish "not found" from "not yours", which is the correct security
+ * posture (avoids leaking existence information).
+ *
+ * Returns null on not-found, ownership mismatch, or D1 error (logged).
+ * The `content` field is a JSON string — parse with
+ * `JSON.parse(row.content) as LessonDocumentV1` in the calling route loader.
  *
  * Implementation note: content is returned as a raw string rather than a
  * parsed LessonDocumentV1 because TanStack Start's serialization validator
@@ -36,11 +40,18 @@ const withSession = createMiddleware({ type: 'request' }).server(
  */
 export const getLesson = createServerFn()
   .middleware([withSession])
-  .validator((id: string) => id)
-  .handler(async ({ data: lessonId }): Promise<Lesson | null> => {
-    const row = await env.DB.prepare('SELECT * FROM lessons WHERE id = ?')
-      .bind(lessonId)
-      .first<Lesson>()
-    if (!row) return null
-    return row
+  .validator((input: { lessonId: string; waypointId: string }) => input)
+  .handler(async ({ data: { lessonId, waypointId } }): Promise<Lesson | null> => {
+    try {
+      const row = await env.DB.prepare(
+        'SELECT * FROM lessons WHERE id = ? AND waypoint_id = ?',
+      )
+        .bind(lessonId, waypointId)
+        .first<Lesson>()
+      if (!row) return null
+      return row
+    } catch (err) {
+      console.error('[lessons] D1 error fetching lesson:', lessonId, err)
+      return null
+    }
   })

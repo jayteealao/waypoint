@@ -77,7 +77,11 @@ export function CheckpointQuestion({
         {options.map((option, i) => {
           const isSelected = selected === i
           return (
-            <button
+            // div rather than button: role="radio" on a native <button> can produce
+            // conflicting announcements in some AT (e.g., "button — radio button").
+            // Using a non-interactive host with explicit keyboard handling matches
+            // the WAI-ARIA radiogroup/radio Authoring Practices Guide pattern.
+            <div
               key={i}
               role="radio"
               aria-checked={isSelected}
@@ -87,13 +91,12 @@ export function CheckpointQuestion({
               onClick={() => choose(i)}
               onKeyDown={(e) => handleKeyDown(i, e)}
               tabIndex={!answered || isSelected ? 0 : -1}
-              type="button"
             >
               <span aria-hidden="true">
                 {isSelected ? '●' : '○'}
               </span>
               {option}
-            </button>
+            </div>
           )
         })}
       </div>

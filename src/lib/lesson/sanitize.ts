@@ -19,7 +19,9 @@
 
 const SANITIZE_CONFIG = {
   ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'a', 'span', 'br', 'u'],
-  ALLOWED_ATTR: ['href', 'class'],
+  // 'class' intentionally omitted: AI-generated inline HTML does not need author-controlled
+  // CSS class names; allowing it would permit arbitrary class injection from model output.
+  ALLOWED_ATTR: ['href'],
   FORCE_BODY: true,
 } as const
 
