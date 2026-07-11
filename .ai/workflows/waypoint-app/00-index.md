@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: verify
+stage-number: 6
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T14:08:04Z"
+updated-at: "2026-07-11T15:02:19Z"
 selected-slice: "design-system-shell"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -79,8 +79,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app design-system-shell"
+next-command: wf-review
+next-invocation: "/wf review waypoint-app design-system-shell"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -132,6 +132,7 @@ workflow-files:
   - 06-verify.md
   - 06-verify-foundation.md
   - 06-verify-accounts-data-layer.md
+  - 06-verify-design-system-shell.md
   - 07-review-foundation-correctness.md
   - 07-review-foundation-correctness.yaml
   - 07-review-foundation-correctness.html.fragment
