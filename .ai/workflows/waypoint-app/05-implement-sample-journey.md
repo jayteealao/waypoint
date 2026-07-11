@@ -113,6 +113,7 @@ The first-login redirect is a `useEffect` in `JourneysDashboard` that fires afte
 
 - **`wp:sample-progress` event race** — lesson route's `localStorage.setItem` runs in a `useEffect`; the `setTimeout(0)` delay ensures the layout's `window.addEventListener` listener runs after the current effect batch and always sees the updated value. Tested: sidebar updates within 200ms (verified in Playwright AC-SJ3b with `waitForTimeout(200)`).
 - **First-login redirect flash** — the `useEffect` fires after hydration; there is a brief render of the empty state (behind skeletons) before the redirect. Not user-visible in practice — the `isReady` flip happens at the first `requestAnimationFrame` after mount.
+- **TanStack DB isReady workaround (`sdlc-debt`)** — `@tanstack/db@0.6.14` does not expose a collection `isReady` flag on its public API. `JourneysDashboard.tsx` uses a `useEffect`-flipped boolean as a proxy. Ceiling: 1-frame flash of skeleton on first mount (behind the existing skeleton UI, not user-visible). Upgrade path: when `@tanstack/db` stabilises a `useCollectionReady()` hook, replace the boolean with that. Debt marker recorded in `JourneysDashboard.tsx`.
 
 ## Freshness Research
 

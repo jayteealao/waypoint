@@ -5,15 +5,15 @@ slug: waypoint-app
 status: in-progress
 stage-number: 6
 created-at: "2026-07-11T00:56:06Z"
-updated-at: "2026-07-11T19:49:36Z"
-slices-verified: 5
+updated-at: "2026-07-11T21:30:00Z"
+slices-verified: 6
 slices-total: 12
 tags: []
 refs:
   index: 00-index.md
   implement-index: 05-implement.md
 next-command: wf-review
-next-invocation: "/wf review waypoint-app lesson-renderer"
+next-invocation: "/wf review waypoint-app sample-journey"
 ---
 
 # Verify Index
@@ -25,7 +25,8 @@ next-invocation: "/wf review waypoint-app lesson-renderer"
 | accounts-data-layer | partial | not-needed | 0 | 1 | 4 code-only ACs fully met; 2 user-observable ACs evidenced at always-run level (sign-in UI, account redirect); seeded-session proxy tests deferred (BETTER_AUTH_SECRET absent); real OAuth deferred (pre-registered); 0 regressions; 1 LOW issue (build EBUSY, Skip) |
 | design-system-shell | partial | not-needed | 0 | 1 | 2 code-only ACs fully met (contrast 13/13, reduced-motion CSS inspection); 3 user-observable ACs deferred (BETTER_AUTH_SECRET, accepted into existing ADL deferral); sign-in ember styling + sibling redirect regression pass; 0 regressions; 1 LOW issue (build EBUSY, Skip) |
 | lesson-renderer | pass | converged | 1 | 1 | All 4 ACs met: AC-LR1/2/3 at full Playwright interactive level (screenshots + interaction + timing), AC-LR4 via 19/19 adversarial Vitest unit tests; 2 verify-owned fixes committed (5b6cde1): React 19 hydration mismatch in prose sections (ProseSection + useState escapeHtml seed) + E2E session cookie prefix (__Secure- required for HTTPS BETTER_AUTH_BASE_URL); pre-registered AC-LR1/2/3 deferral CLEARED; 0 regressions across 50/51 tests (1 skip = OpenRouter, pre-existing) |
+| sample-journey | pass | converged | 1 | 1 | All 4 ACs met at full Playwright interactive level (first-login redirect, quiz walkthrough, sidebar completion, returning-user bypass); 3 verify-owned test-infra fixes committed (96743b5): React effects timing guard in AC-SJ3, Playwright strict-mode selector scoped to sidebar in AC-SJ3b, serial mode added to prevent SQLITE_BUSY_RECOVERY in beforeAll seeding; pre-registered AC-SJ1/2/3/4 deferral CLEARED (BETTER_AUTH_SECRET present in .dev.vars); 0 regressions across 67/68 tests (1 skip = OpenRouter, pre-existing) |
 
 ## Recommended Next Stage
 
-- **Option A (recommended):** `/wf review waypoint-app lesson-renderer` — all 4 ACs met at full interactive level (no deferrals); 2 verify-time fixes committed and re-verified; 50/51 tests passing (1 skip pre-registered); ready for code review
+- **Option A (recommended):** proceed to code review for sample-journey — all 4 ACs met at full interactive level (no deferrals); 3 test-infra fixes committed and re-verified; 67/68 tests passing (1 skip pre-registered); ready for code review

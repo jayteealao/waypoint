@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: verify
+stage-number: 6
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T20:51:58Z"
+updated-at: "2026-07-11T21:30:00Z"
 selected-slice: "sample-journey"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -49,6 +49,8 @@ runtime-evidence-deferrals:
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /sample/* require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5, AC-DSS1/3/4/5, AC-LR1/2/3). Proxy evidence: 11 Vitest unit tests pass (equal-length-options lint, quiz scoring logic, attempt format validation). Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
     recorded-at: "2026-07-11T20:51:58Z"
+    cleared-at: "2026-07-11T21:30:00Z"
+    cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 5 sample-journey Playwright tests pass after 3 test-infra fixes (React effects timing guard, strict-mode selector scope, serial mode for beforeAll seeding); commit 96743b5"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -91,8 +93,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app sample-journey"
+next-command: wf-review
+next-invocation: "/wf review waypoint-app sample-journey"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -326,6 +328,7 @@ workflow-files:
   - 07-review-lesson-renderer.yaml
   - 07-review-lesson-renderer.html.fragment
   - 05-implement-sample-journey.md
+  - 06-verify-sample-journey.md
 progress:
   intake: complete
   shape: complete
