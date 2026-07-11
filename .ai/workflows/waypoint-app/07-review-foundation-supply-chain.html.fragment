@@ -1,0 +1,53 @@
+<section class="fragment-review" data-artifact="review-command" data-dimension="supply-chain" data-rev="1">
+<style>
+.fragment-review-sc .fr-findings { list-style: none; padding: 0; margin: 0; }
+.fragment-review-sc .fr-findings li { border: 1px solid var(--border, #ddd); border-radius: 6px; margin-bottom: 8px; }
+.fragment-review-sc .fr-findings summary { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.fragment-review-sc .fr-body { padding: 10px 14px 14px; border-top: 1px solid var(--border, #ddd); }
+.fragment-review-sc .sc-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-bottom: 12px; }
+.fragment-review-sc .sc-table th, .fragment-review-sc .sc-table td { padding: 6px 10px; border: 1px solid var(--border, #ddd); text-align: left; }
+.fragment-review-sc .sc-table th { background: var(--surface2, #f5f5f5); }
+.fragment-review-sc .pass { color: var(--green, #2e7d32); }
+.fragment-review-sc .warn { color: var(--orange, #e65100); }
+</style>
+<div class="fragment-review-sc">
+<table class="sc-table">
+  <thead><tr><th>Supply-Chain Check</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>All 30 deps exact-pinned</td><td class="pass">PASS</td></tr>
+    <tr><td>pnpm-lock.yaml committed</td><td class="pass">PASS</td></tr>
+    <tr><td>CI --frozen-lockfile</td><td class="pass">PASS</td></tr>
+    <tr><td>pnpm audit --audit-level=high</td><td class="pass">PASS</td></tr>
+    <tr><td>No banned TanStack versions</td><td class="pass">PASS</td></tr>
+    <tr><td>Pin-check node script in CI</td><td class="pass">PASS</td></tr>
+    <tr><td>onlyBuiltDependencies allowlisted</td><td class="pass">PASS</td></tr>
+    <tr><td>GitHub Actions SHA-pinned</td><td class="warn">LOW — deferred</td></tr>
+  </tbody>
+</table>
+
+<ol class="fr-findings">
+  <li data-finding data-severity="low" data-dimension="supply-chain" data-conf="med" data-file=".github/workflows/ci.yml">
+    <details>
+      <summary>
+        <span class="sev severity-low">LOW</span>
+        <span>GitHub Actions use version tags instead of SHA digests</span>
+        <span style="font-size:0.8em;color:var(--muted,#888)">SC-1 · deferred</span>
+      </summary>
+      <div class="fr-body">
+        <p><strong>Lines:</strong> 14 (<code>checkout@v4</code>), 17 (<code>pnpm/action-setup@v4</code>), 22 (<code>setup-node@v4</code>)</p>
+        <p><strong>Risk:</strong> Version tags are mutable. All three actions are from official trusted sources (GitHub Inc. and pnpm team), so practical risk is extremely low.</p>
+        <p><strong>Fix:</strong> Pin to commit SHAs before first production merge: <code>gh api /repos/actions/checkout/git/ref/refs/tags/v4</code></p>
+        <p><strong>Decision:</strong> DEFER — address before first PR to main.</p>
+      </div>
+    </details>
+  </li>
+</ol>
+</div>
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-supply-chain', artifact: 'review-command', findings: 1, blockers: 0, deferred: 1 }
+  }));
+})();
+</script>
+</section>

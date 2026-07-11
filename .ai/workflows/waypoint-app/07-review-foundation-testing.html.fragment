@@ -1,0 +1,26 @@
+<section class="fragment-review" data-artifact="review-command" data-dimension="testing" data-rev="1">
+<style>
+.fr-test-ok { background: var(--callout-ok-bg, #e8f5e9); border-left: 3px solid var(--callout-ok, #4caf50); padding: 10px 14px; border-radius: 4px; margin-bottom: 12px; }
+.fr-test-ok ul { padding-left: 1.4em; margin: 8px 0 0; }
+.fr-test-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9em; }
+.fr-test-table th, .fr-test-table td { padding: 6px 10px; border: 1px solid var(--border, #ddd); text-align: left; }
+.fr-test-table th { background: var(--surface2, #f5f5f5); }
+</style>
+<div class="fr-test-ok">
+  <strong>Testing: Clean</strong> — harnesses are appropriately calibrated for a bootstrap slice.
+</div>
+<table class="fr-test-table">
+  <thead><tr><th>Harness</th><th>File</th><th>Coverage target</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Vitest</td><td><code>tests/smoke/app.test.ts</code></td><td>jsdom + Testing Library wiring</td><td>PASS</td></tr>
+    <tr><td>Playwright</td><td><code>tests/e2e/smoke.spec.ts</code></td><td>Dev server start + zero console errors</td><td>PASS</td></tr>
+  </tbody>
+</table>
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-testing', artifact: 'review-command', findings: 0, blockers: 0 }
+  }));
+})();
+</script>
+</section>

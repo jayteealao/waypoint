@@ -1,0 +1,16 @@
+artifact: review-dimension
+dimension: docs
+parent: 07-review-foundation-docs.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T08:58:15Z"
+verdict: ship
+verdict_label: "Ship — clean"
+summary: "Documentation review of foundation slice. README accurately describes the project, setup, test commands, and deployment. .env.example documents all 10 environment variables with descriptions. The README correctly notes that docs/architecture.md, docs/pedagogy.md, and docs/reference.md will be created in later slices. No broken examples, no stale instructions, no undocumented public APIs."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

@@ -1,0 +1,105 @@
+<section class="fragment-review" data-artifact="review" data-rev="1">
+<style>
+.fr-master .dim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.fr-master .dim-card { border: 1px solid var(--border, #ddd); border-radius: 6px; padding: 8px 10px; font-size: 0.85em; }
+.fr-master .dim-card.is-clean { border-color: var(--green, #4caf50); background: var(--callout-ok-bg, #f1f8f1); }
+.fr-master .dim-card.is-issues { border-color: var(--orange, #ff9800); background: var(--callout-warn-bg, #fff8f0); }
+.fr-master .dim-name { font-weight: 600; margin-bottom: 4px; }
+.fr-master .dim-counts { color: var(--muted, #888); font-size: 0.9em; }
+.fr-master .fr-findings { list-style: none; padding: 0; margin: 0; }
+.fr-master .fr-findings li { border: 1px solid var(--border, #ddd); border-radius: 6px; margin-bottom: 8px; }
+.fr-master .fr-findings summary { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fr-master .fr-body { padding: 10px 14px 14px; border-top: 1px solid var(--border, #ddd); }
+.fr-master .fr-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.85em; }
+.fr-master .fr-controls label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.fr-master .badge-fixed { background: var(--blue-bg, #e3f2fd); color: var(--blue, #1565c0); padding: 2px 6px; border-radius: 3px; font-size: 0.8em; }
+.fr-master .badge-deferred { background: var(--orange-bg, #fff3e0); color: var(--orange, #e65100); padding: 2px 6px; border-radius: 3px; font-size: 0.8em; }
+</style>
+
+<h3 style="margin-bottom:10px">Dimension Summary</h3>
+<div class="fr-master">
+<div class="dim-grid">
+  <div class="dim-card is-issues"><div class="dim-name">Correctness</div><div class="dim-counts">1 LOW deferred</div></div>
+  <div class="dim-card is-clean"><div class="dim-name">Security</div><div class="dim-counts">Clean</div></div>
+  <div class="dim-card is-clean"><div class="dim-name">Simplification</div><div class="dim-counts">Clean</div></div>
+  <div class="dim-card is-clean"><div class="dim-name">Testing</div><div class="dim-counts">Clean</div></div>
+  <div class="dim-card is-issues"><div class="dim-name">Supply Chain</div><div class="dim-counts">1 LOW deferred</div></div>
+  <div class="dim-card is-issues"><div class="dim-name">CI</div><div class="dim-counts">1 NIT fixed</div></div>
+  <div class="dim-card is-clean"><div class="dim-name">Maintainability</div><div class="dim-counts">Clean</div></div>
+  <div class="dim-card is-clean"><div class="dim-name">Reliability</div><div class="dim-counts">Clean</div></div>
+  <div class="dim-card is-clean"><div class="dim-name">Docs</div><div class="dim-counts">Clean</div></div>
+</div>
+
+<h3 style="margin-bottom:10px">All Findings (3)</h3>
+<div class="fr-controls">
+  <label><input type="checkbox" checked data-filter="low"> LOW</label>
+  <label><input type="checkbox" checked data-filter="nit"> NIT</label>
+  <label><input type="checkbox" checked data-filter-status="deferred"> Deferred</label>
+  <label><input type="checkbox" checked data-filter-status="fixed"> Fixed</label>
+</div>
+
+<ol class="fr-findings" id="fr-master-list">
+  <li data-finding data-severity="low" data-dimension="correctness" data-conf="med" data-file="wrangler.jsonc" data-status="deferred">
+    <details>
+      <summary>
+        <span class="sev severity-low">LOW</span>
+        <span class="badge-deferred">deferred</span>
+        <span>CORR-1 · <code>wrangler.jsonc</code> missing <code>assets</code> config</span>
+      </summary>
+      <div class="fr-body">
+        <p>Deployment config out of scope for foundation slice. Address in platform-proofs slice when validating <code>wrangler deploy</code>.</p>
+      </div>
+    </details>
+  </li>
+  <li data-finding data-severity="low" data-dimension="supply-chain" data-conf="med" data-file=".github/workflows/ci.yml" data-status="deferred">
+    <details>
+      <summary>
+        <span class="sev severity-low">LOW</span>
+        <span class="badge-deferred">deferred</span>
+        <span>SC-1 · GitHub Actions version tags instead of SHA pins</span>
+      </summary>
+      <div class="fr-body">
+        <p>All three actions (<code>checkout@v4</code>, <code>pnpm/action-setup@v4</code>, <code>setup-node@v4</code>) are from official trusted sources. SHA lookup requires network access. Address before first production merge.</p>
+      </div>
+    </details>
+  </li>
+  <li data-finding data-severity="nit" data-dimension="ci" data-conf="med" data-file=".github/workflows/ci.yml" data-status="fixed">
+    <details>
+      <summary>
+        <span class="sev severity-nit">NIT</span>
+        <span class="badge-fixed">fixed</span>
+        <span>CI-1 · Added <code>permissions: contents: read</code> to CI workflow</span>
+      </summary>
+      <div class="fr-body">
+        <p>Added explicit <code>permissions: contents: read</code> block between <code>on:</code> and <code>jobs:</code> for defense-in-depth. Fix applied in-session.</p>
+      </div>
+    </details>
+  </li>
+</ol>
+</div>
+
+<script>
+(function() {
+  var list = document.getElementById('fr-master-list');
+  var sevBoxes = document.querySelectorAll('[data-filter]');
+  var statusBoxes = document.querySelectorAll('[data-filter-status]');
+
+  function applyFilter() {
+    var activeSev = new Set(Array.from(sevBoxes).filter(function(cb) { return cb.checked; }).map(function(cb) { return cb.dataset.filter; }));
+    var activeStatus = new Set(Array.from(statusBoxes).filter(function(cb) { return cb.checked; }).map(function(cb) { return cb.dataset.filterStatus; }));
+    list.querySelectorAll('[data-finding]').forEach(function(li) {
+      var sev = li.dataset.severity;
+      var status = li.dataset.status;
+      li.style.display = (activeSev.has(sev) && activeStatus.has(status)) ? '' : 'none';
+    });
+  }
+
+  sevBoxes.forEach(function(cb) { cb.addEventListener('change', applyFilter); });
+  statusBoxes.forEach(function(cb) { cb.addEventListener('change', applyFilter); });
+
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-master', artifact: 'review', findings: 3, blockers: 0, deferred: 2, fixed: 1 }
+  }));
+})();
+</script>
+</section>

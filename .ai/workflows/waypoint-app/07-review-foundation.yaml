@@ -1,0 +1,115 @@
+artifact: review
+parent: 07-review-foundation.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T08:58:15Z"
+verdict: ship
+summary: "Foundation slice review across 9 dimensions. 3 findings total: 2 LOWs deferred (wrangler.jsonc missing assets config — out of scope for this slice; GitHub Actions version-tag pinning — trusted official sources), 1 NIT fixed in-session (CI permissions block added). 0 blockers, 0 HIGH, 0 MED. Verdict: SHIP."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 2
+  nit: 1
+dimensions:
+  - key: correctness
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - key: security
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: code-simplification
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: testing
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: supply-chain
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - key: ci
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 1
+  - key: maintainability
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: reliability
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: docs
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+findings:
+  - id: CORR-1
+    severity: low
+    dimension: correctness
+    file: wrangler.jsonc
+    line: null
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T08:58:15Z"
+    msg: "wrangler.jsonc missing assets directory config — wrangler deploy would produce a Worker that cannot serve JS/CSS bundles."
+    triage: "DEFER — deployment config out of scope for foundation slice ACs; address in platform-proofs slice."
+  - id: SC-1
+    severity: low
+    dimension: supply-chain
+    file: .github/workflows/ci.yml
+    line: "14,17,22"
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T08:58:15Z"
+    msg: "GitHub Actions pinned to version tags (@v4) not SHA digests — all three are official GitHub/pnpm actions so practical risk is minimal."
+    triage: "DEFER — trusted official sources; SHA lookup requires network; address before first production merge."
+  - id: CI-1
+    severity: nit
+    dimension: ci
+    file: .github/workflows/ci.yml
+    line: 8
+    confidence: med
+    action: accept
+    status: fixed
+    pre-existing: false
+    surfaced-at: "2026-07-11T08:58:15Z"
+    fixed-at: "2026-07-11T08:58:15Z"
+    msg: "No explicit permissions block — added permissions: contents: read for defense-in-depth."
+    triage: "FIXED in-session — in-scope, localized, safe."

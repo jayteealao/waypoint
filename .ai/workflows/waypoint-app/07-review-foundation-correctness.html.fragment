@@ -1,0 +1,44 @@
+<section class="fragment-review" data-artifact="review-command" data-dimension="correctness" data-rev="1">
+<style>
+.fragment-review .fr-findings { list-style: none; padding: 0; margin: 0; }
+.fragment-review .fr-findings li { border: 1px solid var(--border, #ddd); border-radius: 6px; margin-bottom: 8px; }
+.fragment-review .fr-findings summary { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.fragment-review .fr-body { padding: 10px 14px 14px; border-top: 1px solid var(--border, #ddd); }
+.fragment-review .fr-meta { font-size: 0.8em; color: var(--muted, #888); margin-top: 4px; }
+.fragment-review .fr-callout { background: var(--callout-ok-bg, #e8f5e9); border-left: 3px solid var(--callout-ok, #4caf50); padding: 10px 14px; border-radius: 4px; margin-bottom: 12px; }
+</style>
+
+<div class="fr-callout">
+  <strong>Correctness:</strong> 1 LOW finding deferred — out of scope for this slice. No blockers, no high-severity issues.
+</div>
+
+<ol class="fr-findings">
+  <li data-finding data-severity="low" data-dimension="correctness" data-conf="med" data-file="wrangler.jsonc">
+    <details>
+      <summary>
+        <span class="sev severity-low">LOW</span>
+        <span><code>wrangler.jsonc</code> missing <code>assets</code> config for static file serving</span>
+        <span class="fr-meta">CORR-1 · confidence: med · deferred</span>
+      </summary>
+      <div class="fr-body">
+        <p><strong>File:</strong> <code>wrangler.jsonc</code></p>
+        <p><strong>Issue:</strong> The <code>wrangler.jsonc</code> does not include an <code>assets</code> directory field. Without it, <code>wrangler deploy</code> would produce a Worker that cannot serve JS/CSS bundles to browsers.</p>
+        <pre class="diff"><span class="diff-ctx"> {</span>
+<span class="diff-ctx">   "main": "@tanstack/react-start/server-entry",</span>
+<span class="diff-rem">-  // missing: "assets": { "directory": "..." }</span>
+<span class="diff-ctx">   "observability": { "enabled": true }</span>
+<span class="diff-ctx"> }</span></pre>
+        <p><strong>Decision:</strong> DEFER — deployment config is out of scope for foundation slice ACs. Address in platform-proofs slice when validating <code>wrangler dev</code>/<code>wrangler deploy</code>.</p>
+      </div>
+    </details>
+  </li>
+</ol>
+
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-correctness', artifact: 'review-command', findings: 1, blockers: 0, deferred: 1 }
+  }));
+})();
+</script>
+</section>

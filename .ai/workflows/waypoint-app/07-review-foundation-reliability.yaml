@@ -1,0 +1,16 @@
+artifact: review-dimension
+dimension: reliability
+parent: 07-review-foundation-reliability.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T08:58:15Z"
+verdict: ship
+verdict_label: "Ship — clean"
+summary: "Reliability review of foundation slice. No critical paths exist in this bootstrap slice: no auth, no payments, no data writes, no external service calls. Scaffold components are render-only with no async error paths to audit. Playwright retries (2 in CI) are mild protection appropriate for a smoke test. No single-points-of-failure issues at this stage."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

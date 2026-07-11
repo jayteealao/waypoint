@@ -1,0 +1,31 @@
+artifact: review-dimension
+dimension: supply-chain
+parent: 07-review-foundation-supply-chain.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T08:58:15Z"
+verdict: ship
+verdict_label: "Ship — 1 LOW deferred (official trusted actions; address before first prod merge)"
+summary: "Supply-chain review of foundation slice. All 30 deps exact-pinned, pnpm-lock.yaml committed, CI uses --frozen-lockfile, pnpm audit passes, no banned TanStack versions, onlyBuiltDependencies allowlisted. One LOW finding: GitHub Actions use version tags instead of SHA digests — all three actions are official GitHub/pnpm-team maintained so practical risk is minimal."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: SC-1
+    severity: low
+    dimension: supply-chain
+    file: .github/workflows/ci.yml
+    line: "14,17,22"
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T08:58:15Z"
+    msg: "GitHub Actions pinned to version tags (@v4) instead of commit SHA digests — mutable tags could be force-pushed to point at malicious code."
+    evidence:
+      snippet: "uses: actions/checkout@v4 / uses: pnpm/action-setup@v4 / uses: actions/setup-node@v4"
+      failure_scenario: "Adversary force-pushes a version tag on a trusted action repo → malicious code runs in CI. Risk: extremely low for official GitHub/pnpm actions."
+    fix: "Pin each action to its commit SHA: `gh api /repos/<owner>/<repo>/git/ref/refs/tags/v4` returns the SHA. Do this before first production merge."

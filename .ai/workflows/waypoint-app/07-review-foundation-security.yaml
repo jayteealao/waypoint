@@ -1,0 +1,16 @@
+artifact: review-dimension
+dimension: security
+parent: 07-review-foundation-security.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T08:58:15Z"
+verdict: ship
+verdict_label: "Ship — clean"
+summary: "Security review of 32 net-new product source files. Foundation slice introduces no attack surface: no auth code, no API endpoints, no database queries, no user input processing, no hardcoded secrets. The only dangerouslySetInnerHTML usage is a hardcoded compile-time constant (THEME_INIT_SCRIPT) with no injection vector. All 30 deps are exact-pinned and pnpm audit passes."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

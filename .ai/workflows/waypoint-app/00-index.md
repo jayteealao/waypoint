@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T08:47:58Z"
+updated-at: "2026-07-11T08:58:15Z"
 selected-slice: "foundation"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -64,8 +64,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app foundation"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -100,6 +100,36 @@ workflow-files:
   - 05-implement-foundation.md
   - 06-verify.md
   - 06-verify-foundation.md
+  - 07-review-foundation-correctness.md
+  - 07-review-foundation-correctness.yaml
+  - 07-review-foundation-correctness.html.fragment
+  - 07-review-foundation-security.md
+  - 07-review-foundation-security.yaml
+  - 07-review-foundation-security.html.fragment
+  - 07-review-foundation-code-simplification.md
+  - 07-review-foundation-code-simplification.yaml
+  - 07-review-foundation-code-simplification.html.fragment
+  - 07-review-foundation-testing.md
+  - 07-review-foundation-testing.yaml
+  - 07-review-foundation-testing.html.fragment
+  - 07-review-foundation-supply-chain.md
+  - 07-review-foundation-supply-chain.yaml
+  - 07-review-foundation-supply-chain.html.fragment
+  - 07-review-foundation-ci.md
+  - 07-review-foundation-ci.yaml
+  - 07-review-foundation-ci.html.fragment
+  - 07-review-foundation-maintainability.md
+  - 07-review-foundation-maintainability.yaml
+  - 07-review-foundation-maintainability.html.fragment
+  - 07-review-foundation-reliability.md
+  - 07-review-foundation-reliability.yaml
+  - 07-review-foundation-reliability.html.fragment
+  - 07-review-foundation-docs.md
+  - 07-review-foundation-docs.yaml
+  - 07-review-foundation-docs.html.fragment
+  - 07-review-foundation.md
+  - 07-review-foundation.yaml
+  - 07-review-foundation.html.fragment
 progress:
   intake: complete
   shape: complete
@@ -107,7 +137,7 @@ progress:
   plan: complete
   implement: complete
   verify: complete
-  review: not-started
+  review: complete
   handoff: not-started
   ship: not-started
   retro: not-started
