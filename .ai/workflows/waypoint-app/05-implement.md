@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T00:40:00Z"
-slices-implemented: 1
+updated-at: "2026-07-11T09:53:39Z"
+slices-implemented: 2
 slices-total: 12
-metric-total-files-changed: 27
-metric-total-lines-added: 820
-metric-total-lines-removed: 0
-tags: [bootstrap, ci, supply-chain, greenfield]
+metric-total-files-changed: 39
+metric-total-lines-added: 1284
+metric-total-lines-removed: 5
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app foundation"
+next-invocation: "/wf verify waypoint-app platform-proofs"
 ---
 
 # Implement Index
@@ -41,7 +41,26 @@ next-invocation: "/wf verify waypoint-app foundation"
   All subsequent slices' `console.log` calls in Workers code are automatically collected via Logpush.
   No additional setup needed for log collection; instrumentation signals are just `console.log(JSON.stringify({...}))`.
 
+- **Platform proofs: API route pattern** — `createFileRoute` from `@tanstack/react-router` with
+  `server: { handlers: { GET, POST } }` is the correct API for server routes in TanStack Start v1.x.
+  `createAPIFileRoute` from `@tanstack/react-start/server` does NOT exist. All subsequent slices
+  adding API routes must use the `createFileRoute` + `server.handlers` pattern.
+
+- **Platform proofs: TanStack AI provider packages** — `@tanstack/ai` core is activity-based.
+  Provider adapters are in separate packages: `@tanstack/ai-openrouter` (native) and
+  `@tanstack/ai-openai` (OpenAI-compatible). Both exact-pinned. The `AIClient` interface in
+  `src/lib/ai-client.ts` is the abstraction the ai-gateway slice extends.
+
+- **Platform proofs: D1 binding pattern** — `wrangler.jsonc` now has `d1_databases` with
+  `binding: "DB"`. The per-request `createAuth(env['DB'])` factory pattern in
+  `src/lib/auth.ts` + `src/routes/api/auth/$.ts` is the architectural contract for all
+  Workers routes that touch the database. No module-scope D1 client state is permitted.
+
+- **Platform proofs: `cloudflare:workers` type shim** — `src/cloudflare-workers.d.ts` provides
+  the TypeScript module declaration for `import { env } from 'cloudflare:workers'`. The typed
+  `Env` interface (via `wrangler types`) is deferred to accounts-data-layer.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app foundation` — All foundation ACs have local proxy evidence. Run the full verification suite.
-- **Option B:** `/wf implement waypoint-app platform-proofs` — Implement the next slice in parallel if verification is deferred.
+- **Option A (default):** `/wf verify waypoint-app platform-proofs` — Vitest passes; Playwright wrangler proofs built and ready. Run `wrangler dev` to enable the SSE and D1 proof tests.
+- **Option B:** `/wf review waypoint-app platform-proofs` — Skip verify if wrangler proofs are confirmed manually and evidence is captured.

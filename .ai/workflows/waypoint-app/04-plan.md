@@ -5,9 +5,9 @@ slug: waypoint-app
 status: complete
 stage-number: 4
 created-at: "2026-07-11T00:13:07Z"
-updated-at: "2026-07-11T00:13:07Z"
+updated-at: "2026-07-11T09:17:42Z"
 planning-mode: single
-slices-planned: 1
+slices-planned: 2
 slices-total: 12
 implementation-order: [foundation, platform-proofs, accounts-data-layer, design-system-shell, lesson-renderer, sample-journey, ai-gateway, tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress, source-grounding]
 conflicts-found: 0
@@ -16,7 +16,7 @@ refs:
   index: 00-index.md
   slice-index: 03-slice.md
 next-command: wf-implement
-next-invocation: "/wf implement waypoint-app foundation"
+next-invocation: "/wf implement waypoint-app platform-proofs"
 ---
 
 # Plan Index
@@ -32,8 +32,18 @@ next-invocation: "/wf implement waypoint-app foundation"
 - **Key risk:** `@tanstack/cli create` is alpha; fallback path documented. CI gate (AC-F4) is
   deferred until a GitHub remote exists; proxy AC (local harnesses passing) is the immediate evidence.
 
-### Plans not yet written (11 remaining slices)
-Plans for slices 2–12 will be authored before or during their respective implement stages.
+### `platform-proofs`
+- **Files to touch:** 10 files (8 new, 2 modified) across deps/config, SSE route, AI client,
+  auth+D1 spike, and proof test suites
+- **Strategy:** Smallest-surface proofs. Demo SSE route (5 timed chunks via Workers ReadableStream),
+  TanStack AI factory (native OpenRouter + OpenAI-fallback + mock adapter), better-auth per-request
+  D1 client on `createAPIFileRoute`, Playwright proofs against `wrangler dev` (separate config),
+  Vitest AI smoke in node environment.
+- **Key risk:** SSE streaming under workerd is inferred-not-documented — the demo route and
+  Playwright timing test are the empirical answer. If it fails, surface immediately.
+
+### Plans not yet written (10 remaining slices)
+Plans for slices 3–12 will be authored before or during their respective implement stages.
 Each will follow the same sub-agent research + autonomous-override pattern.
 
 ## Cross-Cutting Concerns

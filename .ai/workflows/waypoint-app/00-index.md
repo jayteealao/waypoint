@@ -7,8 +7,8 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T08:58:15Z"
-selected-slice: "foundation"
+updated-at: "2026-07-11T09:53:39Z"
+selected-slice: "platform-proofs"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -64,8 +64,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app platform-proofs"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -94,10 +94,14 @@ workflow-files:
   - 04-plan-foundation.md
   - 04-plan-foundation.yaml
   - 04-plan-foundation.html.fragment
+  - 04-plan-platform-proofs.md
+  - 04-plan-platform-proofs.yaml
+  - 04-plan-platform-proofs.html.fragment
   - 04b-instrument.md
   - 04b-instrument.yaml
   - 05-implement.md
   - 05-implement-foundation.md
+  - 05-implement-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md
   - 07-review-foundation-correctness.md

@@ -4,5 +4,14 @@
   "compatibility_date": "2025-11-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "waypoint-dev",
+      // Placeholder ID valid for wrangler dev / miniflare local D1.
+      // Replace with the real ID from `wrangler d1 create waypoint-dev` on first deploy.
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
 }
