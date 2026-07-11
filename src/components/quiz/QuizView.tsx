@@ -107,7 +107,8 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
   // ── Results screen ─────────────────────────────────────────────────────────
 
   if (showResults) {
-    const attempt = restoredAttempt!
+    const attempt = restoredAttempt
+    if (!attempt) return null
     const correct = Math.round(attempt.score * questions.length)
 
     return (
@@ -207,7 +208,6 @@ export function QuizView({ questions, onComplete }: QuizViewProps) {
               data-testid={`quiz-option-${idx}`}
               onClick={() => handleOptionClick(idx)}
               disabled={answered}
-              aria-pressed={answered && idx === userAnswer ? true : undefined}
             >
               <span className="wp-quiz-option-letter" aria-hidden="true">
                 {String.fromCharCode(65 + idx)}
