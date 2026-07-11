@@ -19,12 +19,12 @@ test('better-auth responds on createFileRoute mount (AC-PP4a)', async ({
   expect(response.status()).toBeGreaterThanOrEqual(200)
 })
 
-test('no module-scope client leak across sequential requests (AC-PP4b)', async ({
+test('no module-scope client leak across concurrent requests (AC-PP4b)', async ({
   request,
 }) => {
-  // Two independent requests to the session endpoint.
-  // If better-auth used module-scope state, the second request might see
-  // stale D1 client state from request 1 and crash or return an error.
+  // Two concurrent requests to the session endpoint (Promise.all — not sequential).
+  // Concurrent isolation is a stronger proof than sequential: if better-auth used
+  // module-scope state, concurrent requests could race on that shared state and crash.
   const [r1, r2] = await Promise.all([
     request.get(AUTH_SESSION_URL),
     request.get(AUTH_SESSION_URL),
