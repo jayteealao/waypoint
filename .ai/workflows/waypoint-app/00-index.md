@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T09:53:39Z"
+updated-at: "2026-07-11T10:11:55Z"
 selected-slice: "platform-proofs"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -64,8 +64,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app platform-proofs"
+next-command: wf-review
+next-invocation: "/wf review waypoint-app platform-proofs"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -102,6 +102,7 @@ workflow-files:
   - 05-implement.md
   - 05-implement-foundation.md
   - 05-implement-platform-proofs.md
+  - 06-verify-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md
   - 07-review-foundation-correctness.md
