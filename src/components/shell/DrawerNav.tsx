@@ -30,7 +30,7 @@ export interface DrawerNavProps {
  * - Backdrop click closes the drawer
  */
 export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
-  const { drawerOpen, closeDrawer } = useShell()
+  const { drawerOpen, closeDrawer, waypoints } = useShell()
   const drawerRef    = useRef<HTMLDivElement>(null)
   const backdropRef  = useRef<HTMLDivElement>(null)
   const previousFocus = useRef<Element | null>(null)
@@ -158,14 +158,44 @@ export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
             Account
           </Link>
 
-          {currentJourney && (
+          {(currentJourney || waypoints.length > 0) && (
             <div className="mt-4 border-t border-[var(--border)] pt-4">
-              <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-widest text-[var(--ink-muted)]">
-                Current journey
-              </p>
-              <p className="px-2 text-sm font-semibold text-[var(--ink)] display-title">
-                {currentJourney.title}
-              </p>
+              {currentJourney && (
+                <>
+                  <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-widest text-[var(--ink-muted)]">
+                    Current journey
+                  </p>
+                  <p className="px-2 text-sm font-semibold text-[var(--ink)] display-title">
+                    {currentJourney.title}
+                  </p>
+                </>
+              )}
+              {waypoints.length > 0 && (
+                <nav
+                  className="mt-3 space-y-0.5"
+                  aria-label="Journey waypoints"
+                >
+                  {waypoints.map((wp) => (
+                    <Link
+                      key={wp.id}
+                      to={wp.href}
+                      data-waypoint={wp.id}
+                      data-completed={wp.completed ? 'true' : 'false'}
+                      className={`wp-sidebar-nav-item${pathname === wp.href ? ' wp-sidebar-nav-item--active' : ''}`}
+                    >
+                      <span className="flex-1 truncate">{wp.label}</span>
+                      {wp.completed && (
+                        <span
+                          className="ml-1 text-[var(--success)]"
+                          aria-label="Completed"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </nav>
+              )}
             </div>
           )}
         </nav>

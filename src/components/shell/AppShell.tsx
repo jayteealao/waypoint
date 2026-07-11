@@ -7,16 +7,28 @@ import { Menu } from 'lucide-react'
 
 /* ─── Shell context ──────────────────────────────────────────────────── */
 
+/** A waypoint entry displayed in the Sidebar and DrawerNav navigation lists. */
+export interface ShellWaypoint {
+  id:        string
+  label:     string
+  href:      string
+  completed: boolean
+}
+
 interface ShellContextValue {
   drawerOpen:    boolean
   toggleDrawer:  () => void
   closeDrawer:   () => void
+  waypoints:     ShellWaypoint[]
+  setWaypoints:  (ws: ShellWaypoint[]) => void
 }
 
 export const ShellContext = createContext<ShellContextValue>({
   drawerOpen:   false,
   toggleDrawer: () => {},
   closeDrawer:  () => {},
+  waypoints:    [],
+  setWaypoints: () => {},
 })
 
 export function useShell() {
@@ -41,12 +53,13 @@ export interface AppShellProps {
  */
 export function AppShell({ children, currentJourney = null }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [waypoints, setWaypoints]   = useState<ShellWaypoint[]>([])
 
   const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), [])
   const closeDrawer  = useCallback(() => setDrawerOpen(false), [])
 
   return (
-    <ShellContext.Provider value={{ drawerOpen, toggleDrawer, closeDrawer }}>
+    <ShellContext.Provider value={{ drawerOpen, toggleDrawer, closeDrawer, waypoints, setWaypoints }}>
       <div className="wp-shell">
         {/* Sidebar — desktop only */}
         <div className="hidden md:flex">

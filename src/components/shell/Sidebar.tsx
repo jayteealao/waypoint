@@ -1,5 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import type { Journey } from '#/db/schema'
+import { useShell } from './AppShell'
 import { Meter } from '../ui/Meter'
 import ThemeToggle from '../ThemeToggle'
 import { Compass } from 'lucide-react'
@@ -10,12 +11,13 @@ export interface SidebarProps {
 
 /**
  * Left navigation sidebar (desktop, 240px sticky).
- * Shows the Waypoint brand, journey context, waypoint list seam (filled by later slices),
+ * Shows the Waypoint brand, journey context, waypoint list (from ShellContext),
  * and an overall progress meter at the bottom.
  */
 export function Sidebar({ currentJourney = null }: SidebarProps) {
-  const routerState = useRouterState()
-  const pathname    = routerState.location.pathname
+  const routerState      = useRouterState()
+  const pathname         = routerState.location.pathname
+  const { waypoints }    = useShell()
 
   return (
     <aside
@@ -51,24 +53,45 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
           Account
         </Link>
 
-        {/* Journey context — populated by later slices */}
-        {currentJourney && (
+        {/* Journey context — shown for a real journey or when sample waypoints are active */}
+        {(currentJourney || waypoints.length > 0) && (
           <div className="mt-4 border-t border-[var(--border)] pt-4">
-            <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-widest text-[var(--ink-muted)]">
-              Current journey
-            </p>
-            <p className="px-2 text-sm font-semibold text-[var(--ink)] display-title">
-              {currentJourney.title}
-            </p>
-            {/* Waypoint list seam — lesson-renderer + roadmap-lesson-generation fill this */}
-            <div
-              className="mt-3 space-y-0.5"
-              aria-label="Waypoints — coming soon"
-            >
-              <p className="px-2 text-xs text-[var(--ink-muted)] italic">
-                Waypoints load when you open a lesson.
-              </p>
-            </div>
+            {currentJourney && (
+              <>
+                <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-widest text-[var(--ink-muted)]">
+                  Current journey
+                </p>
+                <p className="px-2 text-sm font-semibold text-[var(--ink)] display-title">
+                  {currentJourney.title}
+                </p>
+              </>
+            )}
+            {waypoints.length > 0 && (
+              <nav
+                className="mt-3 space-y-0.5"
+                aria-label="Journey waypoints"
+              >
+                {waypoints.map((wp) => (
+                  <Link
+                    key={wp.id}
+                    to={wp.href}
+                    data-waypoint={wp.id}
+                    data-completed={wp.completed ? 'true' : 'false'}
+                    className={`wp-sidebar-nav-item${pathname === wp.href ? ' wp-sidebar-nav-item--active' : ''}`}
+                  >
+                    <span className="flex-1 truncate">{wp.label}</span>
+                    {wp.completed && (
+                      <span
+                        className="ml-1 text-[var(--success)]"
+                        aria-label="Completed"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </nav>
+            )}
           </div>
         )}
       </nav>

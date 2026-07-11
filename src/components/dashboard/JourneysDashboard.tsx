@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, Link } from '@tanstack/react-router'
 import type { Journey } from '#/db/schema'
 import { useJourneys } from '#/lib/store/journeys'
 import { JourneyCard } from './JourneyCard'
 import { Skeleton } from '../ui/Skeleton'
-import { Button } from '../ui/Button'
 import { Compass } from 'lucide-react'
+import { SAMPLE_JOURNEY_VISITED_KEY } from '#/fixtures/sample-journey'
 
 /** Compass waypoint illustration for the empty state. */
 function EmptyIllustration() {
@@ -48,16 +49,15 @@ function EmptyState() {
         </p>
       </div>
 
-      <Button
-        variant="primary"
-        size="md"
+      {/* sdlc-debt: links to /sample (guided tour) until tutor-interview ships /journey/new */}
+      <Link
+        to="/sample"
+        className="btn-base btn-primary btn-md inline-flex items-center gap-2"
         data-testid="create-journey-cta"
-        // TODO: navigate to journey creation — sample-journey slice adds this
-        onClick={() => {}}
       >
         <Compass size={16} aria-hidden="true" />
         Start a journey
-      </Button>
+      </Link>
     </div>
   )
 }
@@ -95,6 +95,7 @@ function LoadingSkeleton() {
  */
 export function JourneysDashboard() {
   const [isReady, setIsReady] = useState(false)
+  const navigate              = useNavigate()
 
   // Flip ready after the first paint so the syncer has time to call markReady().
   useEffect(() => {
@@ -112,6 +113,17 @@ export function JourneysDashboard() {
         r && typeof r === 'object' && 'journeys' in r ? r.journeys : (r as Journey),
       )
     : []
+
+  // First-login redirect: new users with no journeys land in the sample journey.
+  // Returning users who have already visited the sample journey stay on the dashboard.
+  // Only runs client-side (localStorage is not available during SSR).
+  useEffect(() => {
+    if (!isReady) return
+    if (journeys.length !== 0) return
+    if (typeof localStorage === 'undefined') return
+    if (localStorage.getItem(SAMPLE_JOURNEY_VISITED_KEY) === 'true') return
+    void navigate({ to: '/sample' })
+  }, [isReady, journeys.length, navigate])
 
   return (
     <section

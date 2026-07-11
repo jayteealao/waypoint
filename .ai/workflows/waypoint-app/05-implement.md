@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T19:15:37Z"
-slices-implemented: 5
+updated-at: "2026-07-11T20:51:58Z"
+slices-implemented: 6
 slices-total: 12
-metric-total-files-changed: 103
-metric-total-lines-added: 20411
-metric-total-lines-removed: 369
+metric-total-files-changed: 118
+metric-total-lines-added: 21834
+metric-total-lines-removed: 430
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app design-system-shell"
+next-invocation: "/wf verify waypoint-app sample-journey"
 ---
 
 # Implement Index
@@ -147,12 +147,31 @@ next-invocation: "/wf verify waypoint-app design-system-shell"
 - **Lesson-renderer: `getLesson` does NOT parse content** — returns `Lesson` (content: string | null).
   Route loaders call `JSON.parse(row.content) as LessonDocumentV1` after receiving the row.
 
+- **Sample-journey: `ShellWaypoint` type and `waypoints`/`setWaypoints` context** — `ShellContextValue`
+  now includes `waypoints: ShellWaypoint[]` and `setWaypoints`. All shell consumers (`Sidebar`, `DrawerNav`)
+  render the waypoint list when `waypoints.length > 0`. The `roadmap-lesson-generation` slice will populate
+  real journey waypoints using this same infrastructure. Do not duplicate waypoint state in child components.
+
+- **Sample-journey: `wp:sample-progress` custom event bus** — the sample layout route listens for this
+  event and recomputes completion state from localStorage. Child routes dispatch it via `setTimeout(0)`
+  after writing to localStorage. Future sample-journey route additions must follow the same pattern.
+
+- **Sample-journey: `wp-quiz` CSS namespace** — `.wp-quiz*` classes appended to `src/styles.css`.
+  The quiz-fsrs slice extending `QuizView` must append new states to this namespace, not introduce a
+  separate class prefix. Existing `.wp-quiz-option--correct/--incorrect` are reusable for real quiz grading.
+
+- **Sample-journey: `SAMPLE_JOURNEY_VISITED_KEY` is the first-login gate** — `JourneysDashboard`
+  redirects new users to `/sample` when `localStorage.getItem('wp:sample-visited') !== 'true'` and
+  `journeys.length === 0`. The sample layout sets the key on mount. Future slices that create journeys
+  for new users must account for this gate (e.g., `journeys.length > 0` suppresses the redirect naturally).
+
+- **Sample-journey: `SampleQuizQuestion` interface** — exported from `src/fixtures/sample-journey.ts`.
+  The quiz-fsrs slice's real quiz question type should be a superset of (or compatible with) this
+  interface. `QuizView` is parameterised on `SampleQuizQuestion[]`; if the real question type is
+  compatible, `QuizView` can be reused directly.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app lesson-renderer` — AC-LR4 unit tests pass on
-  every `pnpm test` run. Playwright ACs deferred under existing ADL deferral
-  (BETTER_AUTH_SECRET wall); proxy evidence recorded.
-- **Option B:** `/wf review waypoint-app lesson-renderer` — Skip verify if proxy evidence is
-  sufficient for the code review gate.
-- **Option C:** `/wf implement waypoint-app sample-journey` — Can start immediately since
-  `LessonDocumentV1` schema and `LessonView` component are both available.
+- **Option A (default):** `/wf verify waypoint-app sample-journey` — 11 Vitest unit tests pass (equal-length lint, scoring, attempt format). Playwright ACs deferred under existing ADL deferral (BETTER_AUTH_SECRET wall); proxy evidence recorded.
+- **Option B:** `/wf review waypoint-app sample-journey` — Skip verify if proxy evidence is sufficient.
+- **Option C:** `/wf implement waypoint-app ai-gateway` — Next in the ordered sequence; can start immediately as sample-journey has no blocking dependency on ai-gateway.

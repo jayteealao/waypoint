@@ -1029,3 +1029,203 @@ pre code {
   gap: 0.5rem;
   margin: 1rem 0;
 }
+
+/* ─── Quiz surface ─────────────────────────────────────────────────────────── */
+
+.wp-quiz {
+  max-width: 640px;
+  margin-inline: auto;
+  padding: var(--space-6, 1.5rem) var(--space-4, 1rem);
+}
+
+.wp-quiz-question {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: var(--space-4, 1rem);
+  line-height: 1.5;
+}
+
+.wp-quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wp-quiz-option {
+    transition: background var(--motion-fast), border-color var(--motion-fast);
+  }
+}
+
+.wp-quiz-option:hover:not(:disabled) {
+  background: var(--ember-subtle);
+  border-color: var(--border-strong);
+}
+
+.wp-quiz-option:disabled {
+  cursor: default;
+}
+
+.wp-quiz-option--correct {
+  border-color: var(--success);
+  background: oklch(0.96 0.04 145);
+}
+
+.wp-quiz-option--incorrect {
+  border-color: var(--ember-dark);
+  background: var(--ember-subtle);
+}
+
+.wp-quiz-option--selected {
+  border-width: 2px;
+}
+
+.wp-quiz-option-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--paper-mid);
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wp-quiz-option--correct  .wp-quiz-option-letter { background: var(--success);    color: oklch(1 0 0); }
+.wp-quiz-option--incorrect .wp-quiz-option-letter { background: var(--ember-dark); color: oklch(1 0 0); }
+
+.wp-quiz-feedback {
+  border-left: 3px solid var(--ember);
+  padding: 0.75rem 1rem;
+  background: var(--ember-subtle);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-top: 0.75rem;
+  line-height: 1.6;
+}
+
+.wp-quiz-feedback--correct {
+  border-left-color: var(--success);
+  background: oklch(0.96 0.04 145);
+}
+
+:root[data-theme="dark"] .wp-quiz-option--correct,
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wp-quiz-option--correct {
+    background: oklch(0.22 0.05 145);
+  }
+}
+
+:root[data-theme="dark"] .wp-quiz-feedback--correct {
+  background: oklch(0.22 0.05 145);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wp-quiz-feedback--correct {
+    background: oklch(0.22 0.05 145);
+  }
+}
+
+.wp-quiz-results {
+  text-align: center;
+  padding: var(--space-8, 2rem) var(--space-4, 1rem);
+}
+
+.wp-quiz-score {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: var(--ink);
+  line-height: 1;
+}
+
+.wp-quiz-result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+}
+
+.wp-quiz-result-item--correct .wp-quiz-result-icon { color: var(--success); }
+.wp-quiz-result-item--incorrect .wp-quiz-result-icon { color: var(--ember-dark); }
+
+.wp-quiz-result-icon {
+  flex-shrink: 0;
+  font-weight: 700;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.wp-quiz-result-text {
+  flex: 1;
+}
+
+/* ─── Sample journey overview ──────────────────────────────────────────────── */
+
+.wp-sample-overview {
+  max-width: 640px;
+  margin-inline: auto;
+  padding: var(--space-6, 1.5rem) var(--space-4, 1rem);
+}
+
+.wp-sample-waypoint-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.wp-sample-waypoint-card--completed {
+  border-color: var(--success);
+}
+
+.wp-sample-waypoint-card-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.wp-sample-waypoint-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-pill);
+  background: var(--ember-subtle);
+  color: var(--ember);
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wp-sample-waypoint-card--completed .wp-sample-waypoint-card-badge {
+  background: oklch(0.96 0.04 145);
+  color: var(--success);
+}

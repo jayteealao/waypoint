@@ -14,8 +14,13 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ApiDemoStreamRouteImport } from './routes/api/demo-stream'
+import { Route as AuthenticatedSampleRouteImport } from './routes/_authenticated/sample'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedSampleIndexRouteImport } from './routes/_authenticated/sample/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthenticatedSampleQuizRouteImport } from './routes/_authenticated/sample/quiz'
+import { Route as AuthenticatedSampleLesson2RouteImport } from './routes/_authenticated/sample/lesson-2'
+import { Route as AuthenticatedSampleLesson1RouteImport } from './routes/_authenticated/sample/lesson-1'
 import { Route as AuthenticatedLessonFixtureRouteImport } from './routes/_authenticated/lesson/fixture'
 
 const SignInRoute = SignInRouteImport.update({
@@ -42,16 +47,44 @@ const ApiDemoStreamRoute = ApiDemoStreamRouteImport.update({
   path: '/api/demo-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSampleRoute = AuthenticatedSampleRouteImport.update({
+  id: '/sample',
+  path: '/sample',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSampleIndexRoute =
+  AuthenticatedSampleIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedSampleRoute,
+  } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSampleQuizRoute = AuthenticatedSampleQuizRouteImport.update({
+  id: '/quiz',
+  path: '/quiz',
+  getParentRoute: () => AuthenticatedSampleRoute,
+} as any)
+const AuthenticatedSampleLesson2Route =
+  AuthenticatedSampleLesson2RouteImport.update({
+    id: '/lesson-2',
+    path: '/lesson-2',
+    getParentRoute: () => AuthenticatedSampleRoute,
+  } as any)
+const AuthenticatedSampleLesson1Route =
+  AuthenticatedSampleLesson1RouteImport.update({
+    id: '/lesson-1',
+    path: '/lesson-1',
+    getParentRoute: () => AuthenticatedSampleRoute,
+  } as any)
 const AuthenticatedLessonFixtureRoute =
   AuthenticatedLessonFixtureRouteImport.update({
     id: '/lesson/fixture',
@@ -64,9 +97,14 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/sign-in': typeof SignInRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
+  '/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
+  '/sample/lesson-2': typeof AuthenticatedSampleLesson2Route
+  '/sample/quiz': typeof AuthenticatedSampleQuizRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/sample/': typeof AuthenticatedSampleIndexRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AboutRoute
@@ -75,7 +113,11 @@ export interface FileRoutesByTo {
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/': typeof AuthenticatedIndexRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
+  '/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
+  '/sample/lesson-2': typeof AuthenticatedSampleLesson2Route
+  '/sample/quiz': typeof AuthenticatedSampleQuizRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/sample': typeof AuthenticatedSampleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -83,10 +125,15 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/sign-in': typeof SignInRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
+  '/_authenticated/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
+  '/_authenticated/sample/lesson-2': typeof AuthenticatedSampleLesson2Route
+  '/_authenticated/sample/quiz': typeof AuthenticatedSampleQuizRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_authenticated/sample/': typeof AuthenticatedSampleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -95,9 +142,14 @@ export interface FileRouteTypes {
     | '/about'
     | '/sign-in'
     | '/account'
+    | '/sample'
     | '/api/demo-stream'
     | '/lesson/fixture'
+    | '/sample/lesson-1'
+    | '/sample/lesson-2'
+    | '/sample/quiz'
     | '/api/auth/$'
+    | '/sample/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -106,17 +158,26 @@ export interface FileRouteTypes {
     | '/api/demo-stream'
     | '/'
     | '/lesson/fixture'
+    | '/sample/lesson-1'
+    | '/sample/lesson-2'
+    | '/sample/quiz'
     | '/api/auth/$'
+    | '/sample'
   id:
     | '__root__'
     | '/_authenticated'
     | '/about'
     | '/sign-in'
     | '/_authenticated/account'
+    | '/_authenticated/sample'
     | '/api/demo-stream'
     | '/_authenticated/'
     | '/_authenticated/lesson/fixture'
+    | '/_authenticated/sample/lesson-1'
+    | '/_authenticated/sample/lesson-2'
+    | '/_authenticated/sample/quiz'
     | '/api/auth/$'
+    | '/_authenticated/sample/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDemoStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/sample': {
+      id: '/_authenticated/sample'
+      path: '/sample'
+      fullPath: '/sample'
+      preLoaderRoute: typeof AuthenticatedSampleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/account': {
       id: '/_authenticated/account'
       path: '/account'
@@ -171,12 +239,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/sample/': {
+      id: '/_authenticated/sample/'
+      path: '/'
+      fullPath: '/sample/'
+      preLoaderRoute: typeof AuthenticatedSampleIndexRouteImport
+      parentRoute: typeof AuthenticatedSampleRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/sample/quiz': {
+      id: '/_authenticated/sample/quiz'
+      path: '/quiz'
+      fullPath: '/sample/quiz'
+      preLoaderRoute: typeof AuthenticatedSampleQuizRouteImport
+      parentRoute: typeof AuthenticatedSampleRoute
+    }
+    '/_authenticated/sample/lesson-2': {
+      id: '/_authenticated/sample/lesson-2'
+      path: '/lesson-2'
+      fullPath: '/sample/lesson-2'
+      preLoaderRoute: typeof AuthenticatedSampleLesson2RouteImport
+      parentRoute: typeof AuthenticatedSampleRoute
+    }
+    '/_authenticated/sample/lesson-1': {
+      id: '/_authenticated/sample/lesson-1'
+      path: '/lesson-1'
+      fullPath: '/sample/lesson-1'
+      preLoaderRoute: typeof AuthenticatedSampleLesson1RouteImport
+      parentRoute: typeof AuthenticatedSampleRoute
     }
     '/_authenticated/lesson/fixture': {
       id: '/_authenticated/lesson/fixture'
@@ -188,14 +284,33 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedSampleRouteChildren {
+  AuthenticatedSampleLesson1Route: typeof AuthenticatedSampleLesson1Route
+  AuthenticatedSampleLesson2Route: typeof AuthenticatedSampleLesson2Route
+  AuthenticatedSampleQuizRoute: typeof AuthenticatedSampleQuizRoute
+  AuthenticatedSampleIndexRoute: typeof AuthenticatedSampleIndexRoute
+}
+
+const AuthenticatedSampleRouteChildren: AuthenticatedSampleRouteChildren = {
+  AuthenticatedSampleLesson1Route: AuthenticatedSampleLesson1Route,
+  AuthenticatedSampleLesson2Route: AuthenticatedSampleLesson2Route,
+  AuthenticatedSampleQuizRoute: AuthenticatedSampleQuizRoute,
+  AuthenticatedSampleIndexRoute: AuthenticatedSampleIndexRoute,
+}
+
+const AuthenticatedSampleRouteWithChildren =
+  AuthenticatedSampleRoute._addFileChildren(AuthenticatedSampleRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedSampleRoute: typeof AuthenticatedSampleRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedLessonFixtureRoute: typeof AuthenticatedLessonFixtureRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedSampleRoute: AuthenticatedSampleRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedLessonFixtureRoute: AuthenticatedLessonFixtureRoute,
 }

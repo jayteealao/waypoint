@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T20:30:00Z"
-selected-slice: "lesson-renderer"
+updated-at: "2026-07-11T20:51:58Z"
+selected-slice: "sample-journey"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -44,6 +44,11 @@ runtime-evidence-deferrals:
     recorded-at: "2026-07-11T19:15:37Z"
     cleared-at: "2026-07-11T19:49:36Z"
     cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 6 Playwright tests pass after cookie prefix fix (__Secure- required for HTTPS base URL) and React 19 hydration fix; commit 5b6cde1"
+  - ac: "AC-SJ1 + AC-SJ2 + AC-SJ3 + AC-SJ4 — seeded-session sample journey Playwright tests (first-login redirect, lesson rendering, quiz walkthrough, returning-user scenario)"
+    slice: sample-journey
+    reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /sample/* require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5, AC-DSS1/3/4/5, AC-LR1/2/3). Proxy evidence: 11 Vitest unit tests pass (equal-length-options lint, quiz scoring logic, attempt format validation). Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
+    cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
+    recorded-at: "2026-07-11T20:51:58Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -86,8 +91,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-implement
-next-invocation: "/wf implement waypoint-app sample-journey"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app sample-journey"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -271,6 +276,9 @@ workflow-files:
   - 07-review-design-system-shell.html.fragment
   - 04-plan-lesson-renderer.md
   - 04-plan-lesson-renderer.yaml
+  - 04-plan-sample-journey.md
+  - 04-plan-sample-journey.yaml
+  - 04-plan-sample-journey.html.fragment
   - 05-implement-lesson-renderer.md
   - 06-verify-lesson-renderer.md
   - 07-review-lesson-renderer-correctness.md
@@ -317,6 +325,7 @@ workflow-files:
   - 07-review-lesson-renderer.md
   - 07-review-lesson-renderer.yaml
   - 07-review-lesson-renderer.html.fragment
+  - 05-implement-sample-journey.md
 progress:
   intake: complete
   shape: complete
