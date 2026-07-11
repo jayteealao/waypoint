@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T13:04:46Z"
+updated-at: "2026-07-11T14:00:00Z"
 selected-slice: "accounts-data-layer"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -74,8 +74,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app accounts-data-layer"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -179,14 +179,51 @@ workflow-files:
   - 07-review-platform-proofs.md
   - 07-review-platform-proofs.yaml
   - 07-review-platform-proofs.html.fragment
+  - 07-review-accounts-data-layer-correctness.md
+  - 07-review-accounts-data-layer-correctness.yaml
+  - 07-review-accounts-data-layer-correctness.html.fragment
+  - 07-review-accounts-data-layer-reliability.md
+  - 07-review-accounts-data-layer-reliability.yaml
+  - 07-review-accounts-data-layer-reliability.html.fragment
+  - 07-review-accounts-data-layer-security.md
+  - 07-review-accounts-data-layer-security.yaml
+  - 07-review-accounts-data-layer-security.html.fragment
+  - 07-review-accounts-data-layer-code-simplification.md
+  - 07-review-accounts-data-layer-code-simplification.yaml
+  - 07-review-accounts-data-layer-code-simplification.html.fragment
+  - 07-review-accounts-data-layer-testing.md
+  - 07-review-accounts-data-layer-testing.yaml
+  - 07-review-accounts-data-layer-testing.html.fragment
+  - 07-review-accounts-data-layer-data-integrity.md
+  - 07-review-accounts-data-layer-data-integrity.yaml
+  - 07-review-accounts-data-layer-data-integrity.html.fragment
+  - 07-review-accounts-data-layer-maintainability.md
+  - 07-review-accounts-data-layer-maintainability.yaml
+  - 07-review-accounts-data-layer-privacy.md
+  - 07-review-accounts-data-layer-privacy.yaml
+  - 07-review-accounts-data-layer-migrations.md
+  - 07-review-accounts-data-layer-migrations.yaml
+  - 07-review-accounts-data-layer-api-contracts.md
+  - 07-review-accounts-data-layer-api-contracts.yaml
+  - 07-review-accounts-data-layer-supply-chain.md
+  - 07-review-accounts-data-layer-supply-chain.yaml
+  - 07-review-accounts-data-layer-architecture.md
+  - 07-review-accounts-data-layer-architecture.yaml
+  - 07-review-accounts-data-layer-backend-concurrency.md
+  - 07-review-accounts-data-layer-backend-concurrency.yaml
+  - 07-review-accounts-data-layer-accessibility.md
+  - 07-review-accounts-data-layer-accessibility.yaml
+  - 07-review-accounts-data-layer.md
+  - 07-review-accounts-data-layer.yaml
+  - 07-review-accounts-data-layer.html.fragment
 progress:
   intake: complete
   shape: complete
   slice: complete
   plan: complete
   implement: complete
-  verify: in-progress
-  review: in-progress
+  verify: complete
+  review: complete
   handoff: not-started
   ship: not-started
   retro: not-started

@@ -1,0 +1,30 @@
+artifact: review-dimension
+dimension: security
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "One LOW finding: trustedOrigins always includes localhost dev URLs even in production builds. No BLOCKERs or HIGH findings. OAuth credentials correctly sourced from env; auth guard correctly rejects cross-user access."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: SEC-1
+    severity: LOW
+    file: src/lib/auth.ts
+    line: 24
+    confidence: Med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T13:18:04Z"
+    msg: "trustedOrigins always includes localhost:3000 and localhost:8787 regardless of deployment environment"
+    evidence: |
+      trustedOrigins: [
+        'http://localhost:3000',
+        'http://localhost:8787',
+        ...(env.BETTER_AUTH_BASE_URL ? [env.BETTER_AUTH_BASE_URL] : []),
+      ],
+    fix: "Wrap localhost origins in a development-environment guard (e.g., check a DEPLOYMENT_ENV or NODE_ENV env var). Deferred: low risk in Workers (Workers never make localhost HTTP connections); production hardening deferred to a future security pass."

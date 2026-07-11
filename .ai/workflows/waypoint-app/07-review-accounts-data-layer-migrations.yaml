@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: migrations
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "Clean. Single idempotent migration with CREATE TABLE IF NOT EXISTS throughout. All FK constraints, CASCADE deletes, and composite indexes correctly modeled. migrations_dir configured in wrangler.jsonc. Better-auth tables correctly derive from getAuthTables output."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

@@ -1,0 +1,51 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.rd-di .rd-finding { border:1px solid var(--border,rgba(0,0,0,0.1)); border-radius:10px; margin-bottom:8px; overflow:hidden; }
+.rd-di .rd-finding-header { display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; background:var(--surface-0,#fff); }
+.rd-di .rd-sev { font-size:11px; font-weight:700; padding:2px 7px; border-radius:4px; }
+.rd-di .rd-sev.LOW { background:rgba(59,130,246,0.1); color:#1d4ed8; }
+.rd-di .rd-id { font-family:monospace; font-size:12px; color:var(--text-2,#555); }
+.rd-di .rd-title { flex:1; font-size:13px; }
+.rd-di .rd-loc { font-family:monospace; font-size:11px; color:var(--text-3,#888); }
+.rd-di .rd-status { font-size:11px; padding:1px 6px; border-radius:4px; background:rgba(239,68,68,0.1); color:#b91c1c; }
+.rd-di .rd-body { padding:12px 14px; border-top:1px solid var(--border,rgba(0,0,0,0.08)); background:var(--surface-1,#f9fafb); display:none; }
+.rd-di .rd-finding.open .rd-body { display:block; }
+.rd-di pre { font-size:12px; background:var(--surface-2,#f3f4f6); padding:8px; border-radius:6px; overflow-x:auto; margin:6px 0; }
+.rd-di .rd-fix { margin-top:8px; font-size:13px; }
+.rd-di .rd-fix strong { color:var(--lagoon-deep,#328f97); }
+@media (prefers-color-scheme:dark) {
+  .rd-di .rd-finding-header { background:rgba(255,255,255,0.03); }
+  .rd-di .rd-body { background:rgba(255,255,255,0.04); }
+  .rd-di pre { background:rgba(255,255,255,0.06); }
+}
+</style>
+
+<div class="rd-di">
+  <div class="rd-finding" data-sev="LOW">
+    <div class="rd-finding-header">
+      <span class="rd-sev LOW">LOW</span>
+      <span class="rd-id">DI-1</span>
+      <span class="rd-title">updateJourney SELECT + ownership + UPDATE not atomic (TOCTOU)</span>
+      <span class="rd-loc">journeys.ts:88</span>
+      <span class="rd-status">open · fix</span>
+    </div>
+    <div class="rd-body">
+      <pre>const journey = await env.DB.prepare('SELECT * FROM journeys WHERE id = ?')...
+requireOwnership(session.user.id, journey.user_id)
+// ... separate UPDATE</pre>
+      <div class="rd-fix"><strong>Fix:</strong> Embed ownership in the WHERE clause: <code>UPDATE journeys SET ... WHERE id = ? AND user_id = ? RETURNING *</code>. Check <code>result === null</code> for 404/403 (follow with a presence check to distinguish). Eliminates the TOCTOU window and reduces to one D1 round-trip.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const root = document.currentScript.closest('.fragment-review-dimension');
+  if (!root) return;
+  root.querySelectorAll('.rd-finding-header').forEach(h => {
+    h.addEventListener('click', () => h.closest('.rd-finding').classList.toggle('open'));
+  });
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', { detail: { name: 'review-dimension', artifact: 'review-dimension', dimension: 'data-integrity', counts: { findings: 1, blockers: 0 } } }));
+})();
+</script>
+</section>

@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: privacy
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "Clean. Signals use internal user_id UUIDs (not email/name). OAuth access tokens stored by better-auth in D1 (encrypted at rest). No raw PII in logs or test code. Privacy posture matches 04b-instrument.md design."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: data-integrity
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "DI-1 (LOW) fixed: updateJourney ownership check now embedded in UPDATE WHERE clause (atomic). All FK constraints, indexes, and CASCADE deletes confirmed correct. Clean after fix."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

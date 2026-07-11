@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: api-contracts
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "Clean. Four well-typed server functions (listJourneys, getJourney, createJourney, updateJourney). Error responses use standard HTTP status codes (401/403/404). Auth API route correctly handles GET and POST methods. No breaking changes to existing endpoints."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

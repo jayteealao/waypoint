@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: reliability
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "One MED finding (REL-1) found and fixed: handleSignOut now has try/catch; sign-out failure logs the error and returns early instead of causing an unhandled rejection. Clean after fix."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

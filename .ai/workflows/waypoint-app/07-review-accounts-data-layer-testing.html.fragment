@@ -1,0 +1,83 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.rd-tst .rd-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+.rd-tst .rd-pill { padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid transparent; background:var(--surface-1,#f3f4f6); color:var(--text-1,#111); }
+.rd-tst .rd-pill.active { border-color:var(--lagoon-deep,#328f97); background:rgba(50,143,151,0.1); color:var(--lagoon-deep,#328f97); }
+.rd-tst .rd-finding { border:1px solid var(--border,rgba(0,0,0,0.1)); border-radius:10px; margin-bottom:8px; overflow:hidden; }
+.rd-tst .rd-finding-header { display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; background:var(--surface-0,#fff); }
+.rd-tst .rd-sev { font-size:11px; font-weight:700; padding:2px 7px; border-radius:4px; }
+.rd-tst .rd-sev.LOW { background:rgba(59,130,246,0.1); color:#1d4ed8; }
+.rd-tst .rd-id { font-family:monospace; font-size:12px; color:var(--text-2,#555); }
+.rd-tst .rd-title { flex:1; font-size:13px; }
+.rd-tst .rd-loc { font-family:monospace; font-size:11px; color:var(--text-3,#888); }
+.rd-tst .rd-status-open { font-size:11px; padding:1px 6px; border-radius:4px; background:rgba(239,68,68,0.1); color:#b91c1c; }
+.rd-tst .rd-status-def { font-size:11px; padding:1px 6px; border-radius:4px; background:rgba(156,163,175,0.2); color:#6b7280; }
+.rd-tst .rd-body { padding:12px 14px; border-top:1px solid var(--border,rgba(0,0,0,0.08)); background:var(--surface-1,#f9fafb); display:none; }
+.rd-tst .rd-finding.open .rd-body { display:block; }
+.rd-tst pre { font-size:12px; background:var(--surface-2,#f3f4f6); padding:8px; border-radius:6px; overflow-x:auto; margin:6px 0; }
+.rd-tst .rd-fix { margin-top:8px; font-size:13px; }
+.rd-tst .rd-fix strong { color:var(--lagoon-deep,#328f97); }
+@media (prefers-color-scheme:dark) {
+  .rd-tst .rd-pill { background:rgba(255,255,255,0.07); color:#ddd; }
+  .rd-tst .rd-finding-header { background:rgba(255,255,255,0.03); }
+  .rd-tst .rd-body { background:rgba(255,255,255,0.04); }
+  .rd-tst pre { background:rgba(255,255,255,0.06); }
+}
+</style>
+
+<div class="rd-tst">
+  <div class="rd-filter-bar">
+    <button class="rd-pill active" data-sev="all">All (2)</button>
+    <button class="rd-pill" data-sev="LOW">LOW (2)</button>
+  </div>
+
+  <div class="rd-finding" data-sev="LOW">
+    <div class="rd-finding-header">
+      <span class="rd-sev LOW">LOW</span>
+      <span class="rd-id">TS-1</span>
+      <span class="rd-title">seedUser SQL uses string interpolation without escaping</span>
+      <span class="rd-loc">auth-flow.spec.ts:57</span>
+      <span class="rd-status-open">open · fix</span>
+    </div>
+    <div class="rd-body">
+      <pre>const userSql = `INSERT OR REPLACE INTO user ... VALUES ('${userId}', '${name}', '${email}', ...)`</pre>
+      <div class="rd-fix"><strong>Fix:</strong> Add <code>const esc = (s) => s.replace(/'/g, "''")</code> and escape all interpolated values before SQL insertion.</div>
+    </div>
+  </div>
+
+  <div class="rd-finding" data-sev="LOW">
+    <div class="rd-finding-header">
+      <span class="rd-sev LOW">LOW</span>
+      <span class="rd-id">TS-2</span>
+      <span class="rd-title">requireAuth function has no unit test</span>
+      <span class="rd-loc">auth-guard.test.ts:1</span>
+      <span class="rd-status-def">deferred</span>
+    </div>
+    <div class="rd-body">
+      <pre>// Only requireOwnership is tested; requireAuth is absent</pre>
+      <div class="rd-fix"><strong>Deferred:</strong> Requires non-trivial vi.mock('#/lib/auth') setup. E2E tests cover the behavior once BETTER_AUTH_SECRET is available.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const root = document.currentScript.closest('.fragment-review-dimension');
+  if (!root) return;
+  root.querySelectorAll('.rd-finding-header').forEach(h => {
+    h.addEventListener('click', () => h.closest('.rd-finding').classList.toggle('open'));
+  });
+  root.querySelectorAll('.rd-pill').forEach(p => {
+    p.addEventListener('click', () => {
+      root.querySelectorAll('.rd-pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      const sev = p.dataset.sev;
+      root.querySelectorAll('.rd-finding').forEach(f => {
+        f.style.display = (sev === 'all' || f.dataset.sev === sev) ? '' : 'none';
+      });
+    });
+  });
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', { detail: { name: 'review-dimension', artifact: 'review-dimension', dimension: 'testing', counts: { findings: 2, blockers: 0 } } }));
+})();
+</script>
+</section>

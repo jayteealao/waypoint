@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: testing
+parent: 07-review-accounts-data-layer.md
+rev: 1
+verdict: ship
+summary: "TS-1 (LOW) fixed: seedUser now escapes SQL special characters. TS-2 (LOW) deferred: requireAuth unit test absent — acceptable given E2E coverage once BETTER_AUTH_SECRET is available."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: TS-2
+    severity: LOW
+    file: tests/smoke/auth-guard.test.ts
+    line: 1
+    confidence: High
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T13:18:04Z"
+    msg: "requireAuth has no unit test; only requireOwnership is covered at unit level"
+    evidence: "// Only requireOwnership is tested; requireAuth relies on E2E coverage"
+    fix: "Add vi.mock('#/lib/auth') test for requireAuth's 401 path when getSession returns null."
