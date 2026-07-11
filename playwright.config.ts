@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const baseURL = process.env.BASE_URL ?? 'http://localhost:3000'
+const devPort = new URL(baseURL).port || '3000'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -20,7 +21,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
+    command: `pnpm vite dev --port ${devPort}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
