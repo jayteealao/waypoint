@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+.output/
+.vinxi/
+.wrangler/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Wrangler local overrides (keep wrangler.jsonc in repo; never commit secrets)
+wrangler.toml
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
