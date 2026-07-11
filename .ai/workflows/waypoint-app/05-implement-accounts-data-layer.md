@@ -12,7 +12,7 @@ metric-lines-added: 16092
 metric-lines-removed: 45
 metric-deviations-from-plan: 3
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "cf1023a1c0e9937ae9a85e8d5eec5af4b4d2c1ec"
 tags: [auth, d1, schema, tanstack-db, isolation, oauth, better-auth]
 refs:
   index: 00-index.md
