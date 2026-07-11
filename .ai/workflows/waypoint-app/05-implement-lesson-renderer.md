@@ -12,7 +12,7 @@ metric-lines-added: 1685
 metric-lines-removed: 9
 metric-deviations-from-plan: 3
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "b1eb8e2"
 tags: [lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model]
 refs:
   index: 00-index.md
