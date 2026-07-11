@@ -12,7 +12,7 @@ metric-lines-added: 464
 metric-lines-removed: 5
 metric-deviations-from-plan: 6
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "2ffa2a1c21af4e702a490db2d5d6ac3100b3ef26"
 tags: [de-risking, workerd, tanstack-ai, d1, better-auth, sse, platform-proof]
 refs:
   index: 00-index.md
