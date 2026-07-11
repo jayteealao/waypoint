@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: maintainability
+parent: 07-review-sample-journey.md
+rev: 1
+verdict: ship
+summary: "Clean. wp: localStorage key namespacing is consistent. ShellWaypoint type is co-located with ShellContext (correct ownership). wp:sample-progress event bus is internal to /sample routes. sdlc-debt comments document all known ceilings. Equal-length lint test acts as drift-prevention for future fixture editors."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

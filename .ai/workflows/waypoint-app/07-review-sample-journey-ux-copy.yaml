@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: ux-copy
+parent: 07-review-sample-journey.md
+rev: 1
+verdict: ship
+summary: "Clean. Quiz feedback copy ('Correct!' / 'Not quite.') is warm and concise per 02c-craft register. Score messages ('Perfect score', 'Good effort', 'Keep going') are encouraging without being patronising. CTA labels ('Begin' / 'Revisit', 'Start a real journey') are clear and action-oriented. Lesson nav copy is directional and explicit."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

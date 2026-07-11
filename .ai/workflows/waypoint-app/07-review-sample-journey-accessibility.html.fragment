@@ -1,0 +1,59 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.rd-ac .rd-ac-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.rd-ac .rd-ac-pill { padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; border: 1px solid; cursor: pointer; background: transparent; }
+.rd-ac .rd-ac-pill[data-sev="MED"] { border-color: #d97706; color: #d97706; }
+.rd-ac .rd-ac-pill.active { background: #d97706; color: #fff; border-color: #d97706; }
+.rd-ac .rd-ac-pill[data-sev="ALL"].active { background: #374151; color: #fff; border-color: #374151; }
+.rd-ac .rd-ac-pill[data-sev="ALL"] { border-color: #374151; color: #374151; }
+.rd-ac .rd-ac-finding { border: 1px solid var(--border, #e5e7eb); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border-left: 3px solid #d97706; }
+.rd-ac .rd-ac-finding-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.8rem; }
+.rd-ac .rd-ac-badge { padding: 1px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
+.rd-ac .badge-MED { background: #fef3c7; color: #92400e; }
+.rd-ac .rd-ac-msg { font-size: 0.85rem; color: var(--ink, #111); margin-bottom: 4px; font-weight: 500; }
+.rd-ac .rd-ac-loc { font-size: 0.75rem; color: var(--ink-muted, #6b7280); font-family: monospace; }
+.rd-ac .rd-ac-fix { font-size: 0.8rem; color: var(--ink-muted, #6b7280); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border, #e5e7eb); }
+</style>
+
+<div class="rd-ac">
+  <div class="rd-ac-pills">
+    <button class="rd-ac-pill active" data-sev="ALL">All (1)</button>
+    <button class="rd-ac-pill" data-sev="MED">MED (1)</button>
+  </div>
+
+  <div class="rd-ac-findings-list">
+    <div class="rd-ac-finding" data-sev="MED" data-id="AC-1">
+      <div class="rd-ac-finding-header">
+        <span class="rd-ac-badge badge-MED">MED</span>
+        <span style="font-weight:600;font-size:0.82rem;">AC-1</span>
+        <span style="font-size:0.75rem;color:var(--ink-muted,#6b7280);">High confidence · open</span>
+      </div>
+      <div class="rd-ac-msg"><code>aria-pressed</code> on quiz option buttons announces toggle semantics to screen readers</div>
+      <div class="rd-ac-loc">src/components/quiz/QuizView.tsx:210</div>
+      <div class="rd-ac-fix"><strong>Fix:</strong> Remove <code>aria-pressed</code> prop entirely. <code>disabled={"{answered}"}</code> + <code>role="status"</code> <code>aria-live</code> feedback communicates selection state correctly without misleading toggle semantics.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.currentScript.closest('.fragment-review-dimension');
+  if (!root) return;
+  const pills = root.querySelectorAll('.rd-ac-pill');
+  const findings = root.querySelectorAll('.rd-ac-finding');
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const sev = pill.dataset.sev;
+      findings.forEach(f => {
+        f.style.display = (sev === 'ALL' || f.dataset.sev === sev) ? '' : 'none';
+      });
+    });
+  });
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-dimension', artifact: 'review-dimension', dimension: 'accessibility', counts: { findings: 1, blockers: 0 } }
+  }));
+})();
+</script>
+</section>

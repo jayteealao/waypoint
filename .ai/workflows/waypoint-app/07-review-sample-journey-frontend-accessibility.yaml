@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: frontend-accessibility
+parent: 07-review-sample-journey.md
+rev: 1
+verdict: caveats
+summary: "AC-1 cross-listed from accessibility: aria-pressed semantics on quiz options. No additional frontend-accessibility findings."
+counts:
+  blocker: 0
+  high: 0
+  med: 1
+  low: 0
+  nit: 0
+findings:
+  - id: AC-1
+    severity: MED
+    file: src/components/quiz/QuizView.tsx
+    line: 210
+    confidence: High
+    action: fix
+    msg: "aria-pressed on quiz option buttons announces toggle semantics — cross-listed from accessibility dimension"
+    evidence: "aria-pressed={answered && idx === userAnswer ? true : undefined}"
+    fix: "Remove the aria-pressed prop; disabled + aria-live feedback region communicates state correctly."
+    status: open
+    surfaced-at: "2026-07-11T22:39:34Z"
+    pre-existing: false

@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T21:30:00Z"
+updated-at: "2026-07-11T22:39:34Z"
 selected-slice: "sample-journey"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -93,8 +93,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app sample-journey"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -329,6 +329,34 @@ workflow-files:
   - 07-review-lesson-renderer.html.fragment
   - 05-implement-sample-journey.md
   - 06-verify-sample-journey.md
+  - 07-review-sample-journey-correctness.md
+  - 07-review-sample-journey-correctness.yaml
+  - 07-review-sample-journey-correctness.html.fragment
+  - 07-review-sample-journey-security.md
+  - 07-review-sample-journey-security.yaml
+  - 07-review-sample-journey-code-simplification.md
+  - 07-review-sample-journey-code-simplification.yaml
+  - 07-review-sample-journey-accessibility.md
+  - 07-review-sample-journey-accessibility.yaml
+  - 07-review-sample-journey-accessibility.html.fragment
+  - 07-review-sample-journey-frontend-accessibility.md
+  - 07-review-sample-journey-frontend-accessibility.yaml
+  - 07-review-sample-journey-frontend-accessibility.html.fragment
+  - 07-review-sample-journey-frontend-performance.md
+  - 07-review-sample-journey-frontend-performance.yaml
+  - 07-review-sample-journey-interface-craft.md
+  - 07-review-sample-journey-interface-craft.yaml
+  - 07-review-sample-journey-ux-copy.md
+  - 07-review-sample-journey-ux-copy.yaml
+  - 07-review-sample-journey-testing.md
+  - 07-review-sample-journey-testing.yaml
+  - 07-review-sample-journey-maintainability.md
+  - 07-review-sample-journey-maintainability.yaml
+  - 07-review-sample-journey-reliability.md
+  - 07-review-sample-journey-reliability.yaml
+  - 07-review-sample-journey.md
+  - 07-review-sample-journey.yaml
+  - 07-review-sample-journey.html.fragment
 progress:
   intake: complete
   shape: complete

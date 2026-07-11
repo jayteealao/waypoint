@@ -1,0 +1,57 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.rd-cr .rd-cr-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.rd-cr .rd-cr-pill { padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; border: 1px solid; cursor: pointer; background: transparent; }
+.rd-cr .rd-cr-pill[data-sev="LOW"] { border-color: #6b7280; color: #6b7280; }
+.rd-cr .rd-cr-pill.active { background: #6b7280; color: #fff; }
+.rd-cr .rd-cr-finding { border: 1px solid var(--border, #e5e7eb); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+.rd-cr .rd-cr-finding-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.8rem; }
+.rd-cr .rd-cr-badge { padding: 1px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
+.rd-cr .badge-LOW { background: #f3f4f6; color: #374151; }
+.rd-cr .rd-cr-msg { font-size: 0.85rem; color: var(--ink, #111); margin-bottom: 4px; }
+.rd-cr .rd-cr-loc { font-size: 0.75rem; color: var(--ink-muted, #6b7280); font-family: monospace; }
+.rd-cr .rd-cr-fix { font-size: 0.8rem; color: var(--ink-muted, #6b7280); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border, #e5e7eb); }
+</style>
+
+<div class="rd-cr">
+  <div class="rd-cr-pills">
+    <button class="rd-cr-pill active" data-sev="ALL">All (1)</button>
+    <button class="rd-cr-pill" data-sev="LOW">LOW (1)</button>
+  </div>
+
+  <div class="rd-cr-findings-list">
+    <div class="rd-cr-finding" data-sev="LOW" data-id="CR-1">
+      <div class="rd-cr-finding-header">
+        <span class="rd-cr-badge badge-LOW">LOW</span>
+        <span style="font-weight:600;font-size:0.82rem;">CR-1</span>
+        <span style="font-size:0.75rem;color:var(--ink-muted,#6b7280);">High confidence · open</span>
+      </div>
+      <div class="rd-cr-msg">Non-null assertion on <code>restoredAttempt</code> in QuizView results branch</div>
+      <div class="rd-cr-loc">src/components/quiz/QuizView.tsx:110</div>
+      <div class="rd-cr-fix"><strong>Fix:</strong> Replace <code>restoredAttempt!</code> with an explicit null guard: <code>if (!attempt) return null</code></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.currentScript.closest('.fragment-review-dimension');
+  if (!root) return;
+  const pills = root.querySelectorAll('.rd-cr-pill');
+  const findings = root.querySelectorAll('.rd-cr-finding');
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const sev = pill.dataset.sev;
+      findings.forEach(f => {
+        f.style.display = (sev === 'ALL' || f.dataset.sev === sev) ? '' : 'none';
+      });
+    });
+  });
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-dimension', artifact: 'review-dimension', dimension: 'correctness', counts: { findings: 1, blockers: 0 } }
+  }));
+})();
+</script>
+</section>

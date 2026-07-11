@@ -1,0 +1,95 @@
+artifact: review
+slug: waypoint-app
+slice-slug: sample-journey
+rev: 1
+verdict: ship
+summary: "Ship. 11 dimensions reviewed. 2 findings surfaced (1 MED aria-pressed, 1 LOW non-null assertion), both fixed in commit 5a0433f. 0 open findings remain. All 4 ACs verified at full Playwright interactive level."
+dimensions:
+  - name: correctness
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: security
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: code-simplification
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: accessibility
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: frontend-accessibility
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: frontend-performance
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: interface-craft
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: ux-copy
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: testing
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: maintainability
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: reliability
+    verdict: ship
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+  fixed: 2
+  resolved: 0
+  dismissed: 0
+# OPEN findings only — all findings were fixed this run
+findings: []
