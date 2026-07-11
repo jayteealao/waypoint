@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T11:07:00Z"
-selected-slice: "platform-proofs"
+updated-at: "2026-07-11T12:52:05Z"
+selected-slice: "accounts-data-layer"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -69,8 +69,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app accounts-data-layer"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -102,11 +102,15 @@ workflow-files:
   - 04-plan-platform-proofs.md
   - 04-plan-platform-proofs.yaml
   - 04-plan-platform-proofs.html.fragment
+  - 04-plan-accounts-data-layer.md
+  - 04-plan-accounts-data-layer.yaml
+  - 04-plan-accounts-data-layer.html.fragment
   - 04b-instrument.md
   - 04b-instrument.yaml
   - 05-implement.md
   - 05-implement-foundation.md
   - 05-implement-platform-proofs.md
+  - 05-implement-accounts-data-layer.md
   - 06-verify-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md

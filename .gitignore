@@ -18,6 +18,8 @@ dist-ssr
 .env.local
 .env.*.local
 !.env.example
+# Cloudflare local secrets (gitignored by Cloudflare convention)
+.dev.vars
 
 # Test output
 coverage/

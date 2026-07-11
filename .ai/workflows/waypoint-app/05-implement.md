@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T09:53:39Z"
-slices-implemented: 2
+updated-at: "2026-07-11T12:52:05Z"
+slices-implemented: 3
 slices-total: 12
-metric-total-files-changed: 39
-metric-total-lines-added: 1284
-metric-total-lines-removed: 5
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth]
+metric-total-files-changed: 61
+metric-total-lines-added: 17376
+metric-total-lines-removed: 50
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app platform-proofs"
+next-invocation: "/wf verify waypoint-app accounts-data-layer"
 ---
 
 # Implement Index
@@ -60,7 +60,34 @@ next-invocation: "/wf verify waypoint-app platform-proofs"
   the TypeScript module declaration for `import { env } from 'cloudflare:workers'`. The typed
   `Env` interface (via `wrangler types`) is deferred to accounts-data-layer.
 
+- **Accounts-data-layer: full v1 D1 schema** — `migrations/0000_schema_v1.sql` ships the complete
+  domain schema in one act. Every subsequent slice that writes to D1 reads from these tables.
+  No schema migration is needed until a later slice requires a new column; when it does, a new
+  `migrations/000N_*.sql` file is the correct approach.
+
+- **Accounts-data-layer: `usage_events` schema matches `04b-instrument.md`** — The ai-gateway
+  slice must insert into `usage_events` using the column names in `src/db/schema.ts` (not the
+  plan's original simpler set): `user_id`, `journey_id`, `model`, `type`, `prompt_tokens`,
+  `completion_tokens`, `cost_usd`, `duration_ms`, `outcome`, `at`.
+
+- **Accounts-data-layer: TanStack DB API** — `@tanstack/db@0.6.14` uses `createCollection` (not
+  `createReactCollection`). `@tanstack/react-db@0.1.92` provides `useLiveQuery` for React
+  components. The syncer API is `{ sync: ({ begin, write, commit, markReady }) => void }`.
+  Subsequent slices adding more collections must use this API.
+
+- **Accounts-data-layer: `withSession` middleware** — All server functions that need the
+  authenticated user must use the `withSession` middleware from `src/server/journeys.ts`
+  (or copy the pattern). `getWebRequest()` is NOT available in `@tanstack/react-start@1.168.x`.
+
+- **Accounts-data-layer: auth-guard.ts contract** — `requireAuth(env, request)` throws 401 Response;
+  `requireOwnership(sessionUserId, resourceUserId)` throws 403 Response. Both are the exclusive
+  entry points for session and ownership validation in server functions.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app platform-proofs` — Vitest passes; Playwright wrangler proofs built and ready. Run `wrangler dev` to enable the SSE and D1 proof tests.
-- **Option B:** `/wf review waypoint-app platform-proofs` — Skip verify if wrangler proofs are confirmed manually and evidence is captured.
+- **Option A (default):** `/wf verify waypoint-app accounts-data-layer` — Smoke tests pass; E2E tests
+  pass for UI-only assertions. Full seeded-session suite runs with `BETTER_AUTH_SECRET` set.
+- **Option B:** `/wf review waypoint-app accounts-data-layer` — Skip verify if smoke tests and
+  partial E2E evidence are sufficient.
+- **Option C:** `/wf implement waypoint-app design-system-shell` — Implement the next slice once
+  accounts-data-layer is verified/reviewed.

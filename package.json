@@ -20,23 +20,26 @@
     "deploy": "pnpm run build && wrangler deploy"
   },
   "dependencies": {
+    "@tanstack/ai": "0.40.0",
+    "@tanstack/ai-openai": "0.16.0",
+    "@tanstack/ai-openrouter": "0.15.8",
+    "@tanstack/db": "0.6.14",
+    "@tanstack/react-db": "0.1.92",
     "@tanstack/react-devtools": "0.10.8",
     "@tanstack/react-router": "1.170.17",
     "@tanstack/react-router-devtools": "1.167.0",
     "@tanstack/react-router-ssr-query": "1.167.1",
     "@tanstack/react-start": "1.168.27",
     "@tanstack/router-plugin": "1.168.19",
+    "better-auth": "1.6.23",
     "lucide-react": "1.24.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "tailwindcss": "4.3.2",
-    "@tanstack/ai": "0.40.0",
-    "@tanstack/ai-openrouter": "0.15.8",
-    "@tanstack/ai-openai": "0.16.0",
-    "better-auth": "1.6.23"
+    "tailwindcss": "4.3.2"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.44.0",
+    "@playwright/test": "1.61.1",
     "@tailwindcss/typography": "0.5.20",
     "@tailwindcss/vite": "4.3.2",
     "@tanstack/devtools-vite": "0.8.1",
@@ -54,8 +57,7 @@
     "typescript": "7.0.2",
     "vite": "8.1.4",
     "vitest": "4.1.10",
-    "wrangler": "4.110.0",
-    "@playwright/test": "1.61.1"
+    "wrangler": "4.110.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

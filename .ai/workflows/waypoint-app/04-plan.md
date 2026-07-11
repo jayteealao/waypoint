@@ -5,9 +5,9 @@ slug: waypoint-app
 status: complete
 stage-number: 4
 created-at: "2026-07-11T00:13:07Z"
-updated-at: "2026-07-11T09:17:42Z"
+updated-at: "2026-07-11T11:17:17Z"
 planning-mode: single
-slices-planned: 2
+slices-planned: 3
 slices-total: 12
 implementation-order: [foundation, platform-proofs, accounts-data-layer, design-system-shell, lesson-renderer, sample-journey, ai-gateway, tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress, source-grounding]
 conflicts-found: 0
@@ -16,7 +16,7 @@ refs:
   index: 00-index.md
   slice-index: 03-slice.md
 next-command: wf-implement
-next-invocation: "/wf implement waypoint-app platform-proofs"
+next-invocation: "/wf implement waypoint-app accounts-data-layer"
 ---
 
 # Plan Index
@@ -42,8 +42,21 @@ next-invocation: "/wf implement waypoint-app platform-proofs"
 - **Key risk:** SSE streaming under workerd is inferred-not-documented — the demo route and
   Playwright timing test are the empirical answer. If it fails, surface immediately.
 
-### Plans not yet written (10 remaining slices)
-Plans for slices 3–12 will be authored before or during their respective implement stages.
+### `accounts-data-layer`
+- **Files to touch:** 18 files (11 new, 7 modified) across deps, migrations, auth config,
+  authorization guard, server functions, TanStack DB store, auth/account routes, and tests
+- **Strategy:** Schema-whole. Full D1 schema in one migration (`0000_schema_v1.sql`) with
+  `CREATE TABLE IF NOT EXISTS` for idempotency. better-auth expanded from spike config to full
+  Google + GitHub OAuth. Authorization enforced at the server-function boundary via a pure-
+  function guard. TanStack DB QueryCollection establishes the client-store pattern every later
+  UI slice extends. Sign-in and account surfaces are minimal Tailwind; restyled by
+  design-system-shell (accepted rework).
+- **Key risk:** OAuth app registrations are PO-owned external prerequisites; seeded-session
+  Playwright proxy keeps the build green. TanStack DB beta API may drift; fallback to plain
+  TanStack Query documented per AC.
+
+### Plans not yet written (9 remaining slices)
+Plans for slices 4–12 will be authored before or during their respective implement stages.
 Each will follow the same sub-agent research + autonomous-override pattern.
 
 ## Cross-Cutting Concerns
@@ -71,6 +84,12 @@ Each will follow the same sub-agent research + autonomous-override pattern.
   accounts-data-layer; foundation's `wrangler.jsonc` provides the base file to extend.
 - **foundation → all UI slices:** The Playwright config and `webServer` setup are reused
   across all UI-bearing slices; the foundation's pattern is the shared template.
+- **platform-proofs → accounts-data-layer:** The D1 binding, per-request `createAuth` factory,
+  and `cloudflare:workers` env import pattern proven in platform-proofs are the direct inputs
+  to accounts-data-layer's OAuth expansion and typed Env generation.
+- **accounts-data-layer → all later slices:** The complete D1 schema (8 domain tables), the
+  authorization guard, and the TanStack DB QueryCollection pattern are shared infrastructure
+  that every subsequent slice consumes without modification.
 
 ## Recommended Implementation Order
 
@@ -90,8 +109,10 @@ Each will follow the same sub-agent research + autonomous-override pattern.
 
 ## Conflicts Found
 
-None — only the foundation slice is planned at this stage. Cross-slice conflict analysis
-will be performed as additional slice plans are authored.
+None across the three planned slices. The accounts-data-layer plan reviewed against both
+sibling plans — no shared file conflicts (accounts-data-layer is additive: it touches
+`package.json`, `wrangler.jsonc`, and `src/lib/auth.ts` which neither sibling plan modified
+after their initial writes). The D1 binding added in platform-proofs is extended, not replaced.
 
 ## Freshness Research
 
@@ -106,8 +127,10 @@ Key facts carried forward from shape:
 
 ## Recommended Next Stage
 
-- **Option A (default): implement foundation** — Plan is complete, all ACs resolved. Compact
-  before implementing: state lives in the artifact files and the hook re-reads them after compaction.
-- **Option B: plan platform-proofs** — Author the next slice's plan before coding if you prefer
-  all plans up front.
+- **Option A (default): implement accounts-data-layer** — Foundation and platform-proofs are
+  implemented and reviewed (verdict: SHIP). The accounts-data-layer plan is complete, all ACs
+  resolved. Consider `/compact` before implementing.
+- **Option B: plan design-system-shell** — Author the next slice's plan before coding if you
+  prefer all plans written up front. Note: design-system-shell depends on accounts-data-layer;
+  its plan will author the visual contract (`02c-craft.md`) from the design brief.
 - **Option C: revisit slice** — Not indicated; no slice-boundary issues found.
