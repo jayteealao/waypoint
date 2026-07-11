@@ -1,0 +1,31 @@
+artifact: review-dimension
+dimension: api-contracts
+parent: 07-review-platform-proofs-api-contracts.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T10:57:06Z"
+verdict: caveats
+verdict_label: "Ship with caveats — 1 NIT deferred (demo route needs removal plan)"
+summary: "API contracts review. Two new routes: /api/demo-stream (SSE proof) and /api/auth/* (better-auth catch-all). The auth route correctly forwards all methods to better-auth's built-in handler — the API contract is better-auth's documented interface. The SSE route has a clear, minimal contract (GET only, text/event-stream, 5 chunks). One NIT: the demo stream route is a proof artifact that is now permanently in the route tree with no production removal plan or TODO marker. Better-auth warnings about base URL and short secret are expected for the spike and visible in the wrangler log — not contract issues."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 1
+findings:
+  - id: API-1
+    severity: nit
+    dimension: api-contracts
+    file: src/routes/api/demo-stream.ts
+    line: 1
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T10:57:06Z"
+    msg: "Demo stream route (/api/demo-stream) is a permanent proof artifact in the route tree with no TODO or removal plan — risks leaking into production."
+    evidence:
+      snippet: "// SSE demo route — proves workerd runtime supports progressive SSE chunk delivery."
+      failure_scenario: "Route ships to production → users discover /api/demo-stream → 5 'chunk-N' lines stream with no auth or purpose."
+    fix: "Add a comment: // TODO(platform-proofs): remove or gate this route before first production deploy. Deferred: will be addressed during first deploy preparation."

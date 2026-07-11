@@ -1,0 +1,99 @@
+artifact: review
+parent: 07-review-platform-proofs.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T11:07:00Z"
+verdict: ship
+summary: "12-dimension review: 8 findings, 2 fixed inline (CR-1 LOW misleading test label; CS-1 NIT duplicate handlers; commit 824bc17), 6 deferred to future slices (SEC-1 auth secret, TS-1 adapter proof, REL-1 stream timeout, CS-2 ts-ignore, API-1 demo route, INFRA-1 D1 UUID). 0 open. Verdict: SHIP."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+dimensions:
+  - key: correctness
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: security
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: code-simplification
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: testing
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: maintainability
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: reliability
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: backend-concurrency
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: supply-chain
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: privacy
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: api-contracts
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: infra
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - key: architecture
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+findings: []

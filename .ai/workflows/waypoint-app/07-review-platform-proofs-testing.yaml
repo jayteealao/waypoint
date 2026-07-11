@@ -1,0 +1,40 @@
+artifact: review-dimension
+dimension: testing
+parent: 07-review-platform-proofs-testing.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T10:57:06Z"
+verdict: caveats
+verdict_label: "Ship with caveats — 1 LOW deferred (weak adapter-swap proof)"
+summary: "Testing review. Three Vitest tests and two Playwright suites cover all four ACs. The mocked round-trip and SSE timing tests are solid. One LOW finding: the adapter-swap test (AC-PP3) proves TypeScript interface symmetry and that both factories return a client with a .complete() function, but does not run either the fallbackClient or the nativeClient through a mock to confirm their complete() implementations behave identically. This is a documentation/assertion gap — the proof is weaker than it could be but still adequate for the spike's stated goal (zero callsite changes). Deferred: adding a stronger proof would require a network mock for createOpenAIFallbackClient, which is out of scope for the platform-proofs spike."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: TS-1
+    severity: low
+    dimension: testing
+    file: tests/smoke/ai-tool-call.test.ts
+    line: "64-83"
+    confidence: med
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T10:57:06Z"
+    msg: "Adapter-swap test (AC-PP3) proves interface symmetry at the TypeScript type level but uses createMockAIClient() (not the fallback or native client) to run the schema assertions — does not confirm that fallbackClient.complete() and nativeClient.complete() produce the same shape in a mock scenario."
+    evidence:
+      snippet: |
+        const fallbackClient: AIClient = createOpenAIFallbackClient('test-key')
+        const nativeClient: AIClient = createOpenRouterClient('test-key')
+        // Both variables satisfy the same interface shape at runtime.
+        for (const client of [fallbackClient, nativeClient] as const) {
+          expect(typeof client.complete).toBe('function')
+        }
+        // Run the same schema assertions using the mock (no network).
+        const mockClient: AIClient = createMockAIClient()
+        const result = await mockClient.complete(TEST_MESSAGES, TEST_TOOLS)
+      failure_scenario: "If createOpenAIFallbackClient's complete() throws or returns a different shape, this test would pass but AC-PP3 would not be truly proven."
+    fix: "Wire a network mock (vi.spyOn on fetch or MSW) to stub the OpenAI API response, then run fallbackClient.complete() and assert the same schema. Deferred to ai-gateway slice which adds the full mock harness."

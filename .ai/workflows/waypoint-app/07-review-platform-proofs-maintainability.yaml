@@ -1,0 +1,16 @@
+artifact: review-dimension
+dimension: maintainability
+parent: 07-review-platform-proofs-maintainability.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T10:57:06Z"
+verdict: ship
+verdict_label: "Ship — no findings"
+summary: "Maintainability review clean. The AIClient interface is minimal and well-documented. The createAuth() factory is small (1 function, 10 lines) with clear comments explaining the per-request pattern and the sdlc-debt cast. The collectFirstToolCall() helper includes inline comments explaining why execute is not attached and why the loop exits on TOOL_CALL_END. Module organization is clear: lib/ for shared factories, routes/api/ for endpoints, tests/smoke/ for unit proofs, tests/e2e/*.wrangler.spec.ts for runtime proofs. All 12 files are small and single-responsibility."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

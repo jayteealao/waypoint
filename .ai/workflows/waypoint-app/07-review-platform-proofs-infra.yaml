@@ -1,0 +1,31 @@
+artifact: review-dimension
+dimension: infra
+parent: 07-review-platform-proofs-infra.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T10:57:06Z"
+verdict: caveats
+verdict_label: "Ship with caveats — 1 NIT deferred (placeholder D1 UUID, documented)"
+summary: "Infra review of wrangler.jsonc D1 binding addition. The binding uses the correct fields (binding, database_name, database_id). The placeholder UUID '00000000-0000-0000-0000-000000000000' is valid for wrangler dev (miniflare) but would cause wrangler deploy to fail with 'invalid database ID'. The wrangler.jsonc already contains an in-file comment explaining the placeholder and the upgrade path ('Replace with the real ID from wrangler d1 create waypoint-dev on first deploy'). Deferred: this is documented infrastructure debt, not a code bug, and the correct fix (obtaining a real Cloudflare D1 ID) requires account access that is a PO responsibility."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 1
+findings:
+  - id: INFRA-1
+    severity: nit
+    dimension: infra
+    file: wrangler.jsonc
+    line: 14
+    confidence: high
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-11T10:57:06Z"
+    msg: "Placeholder D1 database_id '00000000-0000-0000-0000-000000000000' causes wrangler deploy to fail — documented in-file but no automated guard prevents accidental deployment."
+    evidence:
+      snippet: '"database_id": "00000000-0000-0000-0000-000000000000"'
+      failure_scenario: "pnpm deploy or wrangler deploy → Cloudflare API rejects with 'database not found' → confusing error with no clear explanation for new team members."
+    fix: "Run 'wrangler d1 create waypoint-dev' and replace the UUID before first production deploy. Deferred: requires Cloudflare account access (PO-provided)."

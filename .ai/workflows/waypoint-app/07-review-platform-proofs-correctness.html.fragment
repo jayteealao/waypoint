@@ -1,0 +1,68 @@
+<section class="fragment-review-dimension" data-artifact="review-dimension" data-rev="1">
+<style>
+.fragment-review-dimension { font-family: inherit; }
+.rd-filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.rd-pill { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+.rd-pill.low { background: #f59e0b22; color: #92400e; border-color: #f59e0b44; }
+.rd-pill.active { opacity: 1; }
+.rd-pill.inactive { opacity: 0.4; }
+@media (prefers-color-scheme: dark) { .rd-pill.low { background: #f59e0b22; color: #fcd34d; border-color: #f59e0b44; } }
+:root[data-theme="dark"] .rd-pill.low { background: #f59e0b22; color: #fcd34d; border-color: #f59e0b44; }
+.rd-finding { border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; margin-bottom: 0.75rem; overflow: hidden; }
+.rd-finding-header { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; cursor: pointer; }
+.rd-sev-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase; }
+.rd-sev-badge.low { background: #fef3c7; color: #92400e; }
+@media (prefers-color-scheme: dark) { .rd-sev-badge.low { background: #451a0344; color: #fcd34d; } }
+:root[data-theme="dark"] .rd-sev-badge.low { background: #451a0344; color: #fcd34d; }
+.rd-finding-title { font-size: 0.9rem; font-weight: 600; flex: 1; }
+.rd-finding-file { font-size: 0.75rem; color: var(--muted, #6b7280); font-family: monospace; }
+.rd-finding-body { padding: 0.75rem 1rem; border-top: 1px solid var(--border, #e5e7eb); display: none; }
+.rd-finding-body.open { display: block; }
+.rd-finding-body pre { background: var(--code-bg, #f3f4f6); border-radius: 0.375rem; padding: 0.75rem; overflow-x: auto; font-size: 0.8rem; margin: 0.5rem 0; }
+@media (prefers-color-scheme: dark) { .rd-finding-body pre { background: #1f2937; } }
+:root[data-theme="dark"] .rd-finding-body pre { background: #1f2937; }
+.rd-fix { background: #f0fdf4; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.85rem; margin-top: 0.5rem; }
+@media (prefers-color-scheme: dark) { .rd-fix { background: #14532d22; color: #bbf7d0; } }
+:root[data-theme="dark"] .rd-fix { background: #14532d22; color: #bbf7d0; }
+</style>
+<div class="rd-filter-bar">
+  <button class="rd-pill low active" data-sev="low">LOW 1</button>
+</div>
+<div class="rd-findings-list">
+  <div class="rd-finding" data-sev="low">
+    <div class="rd-finding-header" onclick="this.nextElementSibling.classList.toggle('open')">
+      <span class="rd-sev-badge low">LOW</span>
+      <span class="rd-finding-title">CR-1: Misleading "sequential" label on concurrent test</span>
+      <span class="rd-finding-file">tests/e2e/d1-auth-spike.wrangler.spec.ts:28</span>
+    </div>
+    <div class="rd-finding-body">
+      <p><strong>Issue:</strong> Test name says "sequential requests" but Promise.all sends both concurrently — misleads future maintainers.</p>
+      <pre>test('no module-scope client leak across sequential requests (AC-PP4b)', ...
+  const [r1, r2] = await Promise.all([  // ← concurrent, not sequential
+    request.get(AUTH_SESSION_URL),
+    request.get(AUTH_SESSION_URL),
+  ])</pre>
+      <div class="rd-fix"><strong>Fix:</strong> Rename test to "concurrent requests" — the proof is stronger and should be described accurately.</div>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  const root = document.currentScript.closest('.fragment-review-dimension');
+  root.querySelectorAll('.rd-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const sev = pill.dataset.sev;
+      const isActive = pill.classList.contains('active');
+      pill.classList.toggle('active', !isActive);
+      pill.classList.toggle('inactive', isActive);
+      root.querySelectorAll(`.rd-finding[data-sev="${sev}"]`).forEach(f => {
+        f.style.display = !isActive ? 'none' : '';
+      });
+    });
+  });
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review-dimension', artifact: 'review-dimension', dimension: 'correctness', counts: { findings: 1, blockers: 0 } }
+  }));
+})();
+</script>
+</section>

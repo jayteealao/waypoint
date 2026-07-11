@@ -1,0 +1,40 @@
+artifact: review-dimension
+dimension: correctness
+parent: 07-review-platform-proofs-correctness.md
+rev: 1
+model: claude-sonnet-4-6
+run_at: "2026-07-11T10:57:06Z"
+verdict: ship
+verdict_label: "Ship — CR-1 LOW fixed (commit 824bc17); no open findings"
+summary: "Correctness review of 12 platform-proofs files. No logic errors in production paths. Two findings: one misleading comment in the D1 auth spike test (test uses concurrent Promise.all but comment says 'sequential' — the concurrent test is actually stronger but the comment misleads future maintainers); one missing error handling in the SSE demo stream's ReadableStream start() which could produce an unhandled rejection on client disconnect. The SSE route is a proof route and the timing test passes, but the error path is unguarded."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings:
+  - id: CR-1
+    severity: low
+    dimension: correctness
+    file: tests/e2e/d1-auth-spike.wrangler.spec.ts
+    line: 28
+    confidence: high
+    action: fix
+    status: fixed
+    fixed-at: "2026-07-11T11:10:00Z"
+    fix-commit: "824bc17"
+    pre-existing: false
+    surfaced-at: "2026-07-11T10:57:06Z"
+    msg: "Test comment says 'sequential requests' but Promise.all sends both requests concurrently — misleading for future maintainers even though concurrent isolation is actually a stronger proof."
+    evidence:
+      snippet: |
+        test('no module-scope client leak across sequential requests (AC-PP4b)', async ({
+          request,
+        }) => {
+          const [r1, r2] = await Promise.all([
+            request.get(AUTH_SESSION_URL),
+            request.get(AUTH_SESSION_URL),
+          ])
+      failure_scenario: "Future maintainer reads 'sequential requests' in the test name, assumes the test proves request ordering, then adds ordering-dependent logic that fails under concurrent load."
+    fix: "Change test name and comment to 'concurrent requests' to accurately describe what Promise.all does. The concurrent proof is stronger and should be described as such."

@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-11T10:44:31Z"
+updated-at: "2026-07-11T11:07:00Z"
 selected-slice: "platform-proofs"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -69,8 +69,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app platform-proofs"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -140,6 +140,35 @@ workflow-files:
   - 07-review-foundation.md
   - 07-review-foundation.yaml
   - 07-review-foundation.html.fragment
+  - 07-review-platform-proofs-correctness.md
+  - 07-review-platform-proofs-correctness.yaml
+  - 07-review-platform-proofs-correctness.html.fragment
+  - 07-review-platform-proofs-security.md
+  - 07-review-platform-proofs-security.yaml
+  - 07-review-platform-proofs-code-simplification.md
+  - 07-review-platform-proofs-code-simplification.yaml
+  - 07-review-platform-proofs-code-simplification.html.fragment
+  - 07-review-platform-proofs-testing.md
+  - 07-review-platform-proofs-testing.yaml
+  - 07-review-platform-proofs-maintainability.md
+  - 07-review-platform-proofs-maintainability.yaml
+  - 07-review-platform-proofs-reliability.md
+  - 07-review-platform-proofs-reliability.yaml
+  - 07-review-platform-proofs-backend-concurrency.md
+  - 07-review-platform-proofs-backend-concurrency.yaml
+  - 07-review-platform-proofs-supply-chain.md
+  - 07-review-platform-proofs-supply-chain.yaml
+  - 07-review-platform-proofs-privacy.md
+  - 07-review-platform-proofs-privacy.yaml
+  - 07-review-platform-proofs-api-contracts.md
+  - 07-review-platform-proofs-api-contracts.yaml
+  - 07-review-platform-proofs-infra.md
+  - 07-review-platform-proofs-infra.yaml
+  - 07-review-platform-proofs-architecture.md
+  - 07-review-platform-proofs-architecture.yaml
+  - 07-review-platform-proofs.md
+  - 07-review-platform-proofs.yaml
+  - 07-review-platform-proofs.html.fragment
 progress:
   intake: complete
   shape: complete

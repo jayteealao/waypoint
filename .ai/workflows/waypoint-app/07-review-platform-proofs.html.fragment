@@ -1,0 +1,135 @@
+<section class="fragment-review" data-artifact="review" data-rev="1">
+<style>
+.fragment-review { font-family: inherit; }
+.fr-heatmap { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.5rem; margin-bottom: 1.25rem; }
+.fr-dim-chip { border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.fr-dim-chip.clean { border-color: #bbf7d044; }
+.fr-dim-chip.issues { border-color: #fef3c744; }
+.fr-dim-name { font-size: 0.75rem; font-weight: 600; color: var(--text, #374151); }
+.fr-dim-status { font-size: 0.7rem; color: var(--muted, #6b7280); }
+.fr-dim-status.clean { color: #16a34a; }
+.fr-dim-status.issues { color: #d97706; }
+@media (prefers-color-scheme: dark) {
+  .fr-dim-chip.clean { border-color: #14532d44; }
+  .fr-dim-chip.issues { border-color: #451a0344; }
+  .fr-dim-name { color: #e5e7eb; }
+  .fr-dim-status.clean { color: #4ade80; }
+  .fr-dim-status.issues { color: #fbbf24; }
+}
+:root[data-theme="dark"] .fr-dim-chip.clean { border-color: #14532d44; }
+:root[data-theme="dark"] .fr-dim-chip.issues { border-color: #451a0344; }
+:root[data-theme="dark"] .fr-dim-name { color: #e5e7eb; }
+:root[data-theme="dark"] .fr-dim-status.clean { color: #4ade80; }
+:root[data-theme="dark"] .fr-dim-status.issues { color: #fbbf24; }
+.fr-findings-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.fr-findings-table th { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 2px solid var(--border, #e5e7eb); font-size: 0.75rem; color: var(--muted, #6b7280); text-transform: uppercase; }
+.fr-findings-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border, #e5e7eb); vertical-align: top; }
+.fr-sev { font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
+.fr-sev.low { background: #fef3c7; color: #92400e; }
+.fr-sev.nit { background: #f3f4f6; color: #6b7280; }
+.fr-status.fixed { color: #16a34a; font-size: 0.75rem; }
+.fr-status.deferred { color: #d97706; font-size: 0.75rem; }
+@media (prefers-color-scheme: dark) {
+  .fr-sev.low { background: #451a0344; color: #fcd34d; }
+  .fr-sev.nit { background: #37415133; color: #9ca3af; }
+  .fr-status.fixed { color: #4ade80; }
+  .fr-status.deferred { color: #fbbf24; }
+}
+:root[data-theme="dark"] .fr-sev.low { background: #451a0344; color: #fcd34d; }
+:root[data-theme="dark"] .fr-sev.nit { background: #37415133; color: #9ca3af; }
+:root[data-theme="dark"] .fr-status.fixed { color: #4ade80; }
+:root[data-theme="dark"] .fr-status.deferred { color: #fbbf24; }
+</style>
+<div class="fr-heatmap">
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">correctness</span><span class="fr-dim-status clean">clean (1 fixed)</span></div>
+  <div class="fr-dim-chip issues"><span class="fr-dim-name">security</span><span class="fr-dim-status issues">1 LOW deferred</span></div>
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">code-simplification</span><span class="fr-dim-status clean">clean (1 fixed)</span></div>
+  <div class="fr-dim-chip issues"><span class="fr-dim-name">testing</span><span class="fr-dim-status issues">1 LOW deferred</span></div>
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">maintainability</span><span class="fr-dim-status clean">clean</span></div>
+  <div class="fr-dim-chip issues"><span class="fr-dim-name">reliability</span><span class="fr-dim-status issues">1 LOW deferred</span></div>
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">backend-concurrency</span><span class="fr-dim-status clean">clean</span></div>
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">supply-chain</span><span class="fr-dim-status clean">clean</span></div>
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">privacy</span><span class="fr-dim-status clean">clean</span></div>
+  <div class="fr-dim-chip issues"><span class="fr-dim-name">api-contracts</span><span class="fr-dim-status issues">1 NIT deferred</span></div>
+  <div class="fr-dim-chip issues"><span class="fr-dim-name">infra</span><span class="fr-dim-status issues">1 NIT deferred</span></div>
+  <div class="fr-dim-chip clean"><span class="fr-dim-name">architecture</span><span class="fr-dim-status clean">clean</span></div>
+</div>
+<table class="fr-findings-table">
+  <thead>
+    <tr><th>ID</th><th>Sev</th><th>Status</th><th>Source</th><th>File</th><th>Issue</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CR-1</td>
+      <td><span class="fr-sev low">LOW</span></td>
+      <td><span class="fr-status fixed">fixed</span></td>
+      <td>correctness</td>
+      <td style="font-family:monospace;font-size:0.75rem">d1-auth-spike.wrangler.spec.ts:28</td>
+      <td>Test name "sequential" used Promise.all (concurrent)</td>
+    </tr>
+    <tr>
+      <td>CS-1</td>
+      <td><span class="fr-sev nit">NIT</span></td>
+      <td><span class="fr-status fixed">fixed</span></td>
+      <td>code-simplification</td>
+      <td style="font-family:monospace;font-size:0.75rem">src/routes/api/auth/$.ts:12</td>
+      <td>Duplicate GET/POST handler bodies extracted to handleAuth</td>
+    </tr>
+    <tr>
+      <td>SEC-1</td>
+      <td><span class="fr-sev low">LOW</span></td>
+      <td><span class="fr-status deferred">deferred</span></td>
+      <td>security</td>
+      <td style="font-family:monospace;font-size:0.75rem">src/lib/auth.ts:24</td>
+      <td>Hardcoded fallback secret — accounts-data-layer scope</td>
+    </tr>
+    <tr>
+      <td>TS-1</td>
+      <td><span class="fr-sev low">LOW</span></td>
+      <td><span class="fr-status deferred">deferred</span></td>
+      <td>testing</td>
+      <td style="font-family:monospace;font-size:0.75rem">tests/smoke/ai-tool-call.test.ts:64</td>
+      <td>Adapter-swap test proves interface only — ai-gateway scope</td>
+    </tr>
+    <tr>
+      <td>REL-1</td>
+      <td><span class="fr-sev low">LOW</span></td>
+      <td><span class="fr-status deferred">deferred</span></td>
+      <td>reliability</td>
+      <td style="font-family:monospace;font-size:0.75rem">src/lib/ai-client.ts:28</td>
+      <td>No stream timeout — ai-gateway scope</td>
+    </tr>
+    <tr>
+      <td>CS-2</td>
+      <td><span class="fr-sev nit">NIT</span></td>
+      <td><span class="fr-status deferred">deferred</span></td>
+      <td>code-simplification</td>
+      <td style="font-family:monospace;font-size:0.75rem">src/lib/ai-client.ts:1</td>
+      <td>@ts-ignore file-level vs targeted @ts-expect-error</td>
+    </tr>
+    <tr>
+      <td>API-1</td>
+      <td><span class="fr-sev nit">NIT</span></td>
+      <td><span class="fr-status deferred">deferred</span></td>
+      <td>api-contracts</td>
+      <td style="font-family:monospace;font-size:0.75rem">src/routes/api/demo-stream.ts:1</td>
+      <td>Demo route in route tree without removal plan</td>
+    </tr>
+    <tr>
+      <td>INFRA-1</td>
+      <td><span class="fr-sev nit">NIT</span></td>
+      <td><span class="fr-status deferred">deferred</span></td>
+      <td>infra</td>
+      <td style="font-family:monospace;font-size:0.75rem">wrangler.jsonc:14</td>
+      <td>Placeholder D1 UUID — replace before first production deploy</td>
+    </tr>
+  </tbody>
+</table>
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review', artifact: 'review', counts: { findings: 0, blockers: 0 } }
+  }));
+})();
+</script>
+</section>
