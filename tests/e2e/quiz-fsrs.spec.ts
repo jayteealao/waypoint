@@ -14,6 +14,7 @@
 
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
 import { test, expect, type Browser } from '@playwright/test'
 import { execSync } from 'child_process'
 import crypto from 'crypto'
@@ -42,11 +43,19 @@ function sqlEsc(s: string): string {
   return s.replace(/'/g, "''")
 }
 
+// Use --file instead of --command to avoid Windows CMD shell escaping issues
+// with JSON content that contains double quotes (\"..\" is not valid CMD syntax).
 function runD1(command: string) {
-  execSync(
-    `pnpm exec wrangler d1 execute waypoint-dev --local --command="${command.replace(/"/g, '\\"')}"`,
-    { cwd: process.cwd(), stdio: 'pipe' },
-  )
+  const tmpFile = path.join(os.tmpdir(), `wrangler-d1-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`)
+  fs.writeFileSync(tmpFile, command, 'utf8')
+  try {
+    execSync(
+      `pnpm exec wrangler d1 execute waypoint-dev --local --file="${tmpFile}"`,
+      { cwd: process.cwd(), stdio: 'pipe' },
+    )
+  } finally {
+    try { fs.unlinkSync(tmpFile) } catch { /* ignore cleanup errors */ }
+  }
 }
 
 async function makeAuthContext(browser: Browser, baseURL: string, token: string) {
@@ -190,6 +199,10 @@ test(
     await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID}/quiz`)
     await expect(page.getByTestId('quiz-page')).toBeVisible({ timeout: 10000 })
     await expect(page.getByTestId('quiz-view')).toBeVisible()
+    // Wait for client-side React hydration to complete before interacting.
+    // TanStack Devtools button is client-rendered only — its presence confirms
+    // React has mounted and attached synthetic event listeners to the root.
+    await expect(page.getByRole('button', { name: 'Open TanStack Devtools' })).toBeVisible({ timeout: 10000 })
 
     // First question is MC — select the correct answer
     const correctOptionBtn = page.getByTestId('quiz-option-0')
@@ -263,6 +276,8 @@ test(
     // Navigate directly to quiz page
     await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID}/quiz`)
     await expect(page.getByTestId('quiz-page')).toBeVisible({ timeout: 10000 })
+    // Wait for React hydration (TanStack Devtools button is client-rendered only)
+    await expect(page.getByRole('button', { name: 'Open TanStack Devtools' })).toBeVisible({ timeout: 10000 })
 
     // Skip MC questions to reach FRQ
     // Answer first MC
