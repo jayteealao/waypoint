@@ -151,7 +151,7 @@ export function InterviewView({
   return (
     <div className="wp-interview-container" data-testid="interview-view">
       {/* Message history */}
-      <div className="wp-chat-scroll" ref={scrollRef} aria-label="Interview conversation" aria-live="off">
+      <div className="wp-chat-scroll" ref={scrollRef} aria-label="Interview conversation" aria-live="polite" aria-relevant="additions">
         {turns.map((turn, i) => (
           <ChatBubble
             key={i}

@@ -2,7 +2,9 @@
  * Chat message bubble — tutor-interview slice.
  *
  * Two variants: 'user' (self-end, ember-100 bg) and 'assistant' (self-start, surface bg).
- * 'assistant' bubbles use role="status" so screen readers announce new tutor messages.
+ * Announcement of new assistant messages is handled by the parent container's aria-live="polite"
+ * region (InterviewView). Individual bubbles do not carry their own live region so that the
+ * container can batch-announce additions without redundant per-bubble reads.
  */
 
 export interface ChatBubbleProps {
@@ -29,8 +31,6 @@ export function ChatBubble({ role, content, testId }: ChatBubbleProps) {
     <div
       className="wp-chat-bubble-assistant"
       data-testid={testId ?? 'chat-bubble-assistant'}
-      role="status"
-      aria-live="polite"
     >
       {content}
     </div>

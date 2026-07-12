@@ -214,8 +214,10 @@ export const sendTurn = createServerFn({ method: 'POST' })
     const sm = new InterviewStateMachine(currentStage)
     const nextStage = sm.transition(userContent)
 
-    // Capture field for the stage we just completed
-    const captured = sm.captureField(currentStage, userContent)
+    // Capture field for the stage we just completed — only when the stage actually advanced.
+    // If nextStage === currentStage (e.g. vague mission answer), captureField is skipped so
+    // transient/rejected answers are never written to the captured_* columns.
+    const captured = nextStage !== currentStage ? sm.captureField(currentStage, userContent) : {}
 
     // Extract any source URL from the sources stage
     let sourceUrls = parseSourceUrls(record.captured_source_urls)
