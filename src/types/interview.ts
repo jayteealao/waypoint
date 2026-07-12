@@ -47,6 +47,7 @@ export interface InterviewRecord {
   captured_scope: string | null
   captured_prior_knowledge: string | null
   captured_source_urls: string    // JSON-serialised string[]
+  captured_source_content: string // JSON-serialised SourceContent[] (source-grounding)
   best_effort: number             // 0 | 1 (SQLite boolean)
   created_at: number              // Unix ms
   updated_at: number              // Unix ms

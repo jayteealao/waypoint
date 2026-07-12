@@ -96,6 +96,15 @@ export const generateRoadmap = createServerFn({ method: 'POST' })
       sourceUrls = []
     }
 
+    // Load fetched source content for grounding (source-grounding slice)
+    let sourceContent: Array<{ url: string; title: string; extractedText: string }> = []
+    try {
+      const raw = JSON.parse(record.captured_source_content ?? '[]')
+      if (Array.isArray(raw)) sourceContent = raw
+    } catch {
+      sourceContent = []
+    }
+
     const capture = {
       mission: record.captured_mission,
       scope: record.captured_scope,
@@ -104,7 +113,7 @@ export const generateRoadmap = createServerFn({ method: 'POST' })
       bestEffort: record.best_effort === 1,
     }
 
-    const userMessage = buildRoadmapPrompt(capture)
+    const userMessage = buildRoadmapPrompt(capture, sourceContent.length > 0 ? sourceContent : undefined)
 
     // ── 4. Build messages for the gateway ─────────────────────────────────────
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [

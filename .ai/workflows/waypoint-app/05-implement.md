@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-12T05:40:00Z"
-slices-implemented: 11
+updated-at: "2026-07-12T07:04:18Z"
+slices-implemented: 12
 slices-total: 12
-metric-total-files-changed: 199
-metric-total-lines-added: 28779
-metric-total-lines-removed: 654
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep]
+metric-total-files-changed: 209
+metric-total-lines-added: 29109
+metric-total-lines-removed: 676
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app adaptation-progress"
+next-invocation: "/wf verify waypoint-app source-grounding"
 ---
 
 # Implement Index
@@ -248,7 +248,15 @@ next-invocation: "/wf verify waypoint-app adaptation-progress"
 
 - **Adaptation-progress: `JourneyProgress` interface is the full payload** — Exported from `src/server/progress.ts`. Fields: `waypoints`, `completionStatus`, `masteryByWaypoint`, `quizHistory` (max 20), `streak`, `dueCount`, `pendingAdaptation`. The `source-grounding` slice (if it uses quiz data) should treat this interface as the source of truth for per-journey status.
 
+- **Source-grounding: `buildSourceMaterialBlock()` is the injection-safe grounding helper** — Exported from `src/lib/interview/prompts.ts`. Always use this helper (not ad-hoc string concatenation) when injecting fetched source content into any generation prompt. The function returns an empty string for an empty array, so callers can safely append without a length check.
+
+- **Source-grounding: `captured_source_content` column ships in `migrations/0003_source_grounding.sql`** — Additive `ALTER TABLE interview_records ADD COLUMN captured_source_content TEXT NOT NULL DEFAULT '[]'`. Apply with `wrangler d1 execute waypoint-dev --local --file migrations/0003_source_grounding.sql` before running the app against local D1 after pulling this branch.
+
+- **Source-grounding: URL fetch runs in all modes (including mock=1)** — `fetchSourceUrl` is NOT suppressed by mock mode. Only the AI gateway call is suppressed. This allows E2E tests to exercise the fetch-failure conversational path with a deliberately failing URL (`.nonexistent.invalid` domain) while mock mode keeps AI costs zero.
+
+- **Source-grounding: `fetchSourceUrl` type union** — Returns `SourceFetchResult` from `src/lib/source-fetch.ts`. Callers MUST check `result.ok` before accessing content fields. Reasons: `'timeout'`, `'network_error'`, `'bad_content_type'`, `'too_large'`. All failure modes are non-throwing.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app quiz-fsrs` — 21 Vitest unit tests (FSRS scheduler, quiz schema, grading fixture) + 2 Playwright E2E tests (seeded-session, BETTER_AUTH_SECRET deferral applies). Unit tests pass clean; E2E absorbed into existing AC-ADL1+AC-ADL5 deferral entry.
-- **Option B:** `/wf review waypoint-app quiz-fsrs` — Skip verify if unit test evidence is sufficient for the review gate.
+- **Option A (default):** `/wf verify waypoint-app source-grounding` — 9 Vitest unit tests (all pass) + 2 Playwright E2E tests (citation rendering + fetch failure conversational path). All verification seams built. BETTER_AUTH_SECRET confirmed present in .dev.vars.
+- **Option B:** `/wf review waypoint-app source-grounding` — Skip verify if the Vitest+Playwright evidence above is treated as sufficient for the review gate on this final slice.

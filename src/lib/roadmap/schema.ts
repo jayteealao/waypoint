@@ -9,6 +9,8 @@
  */
 
 import type { CapturedRecord } from '#/types/interview'
+import type { SourceContent } from '#/lib/source-fetch'
+import { buildSourceMaterialBlock } from '#/lib/interview/prompts'
 
 // ── Output type ────────────────────────────────────────────────────────────────
 
@@ -110,8 +112,12 @@ export function validateRoadmap(value: unknown): WaypointOutput[] {
 /**
  * Assemble the user message for the roadmap generation call from a captured record.
  * The returned string is injected as the `user` message alongside ROADMAP_SYSTEM_PROMPT.
+ *
+ * @param capture - Completed interview capture record.
+ * @param sourceContent - Optional array of fetched source content to inject as grounding.
+ *   When provided and non-empty, a ## Source material block is appended (source-grounding slice).
  */
-export function buildRoadmapPrompt(capture: CapturedRecord): string {
+export function buildRoadmapPrompt(capture: CapturedRecord, sourceContent?: SourceContent[]): string {
   const parts: string[] = ['## Learner profile']
 
   if (capture.mission) {
@@ -138,5 +144,12 @@ export function buildRoadmapPrompt(capture: CapturedRecord): string {
 
   parts.push('\nGenerate the learning roadmap now as a JSON array.')
 
-  return parts.join('\n')
+  const base = parts.join('\n')
+
+  // Append fetched source content block when available (source-grounding slice)
+  if (sourceContent && sourceContent.length > 0) {
+    return base + buildSourceMaterialBlock(sourceContent)
+  }
+
+  return base
 }

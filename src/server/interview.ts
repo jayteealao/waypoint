@@ -19,6 +19,8 @@ import { requireAuth, requireOwnership } from '#/lib/auth-guard'
 import { callGateway } from '#/lib/ai/gateway'
 import { InterviewStateMachine } from '#/lib/interview/state-machine'
 import { INTERVIEW_SYSTEM_PROMPT } from '#/lib/interview/prompts'
+import { fetchSourceUrl } from '#/lib/source-fetch'
+import type { SourceContent } from '#/lib/source-fetch'
 import type {
   InterviewRecord,
   InterviewStage,
@@ -51,6 +53,19 @@ const MOCK_QUESTIONS: Partial<Record<InterviewStage, string>> = {
   declined:        'No problem! I\'ll use your stated goal to build your roadmap.',
 }
 
+// ── Template responses (no gateway call needed) ────────────────────────────
+
+/**
+ * Returned when fetchSourceUrl fails during the sources stage.
+ * Matches the in-band failure response pattern used by the `declined` stage
+ * (template message, no gateway call, stage stays at `sources`).
+ */
+const FETCH_FAILURE_CHIPS = ['Continue without it', 'Try another URL']
+
+function buildFetchFailureResponse(url: string): string {
+  return `I wasn't able to access ${url} — it may be behind a paywall, temporarily unavailable, or the URL may be incorrect. You can share another URL, or reply "continue" to proceed with your stated sources.`
+}
+
 // ── Internal helpers ───────────────────────────────────────────────────────
 
 /** Parse turns JSON from the DB row; returns empty array on malformed input. */
@@ -68,6 +83,16 @@ function parseSourceUrls(json: string): string[] {
   try {
     const parsed = JSON.parse(json)
     return Array.isArray(parsed) ? (parsed as string[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Parse source content array from the DB row. */
+function parseSourceContent(json: string): SourceContent[] {
+  try {
+    const parsed = JSON.parse(json)
+    return Array.isArray(parsed) ? (parsed as SourceContent[]) : []
   } catch {
     return []
   }
@@ -154,8 +179,8 @@ export const startInterview = createServerFn({ method: 'POST' })
     const now = Date.now()
     await env.DB.prepare(
       `INSERT INTO interview_records
-       (id, journey_id, user_id, status, stage, turns, captured_source_urls, best_effort, created_at, updated_at)
-       VALUES (?, ?, ?, 'pending', 'consent', ?, '[]', 0, ?, ?)`,
+       (id, journey_id, user_id, status, stage, turns, captured_source_urls, captured_source_content, best_effort, created_at, updated_at)
+       VALUES (?, ?, ?, 'pending', 'consent', ?, '[]', '[]', 0, ?, ?)`,
     )
       .bind(recordId, journeyId, session.user.id, JSON.stringify(initialTurns), now, now)
       .run()
@@ -212,25 +237,62 @@ export const sendTurn = createServerFn({ method: 'POST' })
 
     // Advance state machine
     const sm = new InterviewStateMachine(currentStage)
-    const nextStage = sm.transition(userContent)
+    // eslint-disable-next-line prefer-const
+    let nextStage = sm.transition(userContent)
 
     // Capture field for the stage we just completed — only when the stage actually advanced.
     // If nextStage === currentStage (e.g. vague mission answer), captureField is skipped so
     // transient/rejected answers are never written to the captured_* columns.
-    const captured = nextStage !== currentStage ? sm.captureField(currentStage, userContent) : {}
+    // `let` because source-grounding may override back to currentStage on fetch failure.
+    let captured = nextStage !== currentStage ? sm.captureField(currentStage, userContent) : {}
 
-    // Extract any source URL from the sources stage
+    // Extract any source URL from the sources stage and accumulate it
     let sourceUrls = parseSourceUrls(record.captured_source_urls)
-    if (currentStage === 'sources') {
-      const url = extractUrl(userContent)
-      if (url) sourceUrls = [...sourceUrls, url]
+    const extractedUrl = currentStage === 'sources' ? extractUrl(userContent) : null
+    if (extractedUrl) sourceUrls = [...sourceUrls, extractedUrl]
+
+    // Source-grounding: fetch and store source content at interview-time.
+    // Skipped in mock mode (E2E tests inject pre-seeded content instead).
+    let sourceContent = parseSourceContent(record.captured_source_content ?? '[]')
+    let fetchFailedQuestion: string | null = null
+
+    // Note: URL fetch runs regardless of mock mode. The mock flag only suppresses
+    // the AI gateway call; source-URL fetch is a side effect worth testing in E2E.
+    if (currentStage === 'sources' && extractedUrl !== null) {
+      const fetchResult = await fetchSourceUrl(extractedUrl)
+      if (fetchResult.ok) {
+        sourceContent = [...sourceContent, {
+          url: fetchResult.url,
+          title: fetchResult.title,
+          extractedText: fetchResult.extractedText,
+        }]
+      } else {
+        // Fetch failed — stay at sources stage with template response.
+        // Override nextStage back to sources and clear captured so the stage
+        // machine acts as if no transition occurred.
+        fetchFailedQuestion = buildFetchFailureResponse(extractedUrl)
+        // Remove the unfetchable URL so it is not stored in captured_source_urls
+        sourceUrls = sourceUrls.filter((u) => u !== extractedUrl)
+        nextStage = currentStage
+        captured = {}
+        console.log(JSON.stringify({
+          event: 'interview.source_fetch_failed',
+          user_id: session.user.id,
+          journey_id: journeyId,
+          url: extractedUrl,
+          reason: fetchResult.reason,
+        }))
+      }
     }
 
     // Determine the question for the next stage
     let question: string
     const isTerminal = nextStage === 'complete' || nextStage === 'declined'
 
-    if (isTerminal) {
+    if (fetchFailedQuestion !== null) {
+      // Fetch failure: template message, no gateway call, stage stays at sources
+      question = fetchFailedQuestion
+    } else if (isTerminal) {
       // No gateway call needed for terminal stages
       question =
         nextStage === 'declined'
@@ -282,6 +344,7 @@ export const sendTurn = createServerFn({ method: 'POST' })
          captured_scope = ?,
          captured_prior_knowledge = ?,
          captured_source_urls = ?,
+         captured_source_content = ?,
          best_effort = ?,
          updated_at = ?
        WHERE id = ?`,
@@ -294,6 +357,7 @@ export const sendTurn = createServerFn({ method: 'POST' })
         captured.scope ?? record.captured_scope,
         captured.priorKnowledge ?? record.captured_prior_knowledge,
         JSON.stringify(sourceUrls),
+        JSON.stringify(sourceContent),
         bestEffort ? 1 : 0,
         now,
         record.id,
@@ -312,7 +376,7 @@ export const sendTurn = createServerFn({ method: 'POST' })
 
     return {
       question,
-      chips: STAGE_CHIPS[nextStage],
+      chips: fetchFailedQuestion !== null ? FETCH_FAILURE_CHIPS : STAGE_CHIPS[nextStage],
       stage: nextStage,
     }
   })

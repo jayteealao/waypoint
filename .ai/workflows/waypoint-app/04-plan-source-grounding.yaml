@@ -1,0 +1,154 @@
+artifact: plan
+slice: source-grounding
+
+modules:
+  - id: migration
+    label: "DB Migration"
+    role: infra
+  - id: fetch-lib
+    label: "Source Fetch Library"
+    role: domain
+  - id: prompts
+    label: "Prompt Suite"
+    role: domain
+  - id: interview-server
+    label: "Interview Server"
+    role: domain
+  - id: roadmap-schema
+    label: "Roadmap Schema"
+    role: domain
+  - id: lesson-sse
+    label: "Lesson SSE Route"
+    role: domain
+  - id: tests-unit
+    label: "Unit Tests"
+    role: infra
+  - id: tests-e2e
+    label: "E2E Tests"
+    role: infra
+
+files:
+  - path: migrations/0003_source_grounding.sql
+    status: new
+    role: infra
+    module: migration
+    loc: 8
+    delta: { add: 8, rem: 0 }
+    planned_change:
+      intent: "Add captured_source_content column to interview_records for storing fetched source text"
+      diff: "ALTER TABLE interview_records ADD COLUMN captured_source_content TEXT NOT NULL DEFAULT '[]'"
+
+  - path: src/lib/source-fetch.ts
+    status: new
+    role: domain
+    module: fetch-lib
+    loc: 120
+    delta: { add: 120, rem: 0 }
+    planned_change:
+      intent: "Workers-native URL fetch with timeout/size/content-type guards and HTML text extraction"
+      diff: "New module: fetchSourceUrl(url) → SourceFetchResult. AbortController 30s timeout, 512 KB size limit, text/html content-type guard, regex-based tag stripping, <title> extraction, 5000-char truncation."
+
+  - path: src/lib/interview/prompts.ts
+    status: modified
+    role: domain
+    module: prompts
+    loc: ~330
+    delta: { add: 30, rem: 5 }
+    planned_change:
+      intent: "Add ## Source material section handling to LESSON_SYSTEM_PROMPT and ROADMAP_SYSTEM_PROMPT"
+      diff: "Append data-only source-material block instructions to both prompts; strengthen injection-resistance note for grounded-source path; cite source inline instructions already present in LESSON_SYSTEM_PROMPT (minor clarification only)."
+
+  - path: src/server/interview.ts
+    status: modified
+    role: domain
+    module: interview-server
+    loc: ~420
+    delta: { add: 55, rem: 8 }
+    planned_change:
+      intent: "Wire fetchSourceUrl into sendTurn at sources stage; handle fetch failure as a stay-in-stage conversational response"
+      diff: "Import fetchSourceUrl. In sendTurn, when currentStage === 'sources' and URL extracted: call fetchSourceUrl; on success store extracted content to captured_source_content; on failure bypass sm.transition(), return template failure message from FETCH_FAILURE_RESPONSE, skip gateway call."
+
+  - path: src/lib/roadmap/schema.ts
+    status: modified
+    role: domain
+    module: roadmap-schema
+    loc: ~175
+    delta: { add: 20, rem: 5 }
+    planned_change:
+      intent: "Extend buildRoadmapPrompt to inject fetched source content as grounding context"
+      diff: "buildRoadmapPrompt now accepts optional sourceContent array; appends ## Source material block when content present. generateRoadmap loads captured_source_content from interview_records and passes it."
+
+  - path: src/routes/api/journey/$journeyId/lesson.ts
+    status: modified
+    role: domain
+    module: lesson-sse
+    loc: ~370
+    delta: { add: 25, rem: 5 }
+    planned_change:
+      intent: "Read captured_source_content from interview_records and inject as grounding context into lesson system message"
+      diff: "After reading waypoint context (step 5), also query interview_records for the journey's captured_source_content. If present, append ## Source material block to systemContent before the lesson generation call."
+
+  - path: tests/smoke/source-grounding.test.ts
+    status: new
+    role: infra
+    module: tests-unit
+    loc: 150
+    delta: { add: 150, rem: 0 }
+    planned_change:
+      intent: "Vitest unit tests: fetch behaviors, HTML extraction, injection resistance, and prompt assembly"
+      diff: "8 tests: timeout returns ok:false/reason:timeout; size-limit returns ok:false/reason:too_large; non-HTML content-type returns ok:false/reason:bad_content_type; happy-path returns extractedText containing distinctive marker; adversarial page (injection payload) returns text without executing instructions; buildRoadmapPrompt no-source control vs with-source includes marker; source-material block delimited from system prompt."
+
+  - path: tests/e2e/source-grounding.spec.ts
+    status: new
+    role: infra
+    module: tests-e2e
+    loc: 100
+    delta: { add: 100, rem: 0 }
+    planned_change:
+      intent: "Playwright E2E: citation rendering from seeded fixture and unfetchable URL interview flow"
+      diff: "2 seeded-session tests: (1) seed lesson row with sources including a fetched URL; navigate to lesson; assert citation section renders and sources block names the URL. (2) mock sendTurn to return fetch-failure acknowledgment; assert interview chat shows failure message and continues-without option."
+
+edges:
+  - from: migrations/0003_source_grounding.sql
+    to: src/server/interview.ts
+    kind: import
+    label: "schema dep"
+  - from: src/lib/source-fetch.ts
+    to: src/server/interview.ts
+    kind: import
+    label: "fetchSourceUrl"
+  - from: src/lib/interview/prompts.ts
+    to: src/routes/api/journey/$journeyId/lesson.ts
+    kind: import
+    label: "LESSON_SYSTEM_PROMPT"
+  - from: src/lib/interview/prompts.ts
+    to: src/lib/roadmap/schema.ts
+    kind: import
+    label: "ROADMAP_SYSTEM_PROMPT"
+  - from: src/lib/roadmap/schema.ts
+    to: src/server/roadmap.ts
+    kind: import
+    label: "buildRoadmapPrompt"
+  - from: src/lib/source-fetch.ts
+    to: tests/smoke/source-grounding.test.ts
+    kind: import
+    label: "tested by"
+
+risks:
+  - id: R1
+    title: "Fetch-in-interview adds latency to sources turn"
+    severity: med
+    body: "fetchSourceUrl has a 30s timeout. An unresponsive host will hold the interview turn open for 30s before returning the failure message. The 3s NFR is only on interview turns, and the sources stage is the final probe stage — PO accepted this at shape. Mitigated by the template failure path (no gateway call), but the timeout itself is the wall."
+    mitigation: "Log the fetch duration; consider a shorter 10s abort for the interview path (adjust in source-fetch.ts). Document in .env.example."
+  - id: R2
+    title: "Context-window budget with large sources"
+    severity: med
+    body: "Injecting 5000 chars of source text into the lesson prompt increases token count, which increases cost and increases the chance of hitting the premium tier's context limit. The 5000-char truncation mitigates but does not eliminate this."
+    mitigation: "5000-char truncation is the v1 budget. The gateway's usage_events table captures cost_usd — watch it at the live smoke. If cost spikes, reduce truncation to 3000 chars."
+  - id: R3
+    title: "Injection resistance is probabilistic at the model layer"
+    severity: low
+    body: "The ## Source material block and data-only labeling reduce but do not eliminate prompt-injection risk. The widget registry and DOMPurify sanitization bound the blast radius if the model is successfully manipulated."
+    mitigation: "Adversarial fixture tests pin the prompt contract. Defense in depth (widget registry, sanitization) already in place from lesson-renderer slice."
+
+history: "Plan authored 2026-07-12T06:35:00Z — new slice, no prior revisions."

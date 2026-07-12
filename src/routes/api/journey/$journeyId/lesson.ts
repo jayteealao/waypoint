@@ -28,7 +28,8 @@ import { env } from 'cloudflare:workers'
 import { requireAuth } from '#/lib/auth-guard'
 import { checkQuota } from '#/lib/ai/quota'
 import { TIERS } from '#/lib/ai/tiers'
-import { LESSON_SYSTEM_PROMPT } from '#/lib/interview/prompts'
+import { LESSON_SYSTEM_PROMPT, buildSourceMaterialBlock } from '#/lib/interview/prompts'
+import type { SourceContent } from '#/lib/source-fetch'
 import { upsertLesson } from '#/server/lessons'
 import type { LessonSection as LessonSectionType, LessonSource } from '#/types/lesson-document'
 
@@ -108,12 +109,33 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
           }
         }
 
+        // ── 5b. Load fetched source content from interview record (source-grounding) ─
+        let lessonSourceContent: SourceContent[] = []
+        const interviewRow = await env.DB.prepare(
+          'SELECT captured_source_content FROM interview_records WHERE journey_id = ? AND user_id = ?',
+        )
+          .bind(journeyId, userId)
+          .first<{ captured_source_content: string | null }>()
+        if (interviewRow?.captured_source_content) {
+          try {
+            const rawContent = JSON.parse(interviewRow.captured_source_content)
+            if (Array.isArray(rawContent)) lessonSourceContent = rawContent as SourceContent[]
+          } catch {
+            lessonSourceContent = []
+          }
+        }
+
         // ── 6. Build system message with waypoint context ────────────────────
         const waypointContext = waypoint
           ? `\n\n## Waypoint context\nTitle: ${waypoint.title}\nGoal: ${waypoint.goal ?? 'Not specified'}\nConcepts to cover: ${concepts.join(', ')}`
           : ''
 
-        const systemContent = LESSON_SYSTEM_PROMPT + waypointContext
+        // Append source grounding block when available (source-grounding slice)
+        const groundingBlock = lessonSourceContent.length > 0
+          ? buildSourceMaterialBlock(lessonSourceContent)
+          : ''
+
+        const systemContent = LESSON_SYSTEM_PROMPT + waypointContext + groundingBlock
         const userContent = `Generate the lesson for this waypoint now. Use the concept names from the waypoint context for concept_tags on each section.`
 
         const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [

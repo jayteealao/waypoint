@@ -5,9 +5,9 @@ slug: waypoint-app
 status: complete
 stage-number: 4
 created-at: "2026-07-11T00:13:07Z"
-updated-at: "2026-07-12T05:12:38Z"
+updated-at: "2026-07-12T06:35:00Z"
 planning-mode: single
-slices-planned: 11
+slices-planned: 12
 slices-total: 12
 implementation-order: [foundation, platform-proofs, accounts-data-layer, design-system-shell, lesson-renderer, sample-journey, ai-gateway, tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress, source-grounding]
 conflicts-found: 0
@@ -155,9 +155,10 @@ next-invocation: "/wf implement waypoint-app design-system-shell"
   midnight explicitly. Waypoint position shifting on accept requires correct UPDATE-before-INSERT
   ordering (D1 batch guarantees sequential execution).
 
-### Plans not yet written (1 remaining slice)
-Plan for slice 12 (source-grounding) will be authored before or during its implement stage.
-It follows the same sub-agent research + autonomous-override pattern.
+### `source-grounding`
+- **Files to touch:** 8 files (4 new, 4 modified) across DB migration, source-fetch library, prompt suite, interview server, roadmap schema, lesson SSE route, and test suites
+- **Strategy:** Fetch-at-interview-time. Workers-native `fetch()` with `AbortController` (30s timeout), 512 KB size limit, and content-type guard. HTML text extraction via regex tag-stripping, `<title>` capture, and 5 000-char truncation. Extracted content stored in new `captured_source_content` column on `interview_records`. Injected into roadmap and lesson generation prompts as a clearly-delimited `## Source material` data-only block. Unfetchable-URL acknowledgment in the interview uses a template response (no gateway call), keeping the sources stage active.
+- **Key risk:** Fetch latency in the sources interview turn (30s timeout on unresponsive hosts). Template failure path (no gateway call) mitigates; timeout may need shortening to 10s. Context-window budget for large-source injections is the second risk — 5 000-char truncation is the v1 control.
 
 ## Cross-Cutting Concerns
 

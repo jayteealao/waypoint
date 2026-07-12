@@ -7,8 +7,8 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T07:00:00Z"
-selected-slice: "adaptation-progress"
+updated-at: "2026-07-12T07:04:18Z"
+selected-slice: "source-grounding"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -57,6 +57,18 @@ runtime-evidence-deferrals:
     cleared-by: null
     cleared-note: "pending — clearing event: first wrangler deploy + one live lesson generation with OPENROUTER_API_KEY present"
     recorded-at: "2026-07-12T03:11:02Z"
+  - ac: "AC-SG-citation + AC-SG-fetch-failure — seeded-session source-grounding Playwright tests"
+    slice: source-grounding
+    reason: "BETTER_AUTH_SECRET confirmed present in .dev.vars (cleared with AC-LR1-3). Both Playwright tests pass: citation rendering (fixture lesson cit-mdn section visible) and unfetchable URL fetch-failure conversational path. No active deferral — this entry is informational."
+    cleared-by: "already cleared — BETTER_AUTH_SECRET present; both tests pass"
+    recorded-at: "2026-07-12T07:04:18Z"
+    cleared-at: "2026-07-12T07:04:18Z"
+    cleared-note: "CLEARED — BETTER_AUTH_SECRET present in .dev.vars; both source-grounding E2E tests pass"
+  - ac: "AC-4 residual — live-model grounding quality spot-check (OPENROUTER_API_KEY)"
+    slice: source-grounding
+    reason: "OPENROUTER_API_KEY not set in .dev.vars. Fixture-marker tests prove the data flows; whether the model actually reflects distinctive source content in generated prose is a live-model quality gate. Plan pre-authorized constraint-resolution: proxy+deferral. Same clearing event as AC-PP2b, AC-7, and AC-15."
+    cleared-by: "tagged live-model run with OPENROUTER_API_KEY present — one generated lesson demonstrably reflecting distinctive-content test page"
+    recorded-at: "2026-07-12T07:04:18Z"
   - ac: "AC-7 residual — live-graded quiz smoke (OPENROUTER_API_KEY)"
     slice: quiz-fsrs
     reason: "OPENROUTER_API_KEY not set in .dev.vars; same constraint as AC-PP2b. Pre-registered at plan time (04-plan-quiz-fsrs.md, constraint-resolution: proxy+deferral). Proxy evidence: 2 Playwright tests (walkthrough + gibberish/empty) with mocked grading adapter pass at full interactive level. Live grading quality review is the residual."
@@ -112,8 +124,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app source-grounding"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -527,6 +539,43 @@ workflow-files:
   - 04-plan-adaptation-progress.md
   - 04-plan-adaptation-progress.yaml
   - 04-plan-adaptation-progress.html.fragment
+  - 07-review-adaptation-progress-correctness.md
+  - 07-review-adaptation-progress-correctness.yaml
+  - 07-review-adaptation-progress-security.md
+  - 07-review-adaptation-progress-security.yaml
+  - 07-review-adaptation-progress-code-simplification.md
+  - 07-review-adaptation-progress-code-simplification.yaml
+  - 07-review-adaptation-progress-testing.md
+  - 07-review-adaptation-progress-testing.yaml
+  - 07-review-adaptation-progress-maintainability.md
+  - 07-review-adaptation-progress-maintainability.yaml
+  - 07-review-adaptation-progress-reliability.md
+  - 07-review-adaptation-progress-reliability.yaml
+  - 07-review-adaptation-progress-data-integrity.md
+  - 07-review-adaptation-progress-data-integrity.yaml
+  - 07-review-adaptation-progress-migrations.md
+  - 07-review-adaptation-progress-migrations.yaml
+  - 07-review-adaptation-progress-performance.md
+  - 07-review-adaptation-progress-performance.yaml
+  - 07-review-adaptation-progress-privacy.md
+  - 07-review-adaptation-progress-privacy.yaml
+  - 07-review-adaptation-progress-backend-concurrency.md
+  - 07-review-adaptation-progress-backend-concurrency.yaml
+  - 07-review-adaptation-progress-accessibility.md
+  - 07-review-adaptation-progress-accessibility.yaml
+  - 07-review-adaptation-progress-frontend-accessibility.md
+  - 07-review-adaptation-progress-frontend-accessibility.yaml
+  - 07-review-adaptation-progress-frontend-performance.md
+  - 07-review-adaptation-progress-frontend-performance.yaml
+  - 07-review-adaptation-progress-interface-craft.md
+  - 07-review-adaptation-progress-interface-craft.yaml
+  - 07-review-adaptation-progress.md
+  - 07-review-adaptation-progress.yaml
+  - 07-review-adaptation-progress.html.fragment
+  - 04-plan-source-grounding.md
+  - 04-plan-source-grounding.yaml
+  - 04-plan-source-grounding.html.fragment
+  - 05-implement-source-grounding.md
 progress:
   intake: complete
   shape: complete
