@@ -6,13 +6,13 @@ slice-slug: adaptation-progress
 status: complete
 stage-number: 5
 created-at: "2026-07-12T05:34:24Z"
-updated-at: "2026-07-12T05:34:24Z"
+updated-at: "2026-07-12T05:48:00Z"
 metric-files-changed: 18
 metric-lines-added: 1576
 metric-lines-removed: 36
 metric-deviations-from-plan: 2
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "6a65ce7"
 tags: [adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep]
 refs:
   index: 00-index.md
