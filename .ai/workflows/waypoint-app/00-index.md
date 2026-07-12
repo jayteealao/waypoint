@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T05:44:00Z"
+updated-at: "2026-07-12T07:00:00Z"
 selected-slice: "adaptation-progress"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -68,6 +68,8 @@ runtime-evidence-deferrals:
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /_authenticated/journey/$journeyId/progress and the quiz completion overlay require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5, AC-DSS1/3/4/5, AC-LR1/2/3, AC-SJ1–4, AC-7). Proxy evidence: 20 Vitest progress-metrics unit tests pass (computeStreak, computePassRate, groupMasteryByWaypoint — all edge cases including UTC midnight boundary); typecheck clean. Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
     recorded-at: "2026-07-12T05:44:00Z"
+    cleared-at: "2026-07-12T07:00:00Z"
+    cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 6 Playwright tests pass after 1 fix round (3 test-infra fixes: React 19 hydration guard for adapt-accept + adapt-decline, AC-13 rewritten to use progress route loaders instead of TanStack DB collection); commit 93a2f94"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -367,6 +369,7 @@ workflow-files:
   - 05-implement-quiz-fsrs.md
   - 06-verify-quiz-fsrs.md
   - 05-implement-adaptation-progress.md
+  - 06-verify-adaptation-progress.md
   - 07-review-ai-gateway-correctness.md
   - 07-review-ai-gateway-correctness.yaml
   - 07-review-ai-gateway-security.md

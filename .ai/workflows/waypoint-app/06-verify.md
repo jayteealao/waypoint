@@ -5,8 +5,8 @@ slug: waypoint-app
 status: in-progress
 stage-number: 6
 created-at: "2026-07-11T00:56:06Z"
-updated-at: "2026-07-12T05:45:00Z"
-slices-verified: 9
+updated-at: "2026-07-12T07:00:00Z"
+slices-verified: 10
 slices-total: 12
 tags: []
 refs:
@@ -29,7 +29,8 @@ next-invocation: "/wf review waypoint-app roadmap-lesson-generation"
 | tutor-interview | pass | converged | 1 | 1 | All 6 ACs met: AC-TI1/3/4 at full Playwright interactive level (seeded-session, mock mode), AC-TI2/5 via 18/18 Vitest unit tests, AC-TI6 via in-place pedagogy review (po-accepted); 5 verify-time issues fixed (1 round): CSS cascade .wp-drawer.hidden, test index off-by-one (assistant-2→3), React hydration timing (hydration-wait for TanStack Devtools button), CSS cascade .wp-mobile-topbar md:hidden, missing interview.turn_completed instrument signal; 0 regressions across 95/95 Vitest + 11 sibling E2E tests |
 | roadmap-lesson-generation | partial | converged | 1 | 1 | 5/6 ACs met; AC-5/6/12/all-fail at full Playwright interactive level (mock SSE + seeded D1); concept-tags code-only via 20 Vitest assertions; AC-15 (first Cloudflare deploy) deferred (OPENROUTER_API_KEY absent; po-accepted constraint at plan time); 2 verify-time fixes (commit a79c117): E2E URL bug (/_authenticated/ → /journey/), testid bug (checkpoint-feedback → checkpoint-explanation); 0 regressions across 116 Vitest + 8 sibling E2E tests; 4/4 instrumentation signals present |
 | quiz-fsrs | pass | converged | 1 | 1 | All 6 ACs met: AC-7 walkthrough + gibberish at full Playwright interactive level (seeded-session, mocked grading), 4 code-only ACs via 21 Vitest unit tests (quiz-schema 8, fsrs-scheduler 7, grading-fixture 6); 2 verify-time fixes (commit ffaddb5): Windows CMD shell escaping in runD1() (temp-file --file approach), React hydration race (TanStack Devtools button guard); live-graded smoke (OPENROUTER_API_KEY) pre-registered plan residual absorbed into platform-proofs deferral; 0 regressions |
+| adaptation-progress | partial | converged | 1 | 1 | All 4 ACs met at full Playwright interactive level (seeded-session): AC-10 progress surfaces (streak/due/pass-rate/roadmap/history), AC-9 adapt-accept + adapt-decline + empty-state, AC-13 multi-journey isolation via progress routes, AC-14 responsive sweep 5×3 (15 screenshots, no overflow); 3 verify-time test-infra fixes (commit 93a2f94): React 19 hydration guard for adapt-accept and adapt-decline, AC-13 rewritten to use progress routes instead of TanStack DB collection (timing unreliable); pre-registered AC-9/10/13/14 deferral CLEARED (BETTER_AUTH_SECRET present in .dev.vars); AC-14 perceptual design quality is pre-registered human residual (po-accepted); 0 regressions across 181/186 Vitest tests |
 
 ## Recommended Next Stage
 
-- **Option A (recommended):** proceed to code review for roadmap-lesson-generation — 5/6 ACs verified at full interactive level; 2 test fixes committed; 0 remaining issues; AC-15 deferred to ship with po-accepted constraint; ready for code review
+- **Option A (recommended):** proceed to code review for adaptation-progress — all 4 ACs verified at full interactive Playwright level; 3 test-infra fixes committed (93a2f94); 0 remaining automated issues; AC-14 perceptual design quality is pre-registered human residual; ready for code review
