@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: reliability
+parent: 07-review-tutor-interview.md
+rev: 1
+verdict: ship
+summary: "Clean: error paths handled, idempotent operations, graceful JSON fallbacks."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

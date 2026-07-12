@@ -1,0 +1,160 @@
+<section class="fragment-review" data-artifact="review" data-rev="1">
+<style>
+.fr-ti { font-family: system-ui, sans-serif; }
+
+/* Heatmap */
+.fr-ti .fr-heatmap { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-bottom: 16px; }
+.fr-ti .fr-dim-chip { padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; display: flex; flex-direction: column; gap: 2px; border: 1px solid transparent; }
+.fr-ti .fr-dim-chip[data-verdict="ship"] { background: #e6f4ea; border-color: #81c784; color: #1b5e20; }
+.fr-ti .fr-dim-chip[data-verdict="caveats"] { background: #fff8e1; border-color: #ffca28; color: #5d4037; }
+.fr-ti .fr-dim-chip[data-verdict="no"] { background: #fce4ec; border-color: #e57373; color: #b71c1c; }
+.fr-ti .fr-dim-name { font-weight: 600; }
+.fr-ti .fr-dim-counts { font-size: 0.68rem; opacity: 0.75; }
+
+/* Severity filter */
+.fr-ti .fr-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.fr-ti .fr-filter-label { font-size: 0.75rem; color: var(--ink-muted, #666); font-weight: 500; }
+.fr-ti .fr-pill { padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: 1px solid #d0d0d0; background: var(--paper-mid, #efefef); color: var(--ink-muted, #666); }
+.fr-ti .fr-pill[aria-pressed="true"][data-sev="blocker"] { background: #b71c1c; color: #fff; border-color: #b71c1c; }
+.fr-ti .fr-pill[aria-pressed="true"][data-sev="high"]    { background: #e53935; color: #fff; border-color: #e53935; }
+.fr-ti .fr-pill[aria-pressed="true"][data-sev="med"]     { background: #f57c00; color: #fff; border-color: #f57c00; }
+.fr-ti .fr-pill[aria-pressed="true"][data-sev="low"]     { background: #7b5ea7; color: #fff; border-color: #7b5ea7; }
+.fr-ti .fr-pill[aria-pressed="true"][data-sev="nit"]     { background: #546e7a; color: #fff; border-color: #546e7a; }
+
+/* Finding cards */
+.fr-ti .fr-findings { display: flex; flex-direction: column; gap: 8px; }
+.fr-ti .fr-finding { border: 1px solid var(--border, #d0d0d0); border-radius: 6px; overflow: hidden; }
+.fr-ti .fr-finding-hd { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; background: var(--surface, #fff); }
+.fr-ti .fr-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+.fr-ti .fr-badge-low  { background: #f0e8df; color: #7a4010; }
+.fr-ti .fr-badge-defer { background: #e8e0ff; color: #4b2d80; }
+.fr-ti .fr-find-title { flex: 1; font-size: 0.85rem; font-weight: 500; }
+.fr-ti .fr-find-loc { font-size: 0.73rem; color: var(--ink-muted, #666); font-family: monospace; }
+.fr-ti .fr-toggle { font-size: 0.75rem; color: var(--ink-muted, #666); margin-left: auto; }
+.fr-ti .fr-finding-bd { display: none; padding: 10px 12px; background: var(--paper, #f9f9f9); border-top: 1px solid var(--border, #d0d0d0); font-size: 0.82rem; }
+.fr-ti .fr-finding-bd.open { display: block; }
+.fr-ti .fr-evidence { font-family: monospace; font-size: 0.77rem; background: var(--code-bg, #1e1e2e); color: #cdd6f4; padding: 8px; border-radius: 4px; margin: 6px 0; overflow-x: auto; white-space: pre; }
+.fr-ti .fr-fix { margin-top: 6px; color: var(--ink, #1a1a1a); }
+.fr-ti .fr-defer-note { margin-top: 4px; font-style: italic; color: var(--ink-muted, #666); font-size: 0.78rem; }
+.fr-ti .fr-empty { text-align: center; padding: 24px; color: var(--ink-muted, #666); font-size: 0.85rem; }
+
+/* Fixed/resolved findings (dimmed) */
+.fr-ti .fr-finding[data-status="fixed"] { opacity: 0.55; }
+.fr-ti .fr-finding[data-status="fixed"] .fr-finding-hd { cursor: default; }
+
+@media (prefers-color-scheme: dark) {
+  .fr-ti .fr-dim-chip[data-verdict="ship"] { background: #1a3a1f; border-color: #2e7d32; color: #81c784; }
+  .fr-ti .fr-finding-hd { background: var(--surface, #1e1e2e); }
+  .fr-ti .fr-finding-bd { background: var(--paper, #181825); }
+  .fr-ti .fr-badge-low { background: #3d1c00; color: #ffa869; }
+  .fr-ti .fr-badge-defer { background: #2d1f4a; color: #c4a8ff; }
+}
+</style>
+
+<div class="fr-ti">
+  <!-- Σ Severity heatmap — one chip per dimension -->
+  <div class="fr-heatmap" aria-label="Dimension heatmap">
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">correctness</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">security</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">code-simplification</span><span class="fr-dim-counts">1 deferred</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">testing</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">maintainability</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">reliability</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">accessibility</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">frontend-a11y</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">frontend-perf</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">interface-craft</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">backend-concur</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">data-integrity</span><span class="fr-dim-counts">0 open</span></div>
+    <div class="fr-dim-chip" data-verdict="ship"><span class="fr-dim-name">ux-copy</span><span class="fr-dim-counts">0 open</span></div>
+  </div>
+
+  <!-- Severity filter bar -->
+  <div class="fr-filter-bar" role="group" aria-label="Filter findings by severity">
+    <span class="fr-filter-label">Show:</span>
+    <button class="fr-pill" data-sev="blocker" aria-pressed="true">BLOCKER 0</button>
+    <button class="fr-pill" data-sev="high"    aria-pressed="true">HIGH 0</button>
+    <button class="fr-pill" data-sev="med"     aria-pressed="true">MED 0</button>
+    <button class="fr-pill" data-sev="low"     aria-pressed="true">LOW 1</button>
+    <button class="fr-pill" data-sev="nit"     aria-pressed="true">NIT 0</button>
+  </div>
+
+  <!-- Open findings list -->
+  <div class="fr-findings" aria-label="Open findings">
+
+    <!-- CS-2: deferred LOW -->
+    <div class="fr-finding" data-sev="low" data-status="deferred" data-dim="code-simplification">
+      <div class="fr-finding-hd" role="button" aria-expanded="false" tabindex="0">
+        <span class="fr-badge fr-badge-low">LOW</span>
+        <span class="fr-badge fr-badge-defer">deferred</span>
+        <span class="fr-find-title">Unused journeyId prop in InterviewView</span>
+        <span class="fr-find-loc">InterviewView.tsx:63</span>
+        <span class="fr-toggle">▸</span>
+      </div>
+      <div class="fr-finding-bd">
+        <strong>Source:</strong> code-simplification<br>
+        <strong>Issue:</strong> The <code>journeyId: _journeyId</code> prop is declared in <code>InterviewViewProps</code> and passed from the route, but is never used inside the component. The <code>onSendTurn</code> callback closes over <code>journeyId</code> at the route level, making the prop redundant.
+        <div class="fr-evidence">journeyId: _journeyId,  // underscore prefix = unused</div>
+        <div class="fr-fix"><strong>Fix:</strong> Remove <code>journeyId</code> from <code>InterviewViewProps</code> and the destructuring. Re-add if a future slice needs direct access inside the component.</div>
+        <div class="fr-defer-note">Deferred: possibly a forward-compat hook for completion navigation. Revisit at next slice review.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fixed findings (collapsed by default, shown for history) -->
+  <details style="margin-top:16px;">
+    <summary style="cursor:pointer; font-size:0.8rem; color:var(--ink-muted,#666); user-select:none;">Fixed this run (3)</summary>
+    <div class="fr-findings" style="margin-top:8px; opacity:0.6;">
+      <div class="fr-finding" data-status="fixed" data-sev="med">
+        <div class="fr-finding-hd"><span class="fr-badge fr-badge-low">MED</span><span class="fr-find-title">A11Y-1: aria-live="off" container conflicts with per-bubble role="status"</span><span class="fr-badge" style="background:#d0f0d8;color:#1a5c2a;font-size:.68rem;padding:2px 6px;border-radius:4px;">fixed</span></div>
+      </div>
+      <div class="fr-finding" data-status="fixed" data-sev="low">
+        <div class="fr-finding-hd"><span class="fr-badge fr-badge-low">LOW</span><span class="fr-find-title">MAINT-1: captureField called on non-advancing turns</span><span class="fr-badge" style="background:#d0f0d8;color:#1a5c2a;font-size:.68rem;padding:2px 6px;border-radius:4px;">fixed</span></div>
+      </div>
+      <div class="fr-finding" data-status="fixed" data-sev="low">
+        <div class="fr-finding-hd"><span class="fr-badge fr-badge-low">LOW</span><span class="fr-find-title">CS-1: Redundant aria-live="polite" on role="status" element</span><span class="fr-badge" style="background:#d0f0d8;color:#1a5c2a;font-size:.68rem;padding:2px 6px;border-radius:4px;">fixed</span></div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<script>
+(function() {
+  const section = document.currentScript.closest('.fragment-review');
+  if (!section) return;
+
+  // Severity filter pills
+  const activeFilters = new Set(['blocker','high','med','low','nit']);
+  section.querySelectorAll('.fr-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const sev = pill.dataset.sev;
+      if (activeFilters.has(sev)) { activeFilters.delete(sev); pill.setAttribute('aria-pressed','false'); }
+      else { activeFilters.add(sev); pill.setAttribute('aria-pressed','true'); }
+      section.querySelectorAll('.fr-finding[data-status="deferred"], .fr-finding[data-status="open"]').forEach(card => {
+        card.style.display = activeFilters.has(card.dataset.sev) ? '' : 'none';
+      });
+    });
+  });
+
+  // Expand/collapse finding bodies
+  section.querySelectorAll('.fr-finding-hd[role="button"]').forEach(hd => {
+    hd.addEventListener('click', () => {
+      const bd = hd.nextElementSibling;
+      if (!bd) return;
+      const open = bd.classList.toggle('open');
+      hd.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const tog = hd.querySelector('.fr-toggle');
+      if (tog) tog.textContent = open ? '��' : '▸';
+    });
+    hd.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hd.click(); }
+    });
+  });
+
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review', artifact: 'review', counts: { findings: 1, blockers: 0 } }
+  }));
+})();
+</script>
+</section>

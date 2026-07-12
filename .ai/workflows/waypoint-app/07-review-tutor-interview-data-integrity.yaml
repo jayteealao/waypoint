@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: data-integrity
+parent: 07-review-tutor-interview.md
+rev: 1
+verdict: ship
+summary: "Clean after MAINT-1 fix: additive migration, FK cascade, captureField guarded on stage advance."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T03:00:00Z"
+updated-at: "2026-07-12T03:30:00Z"
 selected-slice: "tutor-interview"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -93,8 +93,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app tutor-interview"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -396,6 +396,36 @@ workflow-files:
   - 07-review-sample-journey.md
   - 07-review-sample-journey.yaml
   - 07-review-sample-journey.html.fragment
+  - 07-review-tutor-interview-correctness.md
+  - 07-review-tutor-interview-correctness.yaml
+  - 07-review-tutor-interview-security.md
+  - 07-review-tutor-interview-security.yaml
+  - 07-review-tutor-interview-code-simplification.md
+  - 07-review-tutor-interview-code-simplification.yaml
+  - 07-review-tutor-interview-code-simplification.html.fragment
+  - 07-review-tutor-interview-testing.md
+  - 07-review-tutor-interview-testing.yaml
+  - 07-review-tutor-interview-maintainability.md
+  - 07-review-tutor-interview-maintainability.yaml
+  - 07-review-tutor-interview-reliability.md
+  - 07-review-tutor-interview-reliability.yaml
+  - 07-review-tutor-interview-accessibility.md
+  - 07-review-tutor-interview-accessibility.yaml
+  - 07-review-tutor-interview-frontend-accessibility.md
+  - 07-review-tutor-interview-frontend-accessibility.yaml
+  - 07-review-tutor-interview-frontend-performance.md
+  - 07-review-tutor-interview-frontend-performance.yaml
+  - 07-review-tutor-interview-interface-craft.md
+  - 07-review-tutor-interview-interface-craft.yaml
+  - 07-review-tutor-interview-backend-concurrency.md
+  - 07-review-tutor-interview-backend-concurrency.yaml
+  - 07-review-tutor-interview-data-integrity.md
+  - 07-review-tutor-interview-data-integrity.yaml
+  - 07-review-tutor-interview-ux-copy.md
+  - 07-review-tutor-interview-ux-copy.yaml
+  - 07-review-tutor-interview.md
+  - 07-review-tutor-interview.yaml
+  - 07-review-tutor-interview.html.fragment
 progress:
   intake: complete
   shape: complete

@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: ux-copy
+parent: 07-review-tutor-interview.md
+rev: 1
+verdict: ship
+summary: "Clean: copy is warm, action-oriented, and consistent with brand register."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []
