@@ -230,7 +230,7 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
     }
 
     try {
-      // @ts-ignore — createOpenRouterText accepts a string model ID; the TS overloads
+      // @ts-expect-error — createOpenRouterText accepts a string model ID; the TS overloads
       // enumerate the known model names but the list is non-exhaustive at runtime.
       const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY)
       const { toolUse, text, usage: rawUsage } = await drainStream(adapter, messages, tools)
@@ -257,10 +257,16 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
       }
 
       // ── 6. Record usage in D1 ──────────────────────────────────────────────
+      // IMPORTANT: Supply `at` explicitly as an ISO-8601 string so the quota
+      // query (which filters `at >= 'YYYY-MM-DDTHH:MM:SSZ'`) sees consistent
+      // format. Omitting `at` causes D1's DEFAULT datetime('now') to produce
+      // 'YYYY-MM-DD HH:MM:SS' (space-separated, no Z), which sorts before any
+      // 'YYYY-MM-DDTHH:MM:SSZ' bound and makes the quota SUM always return 0.
       const usageId = crypto.randomUUID()
+      const insertedAt = new Date().toISOString()
       await env.DB.prepare(
-        `INSERT INTO usage_events (id, user_id, journey_id, model, type, prompt_tokens, completion_tokens, cost_usd, duration_ms, outcome)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'success')`,
+        `INSERT INTO usage_events (id, user_id, journey_id, model, type, prompt_tokens, completion_tokens, cost_usd, duration_ms, outcome, at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'success', ?)`,
       )
         .bind(
           usageId,
@@ -272,6 +278,7 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
           rawUsage.completion_tokens,
           costUsd,
           durationMs,
+          insertedAt,
         )
         .run()
 

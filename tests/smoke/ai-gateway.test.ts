@@ -240,6 +240,26 @@ describe('AI gateway', () => {
     expect(vi.mocked(createOpenRouterText)).not.toHaveBeenCalled()
   })
 
+  // ── Fallback chain exhaustion ──────────────────────────────────────────
+
+  test('fallback chain: throws when all models fail', async () => {
+    const db = makeMockDb({ quotaUsed: 0 })
+    const env = makeEnv(db)
+
+    // All calls throw — both primary and every fallback model.
+    vi.mocked(chat).mockImplementation(() => { throw new Error('model unavailable') })
+
+    // interview tier has 1 primary + 1 fallback = 2 calls maximum.
+    await expect(
+      callGateway({ env, ...BASE_INPUT }),
+    ).rejects.toThrow('model unavailable')
+
+    // Both primary and fallback were attempted.
+    expect(vi.mocked(createOpenRouterText)).toHaveBeenCalledTimes(
+      1 + TIERS.interview.fallbackChain.length,
+    )
+  })
+
   // ── Cost math ──────────────────────────────────────────────────────────
 
   test('cost math: prefers usage.total_cost over recomputed cost', async () => {
