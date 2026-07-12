@@ -1,0 +1,150 @@
+artifact: review
+slug: waypoint-app
+review-scope: per-slice
+slice-slug: quiz-fsrs
+rev: 1
+verdict: ship
+summary: "15-dimension review of the quiz + FSRS learner-model slice. Two ownership-check gaps (MED) fixed in one commit; 8 LOW + 2 NIT findings deferred. No open blockers. Verdict: ship."
+dimensions:
+  - name: correctness
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 0}
+  - name: security
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 0}
+  - name: code-simplification
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 1}
+  - name: testing
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 0}
+  - name: maintainability
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 0}
+  - name: reliability
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 0}
+  - name: accessibility
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 1}
+  - name: frontend-performance
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 0}
+  - name: interface-craft
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 0}
+  - name: ux-copy
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 0}
+  - name: data-integrity
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 0}
+  - name: performance
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 2, nit: 0}
+  - name: privacy
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 1, nit: 0}
+  - name: supply-chain
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 0}
+  - name: cost
+    verdict: ship
+    counts: {blocker: 0, high: 0, med: 0, low: 0, nit: 1}
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 8
+  nit: 2
+findings:
+  - id: SEC-3
+    severity: low
+    dimension: security
+    file: src/server/quiz.ts
+    line: 272
+    msg: correct_answer exposed in getQuizQuestions API response
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: COR-1
+    severity: low
+    dimension: correctness + reliability
+    file: src/routes/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz.tsx
+    line: 36
+    msg: Empty quiz after persistent generation failure — unbounded retry + no user error signal
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: CS-1
+    severity: low
+    dimension: code-simplification
+    file: src/server/quiz.ts
+    line: 130
+    msg: Inline interface declarations inside handler body
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: TST-1
+    severity: low
+    dimension: testing
+    file: tests/smoke/
+    line: 1
+    msg: No tests for gradeAnswer and getWaypointCompletionStatus ownership checks
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: DI-1
+    severity: low
+    dimension: data-integrity
+    file: src/server/quiz.ts
+    line: 100
+    msg: Concepts table missing UNIQUE(journey_id, name) — concurrent generation can create duplicate concept rows
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: PERF-1
+    severity: low
+    dimension: performance
+    file: src/server/quiz.ts
+    line: 456
+    msg: getWaypointCompletionStatus N+1 pattern — 2 queries per waypoint
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: PERF-2
+    severity: low
+    dimension: performance + cost
+    file: src/server/quiz.ts
+    line: 164
+    msg: N sequential gateway calls in generateQuiz — plan-acknowledged debt
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: PRV-1
+    severity: low
+    dimension: privacy
+    file: src/server/quiz.ts
+    line: 334
+    msg: quiz.grading_parse_error logs raw_text slice (possible learner data exposure in logs)
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: A11Y-1
+    severity: nit
+    dimension: accessibility
+    file: src/components/quiz/QuizView.tsx
+    line: 461
+    msg: MC options container role=group instead of role=radiogroup
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false
+  - id: CS-2
+    severity: nit
+    dimension: code-simplification
+    file: src/lib/quiz/fsrs-scheduler.ts
+    line: 158
+    msg: Double type-cast for RecordLog indexing
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false

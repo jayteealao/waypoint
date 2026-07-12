@@ -1,0 +1,28 @@
+artifact: review-dimension
+dimension: privacy
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: Learner responses are stored in quiz_attempts with user_id isolation. The quiz.graded event does not log the learner response text. The grading prompt includes injection-resistance instructions. One LOW: quiz.grading_parse_error log could theoretically include learner-influenced content in the AI response (raw_text sliced to 200 chars).
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: PRV-1
+    severity: low
+    file: src/server/quiz.ts
+    line: 334
+    confidence: med
+    action: defer
+    msg: quiz.grading_parse_error log includes raw_text (first 200 chars of AI response) which could contain prompt-reflected learner input under certain model behaviours
+    evidence: |
+      console.log({ event: 'quiz.grading_parse_error', raw_text: rawText.slice(0, 200) })
+      If the grader model echoes the learner's answer in its (malformed) response, 200 chars
+      of learner content appear in the server log.
+    fix: Replace raw_text logging with a hash or length indicator only: raw_text_length: rawText.length. This preserves debuggability without risking PII exposure.
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false

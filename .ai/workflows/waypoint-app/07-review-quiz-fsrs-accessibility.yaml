@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: accessibility
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: Good baseline accessibility. FRQ textarea has aria-label; grading states use role=status + aria-live=polite; MC options use role=group + aria-hidden letter prefixes. One NIT: MC option group uses role=group instead of role=radiogroup, which is semantically more appropriate for mutually exclusive choices.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 1
+findings:
+  - id: A11Y-1
+    severity: nit
+    file: src/components/quiz/QuizView.tsx
+    line: 461
+    confidence: med
+    action: defer
+    msg: MC options container uses role=group instead of role=radiogroup; options are rendered as buttons not radio inputs, which is technically valid but misses the semantic radio group signal
+    evidence: '<div class="space-y-2" role="group" aria-label="Answer options">'
+    fix: Consider role="radiogroup" for the container and aria-checked state on selected option button, or use native <input type="radio"> elements. The current button-based pattern is acceptable for immediate-select UX.
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false

@@ -1,0 +1,27 @@
+artifact: review-dimension
+dimension: testing
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: 21 unit tests cover FSRS scheduling (7), schema/MC lint (8), and grading fixture corpus (6) at high confidence. E2E tests cover both user-observable ACs via seeded session. One LOW gap: no test covers the new gradeAnswer/getWaypointCompletionStatus ownership checks added in the review fix.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: TST-1
+    severity: low
+    file: tests/smoke/
+    line: 1
+    confidence: med
+    action: defer
+    msg: No unit tests for the new gradeAnswer ownership check or getWaypointCompletionStatus ownership check added during review
+    evidence: |
+      gradeAnswer now joins waypoints + journeys to verify ownership; this code path is untested.
+      getWaypointCompletionStatus now has a journey ownership gate; also untested.
+    fix: Add tests verifying that gradeAnswer with a cross-user questionId returns 403/404, and getWaypointCompletionStatus with another user's journeyId returns 404.
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false

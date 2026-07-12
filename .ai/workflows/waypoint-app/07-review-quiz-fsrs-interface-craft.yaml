@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: interface-craft
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: Clean. Grade verdict uses ember color tokens for partial (--ember-600 amber), correct (green), incorrect (muted). Option letters are aria-hidden. FRQ textarea resize-vertical. Hit areas are adequately sized. No optical alignment issues found.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

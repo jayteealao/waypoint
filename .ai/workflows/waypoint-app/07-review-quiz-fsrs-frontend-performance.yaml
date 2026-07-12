@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: frontend-performance
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: Clean. QuizView state transitions are synchronous or awaited (grading shows a loading state). No unnecessary re-renders from unstable callback references. FRQ textarea change handler is inline but not performance-critical. No expensive computations in render path.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

@@ -1,0 +1,28 @@
+artifact: review-dimension
+dimension: cost
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: Cost is bounded by the gateway quota system. Per-concept generation (N calls per waypoint visit) and per-question grading (1 call per FRQ answer) are the cost drivers. Both are pre-analyzed in the plan. Gateway quota enforcement caps worst-case spend. One NIT for batching opportunity.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 1
+findings:
+  - id: COST-1
+    severity: nit
+    file: src/server/quiz.ts
+    line: 164
+    confidence: med
+    action: defer
+    msg: N sequential callGateway calls per waypoint visit (one per concept); batch opportunity reduces cost linearly
+    evidence: |
+      Plan §Risks: "2-5 quiz-tier calls per waypoint generation event".
+      Implementation: for (const item of conceptQueue) { const response = await callGateway(...) }
+      sdlc-debt marker in src/lib/quiz/schema.ts documents the batching upgrade path.
+    fix: Batch all concepts into a single callGateway call returning a JSON array of questions. Tracked as sdlc-debt.
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false

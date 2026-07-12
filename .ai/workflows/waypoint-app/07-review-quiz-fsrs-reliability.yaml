@@ -1,0 +1,27 @@
+artifact: review-dimension
+dimension: reliability
+parent: 07-review-quiz-fsrs.md
+rev: 1
+verdict: ship
+summary: Error paths are handled defensively — grading JSON parse failure returns a safe fallback, generation failures skip the concept rather than crashing. One LOW: empty quiz after persistent generation failure has no user-facing error signal.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: REL-1
+    severity: low
+    file: src/routes/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz.tsx
+    line: 36
+    confidence: med
+    action: defer
+    msg: If quiz generation returns empty (persistent gateway failure), the component renders empty with no user-facing error message or retry affordance
+    evidence: |
+      Component renders QuizView with empty questions=[]. QuizView shows results screen
+      with 0/0 score and no explanation for why there are no questions.
+    fix: Check questions.length === 0 after generateQuiz and show an error state ("We couldn't generate your quiz. Please try again later.") instead of passing an empty array to QuizView.
+    status: deferred
+    surfaced-at: "2026-07-12T04:54:26Z"
+    pre-existing: false

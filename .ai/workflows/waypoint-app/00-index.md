@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T04:14:40Z"
+updated-at: "2026-07-12T06:00:00Z"
 selected-slice: "quiz-fsrs"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -57,6 +57,12 @@ runtime-evidence-deferrals:
     cleared-by: null
     cleared-note: "pending — clearing event: first wrangler deploy + one live lesson generation with OPENROUTER_API_KEY present"
     recorded-at: "2026-07-12T03:11:02Z"
+  - ac: "AC-7 residual — live-graded quiz smoke (OPENROUTER_API_KEY)"
+    slice: quiz-fsrs
+    reason: "OPENROUTER_API_KEY not set in .dev.vars; same constraint as AC-PP2b. Pre-registered at plan time (04-plan-quiz-fsrs.md, constraint-resolution: proxy+deferral). Proxy evidence: 2 Playwright tests (walkthrough + gibberish/empty) with mocked grading adapter pass at full interactive level. Live grading quality review is the residual."
+    repeat-of: "AC-PP2b (platform-proofs)"
+    cleared-by: "tagged live-smoke run with OPENROUTER_API_KEY present (or /wf probe in a keyed environment)"
+    recorded-at: "2026-07-12T05:45:00Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -354,6 +360,7 @@ workflow-files:
   - 05-implement-roadmap-lesson-generation.md
   - 06-verify-roadmap-lesson-generation.md
   - 05-implement-quiz-fsrs.md
+  - 06-verify-quiz-fsrs.md
   - 07-review-ai-gateway-correctness.md
   - 07-review-ai-gateway-correctness.yaml
   - 07-review-ai-gateway-security.md
@@ -474,6 +481,40 @@ workflow-files:
   - 07-review-roadmap-lesson-generation.md
   - 07-review-roadmap-lesson-generation.yaml
   - 07-review-roadmap-lesson-generation.html.fragment
+  - 07-review-quiz-fsrs-correctness.md
+  - 07-review-quiz-fsrs-correctness.yaml
+  - 07-review-quiz-fsrs-security.md
+  - 07-review-quiz-fsrs-security.yaml
+  - 07-review-quiz-fsrs-security.html.fragment
+  - 07-review-quiz-fsrs-code-simplification.md
+  - 07-review-quiz-fsrs-code-simplification.yaml
+  - 07-review-quiz-fsrs-testing.md
+  - 07-review-quiz-fsrs-testing.yaml
+  - 07-review-quiz-fsrs-maintainability.md
+  - 07-review-quiz-fsrs-maintainability.yaml
+  - 07-review-quiz-fsrs-reliability.md
+  - 07-review-quiz-fsrs-reliability.yaml
+  - 07-review-quiz-fsrs-accessibility.md
+  - 07-review-quiz-fsrs-accessibility.yaml
+  - 07-review-quiz-fsrs-frontend-performance.md
+  - 07-review-quiz-fsrs-frontend-performance.yaml
+  - 07-review-quiz-fsrs-interface-craft.md
+  - 07-review-quiz-fsrs-interface-craft.yaml
+  - 07-review-quiz-fsrs-ux-copy.md
+  - 07-review-quiz-fsrs-ux-copy.yaml
+  - 07-review-quiz-fsrs-data-integrity.md
+  - 07-review-quiz-fsrs-data-integrity.yaml
+  - 07-review-quiz-fsrs-performance.md
+  - 07-review-quiz-fsrs-performance.yaml
+  - 07-review-quiz-fsrs-privacy.md
+  - 07-review-quiz-fsrs-privacy.yaml
+  - 07-review-quiz-fsrs-supply-chain.md
+  - 07-review-quiz-fsrs-supply-chain.yaml
+  - 07-review-quiz-fsrs-cost.md
+  - 07-review-quiz-fsrs-cost.yaml
+  - 07-review-quiz-fsrs.md
+  - 07-review-quiz-fsrs.yaml
+  - 07-review-quiz-fsrs.html.fragment
 progress:
   intake: complete
   shape: complete
