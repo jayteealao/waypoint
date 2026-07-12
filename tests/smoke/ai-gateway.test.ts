@@ -55,23 +55,38 @@ function makeMockDb(options: {
   } as unknown as D1Database
 }
 
-/** Build an async iterable of stream events — what `chat()` returns. */
-function makeSuccessStream(opts?: { toolName?: string; totalCost?: number }): AsyncIterable<Record<string, unknown>> {
+/**
+ * Build an async iterable of stream events — what `chat()` returns.
+ *
+ * Mirrors the real @tanstack/ai-openrouter event vocabulary: tool calls arrive
+ * as TOOL_CALL_START/ARGS/END, streamed text as TEXT_MESSAGE_CONTENT, and final
+ * token usage rides on the terminal RUN_FINISHED chunk (camelCase). OpenRouter
+ * does not surface a per-call cost in the stream, so cost is normally recomputed
+ * from the pricing table; `totalCost` here exercises the defensive prefer-cost path.
+ */
+function makeSuccessStream(opts?: { toolName?: string; totalCost?: number; text?: string }): AsyncIterable<Record<string, unknown>> {
   const events: Record<string, unknown>[] = []
-  const toolName = opts?.toolName ?? 'echo_tool'
 
-  events.push({ type: 'TOOL_CALL_START', toolCallName: toolName })
-  events.push({ type: 'TOOL_CALL_ARGS', delta: '{"text":"pong"}' })
-  events.push({ type: 'TOOL_CALL_END' })
+  if (opts?.text !== undefined) {
+    events.push({ type: 'TEXT_MESSAGE_START' })
+    events.push({ type: 'TEXT_MESSAGE_CONTENT', delta: opts.text, content: opts.text })
+    events.push({ type: 'TEXT_MESSAGE_END' })
+  } else {
+    const toolName = opts?.toolName ?? 'echo_tool'
+    events.push({ type: 'TOOL_CALL_START', toolCallName: toolName })
+    events.push({ type: 'TOOL_CALL_ARGS', delta: '{"text":"pong"}' })
+    events.push({ type: 'TOOL_CALL_END' })
+  }
 
   const usagePayload: Record<string, unknown> = {
-    prompt_tokens: 10,
-    completion_tokens: 20,
+    promptTokens: 10,
+    completionTokens: 20,
+    totalTokens: 30,
   }
   if (opts?.totalCost !== undefined) {
     usagePayload['total_cost'] = opts.totalCost
   }
-  events.push({ type: 'USAGE', usage: usagePayload })
+  events.push({ type: 'RUN_FINISHED', usage: usagePayload })
 
   return (async function* () {
     for (const e of events) yield e
@@ -151,6 +166,31 @@ describe('AI gateway', () => {
     expect(insertArgs[5]).toBe(10)               // prompt_tokens
     expect(insertArgs[6]).toBe(20)               // completion_tokens
     expect(insertArgs[7]).toBe(0.001)            // cost_usd (from total_cost)
+  })
+
+  // ── Text extraction (regression: adapter emits TEXT_MESSAGE_CONTENT) ─────
+
+  test('text extraction: returns model text from TEXT_MESSAGE_CONTENT chunks', async () => {
+    const db = makeMockDb({ quotaUsed: 0 })
+    const env = makeEnv(db)
+
+    vi.mocked(chat).mockReturnValueOnce(
+      makeSuccessStream({ text: 'What do you want to build?' }) as any,
+    )
+
+    const result = await callGateway({
+      env,
+      userId: 'user-123',
+      type: 'lesson',
+      messages: [{ role: 'user', content: 'ask me something' }],
+    })
+
+    // Regression guard: the OpenRouter adapter streams text as
+    // TEXT_MESSAGE_CONTENT, not TEXT_DELTA. If drainStream matches the wrong
+    // event name, text is silently undefined and every generation breaks.
+    expect(result.text).toBe('What do you want to build?')
+    expect(result.usage.promptTokens).toBe(10)
+    expect(result.usage.completionTokens).toBe(20)
   })
 
   // ── Fallback chain ─────────────────────────────────────────────────────

@@ -202,7 +202,7 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
                   }
                   const chunkType = chunk['type'] as string | undefined
 
-                  if (chunkType === 'TEXT_DELTA') {
+                  if (chunkType === 'TEXT_MESSAGE_CONTENT' || chunkType === 'TEXT_DELTA') {
                     const delta = (chunk['delta'] as string) ?? ''
                     lineBuffer += delta
 
@@ -259,12 +259,18 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
                         }
                       }
                     }
-                  } else if (chunkType === 'USAGE') {
-                    const raw = chunk['usage'] as Partial<{ prompt_tokens: number; completion_tokens: number; total_cost: number }> | undefined
+                  } else if (chunkType === 'RUN_FINISHED' || chunkType === 'USAGE') {
+                    // Token usage rides on the terminal RUN_FINISHED chunk
+                    // (camelCase promptTokens/completionTokens); legacy USAGE/
+                    // snake_case accepted for adapter-version resilience.
+                    const raw = chunk['usage'] as Record<string, unknown> | undefined
                     if (raw) {
-                      promptTokens = raw.prompt_tokens ?? 0
-                      completionTokens = raw.completion_tokens ?? 0
-                      if (raw.total_cost !== undefined) totalCost = raw.total_cost
+                      const pt = raw['promptTokens'] ?? raw['prompt_tokens']
+                      const ct = raw['completionTokens'] ?? raw['completion_tokens']
+                      if (pt !== undefined) promptTokens = Number(pt)
+                      if (ct !== undefined) completionTokens = Number(ct)
+                      const tc = raw['total_cost'] ?? raw['totalCost'] ?? raw['cost']
+                      if (tc !== undefined) totalCost = Number(tc)
                     }
                   }
                 }

@@ -125,6 +125,11 @@ async function drainStream(
   let textContent = ''
   const usage: StreamUsage = { prompt_tokens: 0, completion_tokens: 0 }
 
+  // Event vocabulary is the @tanstack/ai-openrouter adapter's: streamed text
+  // arrives as TEXT_MESSAGE_CONTENT chunks and final token usage rides on the
+  // terminal RUN_FINISHED chunk (camelCase promptTokens/completionTokens).
+  // The legacy TEXT_DELTA/USAGE names are also accepted so a future adapter
+  // that emits either shape keeps working.
   for await (const chunk of stream as AsyncIterable<Record<string, unknown>>) {
     const chunkType = chunk['type'] as string | undefined
     if (chunkType === 'TOOL_CALL_START') {
@@ -132,14 +137,17 @@ async function drainStream(
       toolArgsJson = ''
     } else if (chunkType === 'TOOL_CALL_ARGS') {
       toolArgsJson += (chunk['delta'] as string) ?? ''
-    } else if (chunkType === 'TEXT_DELTA') {
+    } else if (chunkType === 'TEXT_MESSAGE_CONTENT' || chunkType === 'TEXT_DELTA') {
       textContent += (chunk['delta'] as string) ?? ''
-    } else if (chunkType === 'USAGE') {
-      const raw = chunk['usage'] as Partial<StreamUsage> | undefined
+    } else if (chunkType === 'RUN_FINISHED' || chunkType === 'USAGE') {
+      const raw = chunk['usage'] as Record<string, unknown> | undefined
       if (raw) {
-        usage.prompt_tokens = raw.prompt_tokens ?? 0
-        usage.completion_tokens = raw.completion_tokens ?? 0
-        if (raw.total_cost !== undefined) usage.total_cost = raw.total_cost
+        const pt = raw['promptTokens'] ?? raw['prompt_tokens']
+        const ct = raw['completionTokens'] ?? raw['completion_tokens']
+        if (pt !== undefined) usage.prompt_tokens = Number(pt)
+        if (ct !== undefined) usage.completion_tokens = Number(ct)
+        const tc = raw['total_cost'] ?? raw['totalCost'] ?? raw['cost']
+        if (tc !== undefined) usage.total_cost = Number(tc)
       }
     }
   }

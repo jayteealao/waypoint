@@ -24,9 +24,11 @@ runtime-evidence-deferrals:
     recorded-at: "2026-07-11T08:30:00Z"
   - ac: "AC-PP2b — live OpenRouter tool-call smoke"
     slice: platform-proofs
-    reason: "OPENROUTER_API_KEY (PO-provided secret) not present in the automated environment; the live-smoke test's skipIf gate fires as designed. Plan pre-authorized constraint-resolution: proxy+deferral. Proxy evidence: mocked tool-call proof (AC-PP2a) passes; wrangler-dev SSE + D1 proofs pass under workerd (commit 7da0ab7)."
-    cleared-by: "a tagged live-smoke run with OPENROUTER_API_KEY present (or /wf probe in a keyed environment)"
+    status: cleared
+    reason: "OPENROUTER_API_KEY now present in .dev.vars. Tagged live smoke run: tests/smoke/ai-tool-call.test.ts 9/9 pass against real OpenRouter (interview-tier tool-call round trip, all 3 gateway tiers, single-question interview). NOTE: clearing surfaced two real bugs the mocked proxy had masked — see 06-verify-live-ai.md."
+    cleared-by: "tagged live-smoke run with OPENROUTER_API_KEY present — passed 2026-07-12"
     recorded-at: "2026-07-11T10:30:00Z"
+    cleared-at: "2026-07-12T00:00:00Z"
   - ac: "AC-ADL1 + AC-ADL5 — seeded-session proxy tests (session persistence, cross-account isolation, identity display, sign-out)"
     slice: accounts-data-layer
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require this secret for HMAC-SHA-256 cookie signing. Ladder climbed: (rung 1) 2 always-run Playwright tests pass (sign-in UI, account redirect); (rung 2) BETTER_AUTH_SECRET env var checked — absent; (rung 3) seeded-session proxy requires the secret — residual: 3 proxy tests skip by design. Real OAuth flow is the original pre-registered plan residual. Plan pre-authorized constraint-resolution: proxy+deferral."
@@ -53,9 +55,9 @@ runtime-evidence-deferrals:
     cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 5 sample-journey Playwright tests pass after 3 test-infra fixes (React effects timing guard, strict-mode selector scope, serial mode for beforeAll seeding); commit 96743b5"
   - ac: "AC-15 residual — first Cloudflare Workers deploy with live SSE lesson generation"
     slice: roadmap-lesson-generation
-    reason: "OPENROUTER_API_KEY not set in .dev.vars. Ladder climbed: wrangler whoami confirms Cloudflare credentials present (jayteealao@gmail.com); OPENROUTER_API_KEY absent — live generation cannot be driven. Wrangler dev on workerd already proves the SSE transport (platform-proofs, commit 7da0ab7). Plan pre-authorized constraint-resolution: po-accepted (Cloudflare deployment and OpenRouter live-smoke cost accepted at shape)."
+    reason: "OPENROUTER_API_KEY now present in .dev.vars (the credential half of this blocker is resolved; live lesson-tier generation is proven by the gateway smoke). The remaining blocker is the DEPLOY itself: this AC requires the first Cloudflare Workers deploy driving live SSE end-to-end. wrangler dev on workerd already proves the SSE transport (platform-proofs, commit 7da0ab7)."
     cleared-by: null
-    cleared-note: "pending — clearing event: first wrangler deploy + one live lesson generation with OPENROUTER_API_KEY present"
+    cleared-note: "pending DEPLOY — key now present; clearing event: first wrangler deploy + one live lesson generation"
     recorded-at: "2026-07-12T03:11:02Z"
   - ac: "AC-SG-citation + AC-SG-fetch-failure — seeded-session source-grounding Playwright tests"
     slice: source-grounding
@@ -66,15 +68,19 @@ runtime-evidence-deferrals:
     cleared-note: "CLEARED — BETTER_AUTH_SECRET present in .dev.vars; both source-grounding E2E tests pass"
   - ac: "AC-4 residual — live-model grounding quality spot-check (OPENROUTER_API_KEY)"
     slice: source-grounding
-    reason: "OPENROUTER_API_KEY not set in .dev.vars. Fixture-marker tests prove the data flows; whether the model actually reflects distinctive source content in generated prose is a live-model quality gate. Plan pre-authorized constraint-resolution: proxy+deferral. Same clearing event as AC-PP2b, AC-7, and AC-15."
-    cleared-by: "tagged live-model run with OPENROUTER_API_KEY present — one generated lesson demonstrably reflecting distinctive-content test page"
+    status: cleared
+    reason: "OPENROUTER_API_KEY now present. Live lesson-tier smoke feeds a distinctive source marker (ZBQ-Widget-9137) and asserts the generated prose reflects it — passes against real anthropic/claude-haiku-4.5. Fixture-marker tests already proved the data flow; this proves live-model reflection."
+    cleared-by: "tagged live-model smoke — tests/smoke/ai-tool-call.test.ts grounding case, passed 2026-07-12"
     recorded-at: "2026-07-12T07:04:18Z"
+    cleared-at: "2026-07-12T00:00:00Z"
   - ac: "AC-7 residual — live-graded quiz smoke (OPENROUTER_API_KEY)"
     slice: quiz-fsrs
-    reason: "OPENROUTER_API_KEY not set in .dev.vars; same constraint as AC-PP2b. Pre-registered at plan time (04-plan-quiz-fsrs.md, constraint-resolution: proxy+deferral). Proxy evidence: 2 Playwright tests (walkthrough + gibberish/empty) with mocked grading adapter pass at full interactive level. Live grading quality review is the residual."
+    status: cleared
+    reason: "OPENROUTER_API_KEY now present. Live grading smoke replicates gradeAnswer's core (grading prompt -> quiz-tier structured call -> parse -> validateGrading) against real OpenRouter; a correct free-response answer grades verdict != incorrect, score >= 1. Passes."
     repeat-of: "AC-PP2b (platform-proofs)"
-    cleared-by: "tagged live-smoke run with OPENROUTER_API_KEY present (or /wf probe in a keyed environment)"
+    cleared-by: "tagged live-smoke run — tests/smoke/ai-tool-call.test.ts live-graded case, passed 2026-07-12"
     recorded-at: "2026-07-12T05:45:00Z"
+    cleared-at: "2026-07-12T00:00:00Z"
   - ac: "AC-9 + AC-10 + AC-13 + AC-14 — seeded-session adaptation-progress Playwright tests"
     slice: adaptation-progress
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /_authenticated/journey/$journeyId/progress and the quiz completion overlay require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5, AC-DSS1/3/4/5, AC-LR1/2/3, AC-SJ1–4, AC-7). Proxy evidence: 20 Vitest progress-metrics unit tests pass (computeStreak, computePassRate, groupMasteryByWaypoint — all edge cases including UTC midnight boundary); typecheck clean. Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."

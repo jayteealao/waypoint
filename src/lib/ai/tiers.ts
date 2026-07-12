@@ -46,7 +46,7 @@ export const TIERS: Record<GenerationType, TierConfig> = {
    */
   interview: {
     primaryModel: 'openai/gpt-4o-mini',
-    fallbackChain: ['google/gemini-flash-1.5'],
+    fallbackChain: ['google/gemini-2.5-flash'],
     pricingPer1MTokens: { input: 0.15, output: 0.60 },
   },
 
@@ -55,7 +55,7 @@ export const TIERS: Record<GenerationType, TierConfig> = {
    * Target latency: < 5 s for first meaningful token (NFR from shape).
    */
   lesson: {
-    primaryModel: 'anthropic/claude-3.5-haiku',
+    primaryModel: 'anthropic/claude-haiku-4.5',
     fallbackChain: ['openai/gpt-4o'],
     pricingPer1MTokens: { input: 1.00, output: 5.00 },
   },
@@ -76,7 +76,7 @@ export const TIERS: Record<GenerationType, TierConfig> = {
    */
   quiz: {
     primaryModel: 'openai/gpt-4o-mini',
-    fallbackChain: ['anthropic/claude-3.5-haiku'],
+    fallbackChain: ['anthropic/claude-haiku-4.5'],
     pricingPer1MTokens: { input: 0.15, output: 0.60 },
   },
 }
