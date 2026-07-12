@@ -56,64 +56,80 @@ export async function fetchSourceUrl(url: string): Promise<SourceFetchResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
-  let response: Response
+  // Outer try/finally ensures the timer is cleared on ALL exit paths, including
+  // those that occur during body streaming. The timer must remain active through
+  // body reads so that controller.abort() can fire and cancel an ongoing read
+  // if the host streams data too slowly.
   try {
-    response = await fetch(url, { signal: controller.signal })
-  } catch (err) {
-    clearTimeout(timeoutId)
-    if (err instanceof Error && err.name === 'AbortError') {
-      return { ok: false, reason: 'timeout' }
-    }
-    return { ok: false, reason: 'network_error' }
-  } finally {
-    clearTimeout(timeoutId)
-  }
-
-  // Content-type check: accept only text/html and text/plain
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
-    return { ok: false, reason: 'bad_content_type' }
-  }
-
-  // Content-Length pre-check to avoid streaming an oversized body
-  const contentLengthHeader = response.headers.get('content-length')
-  if (contentLengthHeader !== null && parseInt(contentLengthHeader, 10) > MAX_BYTES) {
-    return { ok: false, reason: 'too_large' }
-  }
-
-  // Stream body with byte accumulator; abort if size limit exceeded mid-stream
-  const reader = response.body?.getReader()
-  if (!reader) {
-    return { ok: false, reason: 'network_error' }
-  }
-
-  let rawHtml = ''
-  let bytesRead = 0
-  const decoder = new TextDecoder()
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value) {
-      bytesRead += value.byteLength
-      if (bytesRead > MAX_BYTES) {
-        reader.cancel()
-        return { ok: false, reason: 'too_large' }
+    let response: Response
+    try {
+      response = await fetch(url, { signal: controller.signal })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { ok: false, reason: 'timeout' }
       }
-      rawHtml += decoder.decode(value, { stream: true })
+      return { ok: false, reason: 'network_error' }
     }
+
+    // Content-type check: accept only text/html and text/plain
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
+      return { ok: false, reason: 'bad_content_type' }
+    }
+
+    // Content-Length pre-check to avoid streaming an oversized body
+    const contentLengthHeader = response.headers.get('content-length')
+    if (contentLengthHeader !== null && parseInt(contentLengthHeader, 10) > MAX_BYTES) {
+      return { ok: false, reason: 'too_large' }
+    }
+
+    // Stream body with byte accumulator; abort if size limit exceeded mid-stream
+    const reader = response.body?.getReader()
+    if (!reader) {
+      return { ok: false, reason: 'network_error' }
+    }
+
+    let rawHtml = ''
+    let bytesRead = 0
+    const decoder = new TextDecoder()
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (value) {
+          bytesRead += value.byteLength
+          if (bytesRead > MAX_BYTES) {
+            reader.cancel()
+            return { ok: false, reason: 'too_large' }
+          }
+          rawHtml += decoder.decode(value, { stream: true })
+        }
+      }
+    } catch (err) {
+      // AbortController fired during body streaming (timeout during slow body read)
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { ok: false, reason: 'timeout' }
+      }
+      return { ok: false, reason: 'network_error' }
+    }
+
+    // Flush any remaining bytes in the decoder
+    rawHtml += decoder.decode()
+
+    // Extract <title> via regex
+    const titleMatch = rawHtml.match(/<title[^>]*>([^<]+)<\/title>/i)
+    const title = titleMatch?.[1]?.trim() ?? ''
+
+    // Strip HTML tags, collapse whitespace, truncate to MAX_TEXT_CHARS
+    const stripped = rawHtml.replace(/<[^>]+>/g, ' ')
+    const collapsed = stripped.replace(/\s+/g, ' ').trim()
+    const extractedText = collapsed.slice(0, MAX_TEXT_CHARS)
+
+    return { ok: true, url, title, extractedText }
+  } finally {
+    // Clear the timer on every exit path (success, content-type fail, network error,
+    // too_large, and timeout during body streaming).
+    clearTimeout(timeoutId)
   }
-  // Flush any remaining bytes in the decoder
-  rawHtml += decoder.decode()
-
-  // Extract <title> via regex
-  const titleMatch = rawHtml.match(/<title[^>]*>([^<]+)<\/title>/i)
-  const title = titleMatch?.[1]?.trim() ?? ''
-
-  // Strip HTML tags, collapse whitespace, truncate to MAX_TEXT_CHARS
-  const stripped = rawHtml.replace(/<[^>]+>/g, ' ')
-  const collapsed = stripped.replace(/\s+/g, ' ').trim()
-  const extractedText = collapsed.slice(0, MAX_TEXT_CHARS)
-
-  return { ok: true, url, title, extractedText }
 }
