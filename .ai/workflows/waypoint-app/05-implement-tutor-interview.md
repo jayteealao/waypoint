@@ -12,7 +12,7 @@ metric-lines-added: 2210
 metric-lines-removed: 8
 metric-deviations-from-plan: 2
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "130c05a"
 tags: [interview, prompts, pedagogy, chat-ui, state-machine]
 refs:
   index: 00-index.md
