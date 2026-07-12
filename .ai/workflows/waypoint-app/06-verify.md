@@ -5,15 +5,15 @@ slug: waypoint-app
 status: in-progress
 stage-number: 6
 created-at: "2026-07-11T00:56:06Z"
-updated-at: "2026-07-12T03:00:00Z"
-slices-verified: 7
+updated-at: "2026-07-12T03:11:02Z"
+slices-verified: 8
 slices-total: 12
 tags: []
 refs:
   index: 00-index.md
   implement-index: 05-implement.md
 next-command: wf-review
-next-invocation: "/wf review waypoint-app sample-journey"
+next-invocation: "/wf review waypoint-app roadmap-lesson-generation"
 ---
 
 # Verify Index
@@ -27,7 +27,8 @@ next-invocation: "/wf review waypoint-app sample-journey"
 | lesson-renderer | pass | converged | 1 | 1 | All 4 ACs met: AC-LR1/2/3 at full Playwright interactive level (screenshots + interaction + timing), AC-LR4 via 19/19 adversarial Vitest unit tests; 2 verify-owned fixes committed (5b6cde1): React 19 hydration mismatch in prose sections (ProseSection + useState escapeHtml seed) + E2E session cookie prefix (__Secure- required for HTTPS BETTER_AUTH_BASE_URL); pre-registered AC-LR1/2/3 deferral CLEARED; 0 regressions across 50/51 tests (1 skip = OpenRouter, pre-existing) |
 | sample-journey | pass | converged | 1 | 1 | All 4 ACs met at full Playwright interactive level (first-login redirect, quiz walkthrough, sidebar completion, returning-user bypass); 3 verify-owned test-infra fixes committed (96743b5): React effects timing guard in AC-SJ3, Playwright strict-mode selector scoped to sidebar in AC-SJ3b, serial mode added to prevent SQLITE_BUSY_RECOVERY in beforeAll seeding; pre-registered AC-SJ1/2/3/4 deferral CLEARED (BETTER_AUTH_SECRET present in .dev.vars); 0 regressions across 67/68 tests (1 skip = OpenRouter, pre-existing) |
 | tutor-interview | pass | converged | 1 | 1 | All 6 ACs met: AC-TI1/3/4 at full Playwright interactive level (seeded-session, mock mode), AC-TI2/5 via 18/18 Vitest unit tests, AC-TI6 via in-place pedagogy review (po-accepted); 5 verify-time issues fixed (1 round): CSS cascade .wp-drawer.hidden, test index off-by-one (assistant-2→3), React hydration timing (hydration-wait for TanStack Devtools button), CSS cascade .wp-mobile-topbar md:hidden, missing interview.turn_completed instrument signal; 0 regressions across 95/95 Vitest + 11 sibling E2E tests |
+| roadmap-lesson-generation | partial | converged | 1 | 1 | 5/6 ACs met; AC-5/6/12/all-fail at full Playwright interactive level (mock SSE + seeded D1); concept-tags code-only via 20 Vitest assertions; AC-15 (first Cloudflare deploy) deferred (OPENROUTER_API_KEY absent; po-accepted constraint at plan time); 2 verify-time fixes (commit a79c117): E2E URL bug (/_authenticated/ → /journey/), testid bug (checkpoint-feedback → checkpoint-explanation); 0 regressions across 116 Vitest + 8 sibling E2E tests; 4/4 instrumentation signals present |
 
 ## Recommended Next Stage
 
-- **Option A (recommended):** proceed to code review for sample-journey — all 4 ACs met at full interactive level (no deferrals); 3 test-infra fixes committed and re-verified; 67/68 tests passing (1 skip pre-registered); ready for code review
+- **Option A (recommended):** proceed to code review for roadmap-lesson-generation — 5/6 ACs verified at full interactive level; 2 test fixes committed; 0 remaining issues; AC-15 deferred to ship with po-accepted constraint; ready for code review

@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: verify
+stage-number: 6
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T02:51:17Z"
+updated-at: "2026-07-12T03:11:02Z"
 selected-slice: "roadmap-lesson-generation"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -51,6 +51,12 @@ runtime-evidence-deferrals:
     recorded-at: "2026-07-11T20:51:58Z"
     cleared-at: "2026-07-11T21:30:00Z"
     cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 5 sample-journey Playwright tests pass after 3 test-infra fixes (React effects timing guard, strict-mode selector scope, serial mode for beforeAll seeding); commit 96743b5"
+  - ac: "AC-15 residual — first Cloudflare Workers deploy with live SSE lesson generation"
+    slice: roadmap-lesson-generation
+    reason: "OPENROUTER_API_KEY not set in .dev.vars. Ladder climbed: wrangler whoami confirms Cloudflare credentials present (jayteealao@gmail.com); OPENROUTER_API_KEY absent — live generation cannot be driven. Wrangler dev on workerd already proves the SSE transport (platform-proofs, commit 7da0ab7). Plan pre-authorized constraint-resolution: po-accepted (Cloudflare deployment and OpenRouter live-smoke cost accepted at shape)."
+    cleared-by: null
+    cleared-note: "pending — clearing event: first wrangler deploy + one live lesson generation with OPENROUTER_API_KEY present"
+    recorded-at: "2026-07-12T03:11:02Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -93,8 +99,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app roadmap-lesson-generation"
+next-command: wf-review
+next-invocation: "/wf review waypoint-app roadmap-lesson-generation"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -343,6 +349,7 @@ workflow-files:
   - 05-implement-tutor-interview.md
   - 06-verify-tutor-interview.md
   - 05-implement-roadmap-lesson-generation.md
+  - 06-verify-roadmap-lesson-generation.md
   - 07-review-ai-gateway-correctness.md
   - 07-review-ai-gateway-correctness.yaml
   - 07-review-ai-gateway-security.md
