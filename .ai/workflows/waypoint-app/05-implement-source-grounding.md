@@ -12,7 +12,7 @@ metric-lines-added: 330
 metric-lines-removed: 22
 metric-deviations-from-plan: 2
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "20e5914"
 tags: [source-grounding, url-fetch, citations, prompt-injection, workers-runtime]
 refs:
   index: 00-index.md
