@@ -88,6 +88,23 @@ export interface ConceptFsrsCard {
 }
 
 /**
+ * An adaptation proposal generated after a weak quiz result.
+ * status: 'proposed' → the card is visible to the learner.
+ * status: 'accepted' → the review waypoint was inserted into the roadmap.
+ * status: 'declined' → the learner skipped the proposal; roadmap unchanged.
+ * At most one 'proposed' row per journey at a time.
+ */
+export interface Adaptation {
+  id: string
+  journey_id: string
+  user_id: string
+  waypoint_after_id: string | null
+  proposed_title: string
+  status: 'proposed' | 'accepted' | 'declined'
+  created_at: number  // Unix ms
+}
+
+/**
  * Usage event for cost attribution and quota enforcement.
  * Schema matches 04b-instrument.md design (ai-gateway slice inserts here).
  */

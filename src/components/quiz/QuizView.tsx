@@ -52,7 +52,8 @@ interface JourneyModeProps {
   questions:  QuizQuestion[]
   journeyId:  string
   waypointId: string
-  onComplete?: () => void
+  /** Called with the number of correctly-answered questions and the total count. */
+  onComplete?: (score: number, total: number) => void
 }
 
 export type QuizViewProps = SampleModeProps | JourneyModeProps
@@ -370,8 +371,15 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
 
   function handleAdvance() {
     if (isLastQuestion) {
+      // Compute score from the completed answers array before showing results.
+      // `answers` is fully committed at this point (separate click event).
+      const correctCount = answers.filter((a) => {
+        if (!a) return false
+        if (a.type === 'mc') return a.isCorrect
+        return a.grading.score >= 1
+      }).length
       setShowResults(true)
-      onComplete?.()
+      onComplete?.(correctCount, questions.length)
     } else {
       setCurrentIndex((i) => i + 1)
       setMcSelection(null)

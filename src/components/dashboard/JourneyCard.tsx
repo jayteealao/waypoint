@@ -4,7 +4,9 @@ import { Button } from '../ui/Button'
 import { ArrowRight } from 'lucide-react'
 
 export interface JourneyCardProps {
-  journey: Journey
+  journey:     Journey
+  /** Overall mastery 0–100 from FSRS retrievability. Defaults to 0 before any quiz activity. */
+  masteryPct?: number
 }
 
 function formatRelativeTime(ms: number): string {
@@ -22,10 +24,10 @@ function formatRelativeTime(ms: number): string {
 /**
  * Single journey card for the journeys dashboard.
  *
- * Progress value is 0 for the initial implementation — populated when
- * the quiz-fsrs and adaptation-progress slices add mastery data.
+ * The masteryPct prop is supplied by the dashboard loader (getProgressForDashboard).
+ * Cards rendered before any quiz activity default to 0.
  */
-export function JourneyCard({ journey }: JourneyCardProps) {
+export function JourneyCard({ journey, masteryPct = 0 }: JourneyCardProps) {
   return (
     <article
       className="wp-journey-card"
@@ -44,10 +46,10 @@ export function JourneyCard({ journey }: JourneyCardProps) {
         </p>
       )}
 
-      {/* Progress meter — progress added by later slices */}
+      {/* Progress meter — mastery from FSRS retrievability */}
       <Meter
-        value={0}
-        label="Progress"
+        value={masteryPct}
+        label="Mastery"
         showValue
         className="text-xs"
       />

@@ -7,8 +7,8 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T06:00:00Z"
-selected-slice: "quiz-fsrs"
+updated-at: "2026-07-12T05:44:00Z"
+selected-slice: "adaptation-progress"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -63,6 +63,11 @@ runtime-evidence-deferrals:
     repeat-of: "AC-PP2b (platform-proofs)"
     cleared-by: "tagged live-smoke run with OPENROUTER_API_KEY present (or /wf probe in a keyed environment)"
     recorded-at: "2026-07-12T05:45:00Z"
+  - ac: "AC-9 + AC-10 + AC-13 + AC-14 — seeded-session adaptation-progress Playwright tests"
+    slice: adaptation-progress
+    reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /_authenticated/journey/$journeyId/progress and the quiz completion overlay require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5, AC-DSS1/3/4/5, AC-LR1/2/3, AC-SJ1–4, AC-7). Proxy evidence: 20 Vitest progress-metrics unit tests pass (computeStreak, computePassRate, groupMasteryByWaypoint — all edge cases including UTC midnight boundary); typecheck clean. Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
+    cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
+    recorded-at: "2026-07-12T05:44:00Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -361,6 +366,7 @@ workflow-files:
   - 06-verify-roadmap-lesson-generation.md
   - 05-implement-quiz-fsrs.md
   - 06-verify-quiz-fsrs.md
+  - 05-implement-adaptation-progress.md
   - 07-review-ai-gateway-correctness.md
   - 07-review-ai-gateway-correctness.yaml
   - 07-review-ai-gateway-security.md
@@ -515,6 +521,9 @@ workflow-files:
   - 07-review-quiz-fsrs.md
   - 07-review-quiz-fsrs.yaml
   - 07-review-quiz-fsrs.html.fragment
+  - 04-plan-adaptation-progress.md
+  - 04-plan-adaptation-progress.yaml
+  - 04-plan-adaptation-progress.html.fragment
 progress:
   intake: complete
   shape: complete

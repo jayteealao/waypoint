@@ -81,6 +81,11 @@ function LoadingSkeleton() {
   )
 }
 
+export interface JourneysDashboardProps {
+  /** Per-journey mastery percentages (0–100) from the route loader. Defaults to {}. */
+  masteryByJourneyId?: Record<string, number>
+}
+
 /**
  * Journeys dashboard — the returning learner's "where was I?" surface.
  *
@@ -92,7 +97,7 @@ function LoadingSkeleton() {
  * When @tanstack/db stabilises a `useCollectionReady()` hook, replace the
  * boolean with that. Ceiling: 1-frame flash of skeleton on first mount.
  */
-export function JourneysDashboard() {
+export function JourneysDashboard({ masteryByJourneyId = {} }: JourneysDashboardProps) {
   const [isReady, setIsReady] = useState(false)
   const navigate              = useNavigate()
 
@@ -146,7 +151,11 @@ export function JourneysDashboard() {
       ) : (
         <div className="wp-journey-grid">
           {journeys.map((journey) => (
-            <JourneyCard key={journey.id} journey={journey} />
+            <JourneyCard
+              key={journey.id}
+              journey={journey}
+              masteryPct={masteryByJourneyId[journey.id] ?? 0}
+            />
           ))}
         </div>
       )}

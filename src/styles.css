@@ -1801,3 +1801,124 @@ pre code {
     animation: none;
   }
 }
+
+/* ─── Progress & Adaptation surfaces ───────────────────────────────────── */
+
+/* Page wrapper */
+.wp-progress-page {
+  padding: 0;
+}
+
+/* Stats row — streak, due count, pass rate */
+.wp-progress-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+/* Individual stat chip */
+.wp-progress-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+/* Streak chip — ember icon + count */
+.wp-streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--ember-subtle);
+  border: 1px solid oklch(0.88 0.04 40);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+/* Roadmap waypoint list */
+.wp-progress-roadmap {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.wp-progress-roadmap-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.wp-progress-roadmap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.wp-progress-roadmap-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  flex: 1;
+}
+
+/* Quiz history table */
+.wp-progress-quiz-table {
+  margin-top: 2rem;
+}
+
+/* Empty state */
+.wp-progress-empty {
+  padding: 2rem;
+  background: var(--ember-subtle);
+  border: 1px solid oklch(0.88 0.04 50);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+/* Adaptation card — warm, not alarming */
+.wp-adapt-card {
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ember-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 6px oklch(0.24 0.032 30 / 0.06);
+  margin-top: 1.5rem;
+}
+
+:root[data-theme="dark"] .wp-adapt-card {
+  box-shadow: none;
+  border-color: oklch(0.32 0.025 30);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wp-adapt-card {
+    box-shadow: none;
+    border-color: oklch(0.32 0.025 30);
+  }
+}
+
+/* Accept/decline action row — equal-weight buttons */
+.wp-adapt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Quiz completion overlay — sits after QuizView results */
+.wp-quiz-completion-overlay {
+  margin-top: 1.5rem;
+}
+

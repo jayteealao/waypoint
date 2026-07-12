@@ -93,6 +93,18 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
                 ))}
               </nav>
             )}
+
+            {/* Progress link — shown when a real journey is active */}
+            {currentJourney && (
+              <Link
+                to="/journey/$journeyId/progress"
+                params={{ journeyId: currentJourney.id }}
+                data-testid="sidebar-progress-link"
+                className={`wp-sidebar-nav-item mt-1${pathname.endsWith('/progress') ? ' wp-sidebar-nav-item--active' : ''}`}
+              >
+                Progress
+              </Link>
+            )}
           </div>
         )}
       </nav>

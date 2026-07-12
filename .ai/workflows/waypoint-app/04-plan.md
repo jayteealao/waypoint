@@ -5,9 +5,9 @@ slug: waypoint-app
 status: complete
 stage-number: 4
 created-at: "2026-07-11T00:13:07Z"
-updated-at: "2026-07-12T02:22:28Z"
+updated-at: "2026-07-12T05:12:38Z"
 planning-mode: single
-slices-planned: 9
+slices-planned: 11
 slices-total: 12
 implementation-order: [foundation, platform-proofs, accounts-data-layer, design-system-shell, lesson-renderer, sample-journey, ai-gateway, tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress, source-grounding]
 conflicts-found: 0
@@ -129,10 +129,35 @@ next-invocation: "/wf implement waypoint-app design-system-shell"
   with split-chunk fixtures. Real-transport integration (wrangler dev + real stream) scheduled
   as step 1 of implementation to catch cadence issues early.
 
-### Plans not yet written (3 remaining slices)
-Plans for slices 10–12 (quiz-fsrs, adaptation-progress, source-grounding) will be authored
-before or during their respective implement stages.
-Each will follow the same sub-agent research + autonomous-override pattern.
+### `quiz-fsrs`
+- **Files to touch:** 14 files (8 new, 6 modified) across ts-fsrs dependency, prompts,
+  quiz schema + FSRS scheduler library, 5 server functions, QuizView extension, quiz route,
+  waypoint route update, styles, and 4 test files.
+- **Strategy:** Scheduler-first. ts-fsrs FSRS bridge and unit tests written before any
+  gateway call. `generateQuiz` server function creates concepts, initialises FSRS cards,
+  appends up to 2 resurfacing review questions, calls `callGateway` once per concept. Grading
+  is synchronous per-question (immediate feedback). FSRS update fires after each graded
+  question. QuizView extended with FRQ textarea + "checking…" state under `mode='journey'`;
+  sample-journey MC flow preserved byte-for-byte.
+- **Key risk:** Grading quality is the fuzziest surface — rubric prompt + 6-fixture corpus
+  bound it in CI; live quality is a tagged smoke test. FSRS bridge unit-tested for field-
+  name mapping correctness (camelCase ↔ snake_case round-trip).
+
+### `adaptation-progress`
+- **Files to touch:** 15 files (9 new, 6 modified) across DB migration, schema, pure metrics
+  library, server functions, UI components (ProgressPanel, AdaptationCard), routes, styles, and tests
+- **Strategy:** Migration-first, then pure metrics library (fully unit-testable), then server
+  functions, then UI components. Adaptation proposals are LLM-free — computed from FSRS + quiz
+  data as "Review: ${weakestConceptName}". One pending proposal per journey. Accept path uses a D1
+  batch (UPDATE positions, then INSERT) to shift later waypoints. Dashboard JourneyCard receives
+  `masteryPct` from a new loader; progress surface lives at a dedicated `progress` route.
+- **Key risk:** Streak arithmetic is timezone-sensitive (UTC day boundary); unit tests pin
+  midnight explicitly. Waypoint position shifting on accept requires correct UPDATE-before-INSERT
+  ordering (D1 batch guarantees sequential execution).
+
+### Plans not yet written (1 remaining slice)
+Plan for slice 12 (source-grounding) will be authored before or during its implement stage.
+It follows the same sub-agent research + autonomous-override pattern.
 
 ## Cross-Cutting Concerns
 

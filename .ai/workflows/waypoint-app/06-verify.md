@@ -5,8 +5,8 @@ slug: waypoint-app
 status: in-progress
 stage-number: 6
 created-at: "2026-07-11T00:56:06Z"
-updated-at: "2026-07-12T03:11:02Z"
-slices-verified: 8
+updated-at: "2026-07-12T05:45:00Z"
+slices-verified: 9
 slices-total: 12
 tags: []
 refs:
@@ -28,6 +28,7 @@ next-invocation: "/wf review waypoint-app roadmap-lesson-generation"
 | sample-journey | pass | converged | 1 | 1 | All 4 ACs met at full Playwright interactive level (first-login redirect, quiz walkthrough, sidebar completion, returning-user bypass); 3 verify-owned test-infra fixes committed (96743b5): React effects timing guard in AC-SJ3, Playwright strict-mode selector scoped to sidebar in AC-SJ3b, serial mode added to prevent SQLITE_BUSY_RECOVERY in beforeAll seeding; pre-registered AC-SJ1/2/3/4 deferral CLEARED (BETTER_AUTH_SECRET present in .dev.vars); 0 regressions across 67/68 tests (1 skip = OpenRouter, pre-existing) |
 | tutor-interview | pass | converged | 1 | 1 | All 6 ACs met: AC-TI1/3/4 at full Playwright interactive level (seeded-session, mock mode), AC-TI2/5 via 18/18 Vitest unit tests, AC-TI6 via in-place pedagogy review (po-accepted); 5 verify-time issues fixed (1 round): CSS cascade .wp-drawer.hidden, test index off-by-one (assistant-2→3), React hydration timing (hydration-wait for TanStack Devtools button), CSS cascade .wp-mobile-topbar md:hidden, missing interview.turn_completed instrument signal; 0 regressions across 95/95 Vitest + 11 sibling E2E tests |
 | roadmap-lesson-generation | partial | converged | 1 | 1 | 5/6 ACs met; AC-5/6/12/all-fail at full Playwright interactive level (mock SSE + seeded D1); concept-tags code-only via 20 Vitest assertions; AC-15 (first Cloudflare deploy) deferred (OPENROUTER_API_KEY absent; po-accepted constraint at plan time); 2 verify-time fixes (commit a79c117): E2E URL bug (/_authenticated/ → /journey/), testid bug (checkpoint-feedback → checkpoint-explanation); 0 regressions across 116 Vitest + 8 sibling E2E tests; 4/4 instrumentation signals present |
+| quiz-fsrs | pass | converged | 1 | 1 | All 6 ACs met: AC-7 walkthrough + gibberish at full Playwright interactive level (seeded-session, mocked grading), 4 code-only ACs via 21 Vitest unit tests (quiz-schema 8, fsrs-scheduler 7, grading-fixture 6); 2 verify-time fixes (commit ffaddb5): Windows CMD shell escaping in runD1() (temp-file --file approach), React hydration race (TanStack Devtools button guard); live-graded smoke (OPENROUTER_API_KEY) pre-registered plan residual absorbed into platform-proofs deferral; 0 regressions |
 
 ## Recommended Next Stage
 

@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-12T04:14:40Z"
-slices-implemented: 10
+updated-at: "2026-07-12T05:40:00Z"
+slices-implemented: 11
 slices-total: 12
-metric-total-files-changed: 181
-metric-total-lines-added: 27203
-metric-total-lines-removed: 618
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution]
+metric-total-files-changed: 199
+metric-total-lines-added: 28779
+metric-total-lines-removed: 654
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app sample-journey"
+next-invocation: "/wf verify waypoint-app adaptation-progress"
 ---
 
 # Implement Index
@@ -233,6 +233,20 @@ next-invocation: "/wf verify waypoint-app sample-journey"
 - **Quiz-fsrs: `gradeAnswer` returns `GradingOutput`** — `{ verdict: 'correct'|'incorrect'|'partial', score: 0|1|2, feedback: string }`. The FSRS rating mapping is: score=2 → `Rating.Good`, score=1 → `Rating.Hard`, score=0 → `Rating.Again`.
 
 - **Quiz-fsrs: waypoint route moved to index file** — `src/routes/_authenticated/journey/$journeyId/waypoint/$waypointId.tsx` became `index.tsx` inside a `$waypointId/` subdirectory to allow the `quiz.tsx` child route.
+
+- **Adaptation-progress: `onComplete(score, total)` replaces `onComplete()` in journey mode** — `QuizView`'s `JourneyModeProps.onComplete` now takes `(score: number, total: number)`. Any consumer of `QuizView mode="journey"` must update its `onComplete` callback signature. `SampleModeProps.onComplete` is unchanged (`() => void`).
+
+- **Adaptation-progress: `adaptations` table ships in `migrations/0002_adaptations.sql`** — Additive-only. No prior migrations were modified. Future slices needing to read proposals use `WHERE status = 'proposed'` and can join through `journey_id`.
+
+- **Adaptation-progress: `getProgressForDashboard` is the mastery overlay** — Returns `Record<journeyId, masteryPct 0–100>`. The dashboard route loader calls it after `listJourneys()`. The TanStack DB `useJourneys()` collection continues to be the authoritative journey list; `getProgressForDashboard` is an overlay only. Do not replace `useJourneys()` with a server-function loader without also rebuilding the first-login redirect logic.
+
+- **Adaptation-progress: one pending proposal per journey invariant** — `proposeAdaptation` guards with `SELECT COUNT(*) WHERE status='proposed'` before inserting. Any code path that creates an adaptation row must honor this invariant or proposals will stack.
+
+- **Adaptation-progress: `src/lib/progress/metrics.ts` is pure stdlib** — `computeStreak`, `computePassRate`, `groupMasteryByWaypoint`. No D1 or network dependency; safe to import in unit tests without a Workers runtime.
+
+- **Adaptation-progress: progress route path is `/_authenticated/journey/$journeyId/progress`** — Registered in `routeTree.gen.ts`. TanStack Router strips the `_authenticated` layout prefix from the `to` prop: use `to="/journey/$journeyId/progress"` in `Link` and `router.navigate`. Sidebar "Progress" link uses this path.
+
+- **Adaptation-progress: `JourneyProgress` interface is the full payload** — Exported from `src/server/progress.ts`. Fields: `waypoints`, `completionStatus`, `masteryByWaypoint`, `quizHistory` (max 20), `streak`, `dueCount`, `pendingAdaptation`. The `source-grounding` slice (if it uses quiz data) should treat this interface as the source of truth for per-journey status.
 
 ## Recommended Next Stage
 
