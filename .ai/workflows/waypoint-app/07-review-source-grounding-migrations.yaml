@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: migrations
+parent: 07-review-source-grounding.md
+rev: 1
+verdict: ship
+summary: "Single additive ALTER TABLE with DEFAULT '[]'. No data migration needed (existing rows get default). Idempotent-safe (ADD COLUMN on existing schema would error, not corrupt). Clean."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

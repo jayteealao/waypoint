@@ -1,0 +1,138 @@
+artifact: review
+rev: 1
+verdict: ship
+summary: "source-grounding slice: 1 MED fixed (fetch timeout body-streaming gap, commit 71cba3c); 1 LOW + 2 NIT deferred; 0 open blockers; verdict ship."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 2
+dimensions:
+  - name: correctness
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: security
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 1
+    nit: 0
+  - name: code-simplification
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 2
+  - name: testing
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: maintainability
+    status: issues-found
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 1
+  - name: reliability
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: backend-concurrency
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: data-integrity
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: migrations
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: privacy
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+  - name: logging
+    status: clean
+    blocker: 0
+    high: 0
+    med: 0
+    low: 0
+    nit: 0
+findings:
+  - id: CR-1
+    severity: med
+    dimension: correctness
+    file: src/lib/source-fetch.ts
+    line: 56
+    confidence: high
+    action: accept
+    status: fixed
+    pre-existing: false
+    surfaced-at: "2026-07-12T07:32:29Z"
+    fixed-at: "2026-07-12T07:32:29Z"
+    msg: "AbortController timeout cleared before body streaming — slow host could stream body indefinitely"
+    fix: "Outer try/finally wraps full pipeline; inner try/catch on reader.read() loop surfaces AbortError as timeout. Commit 71cba3c."
+  - id: SEC-1
+    severity: low
+    dimension: security
+    file: src/lib/source-fetch.ts
+    line: 50
+    confidence: low
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-12T07:32:29Z"
+    msg: "No SSRF allowlist — user-submitted URL scheme/host not restricted"
+    triage: "Workers sandbox mitigates localhost/metadata access; allowlist is a product decision"
+  - id: CS-1
+    severity: nit
+    dimension: code-simplification
+    file: src/server/interview.ts
+    line: 91
+    confidence: high
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-12T07:32:29Z"
+    msg: "parseSourceContent duplicates parseSourceUrls pattern — shared generic utility would DRY both"
+    triage: "Cross-cutting refactor; deferred to tech-debt sweep"
+  - id: CS-2
+    severity: nit
+    dimension: code-simplification
+    file: src/server/interview.ts
+    line: 241
+    confidence: high
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-12T07:32:29Z"
+    msg: "eslint-disable-next-line prefer-const avoidable by splitting let declaration"
+    triage: "Cosmetic; deferred per low-value policy"

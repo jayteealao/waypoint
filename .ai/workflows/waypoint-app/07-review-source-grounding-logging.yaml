@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: logging
+parent: 07-review-source-grounding.md
+rev: 1
+verdict: ship
+summary: "One structured console.log added for fetch failures with event name, user_id, journey_id, URL, and reason. Consistent with the structured logging pattern used elsewhere in the codebase. No sensitive data logged. Clean."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

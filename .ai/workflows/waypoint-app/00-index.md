@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T07:04:18Z"
+updated-at: "2026-07-12T07:32:29Z"
 selected-slice: "source-grounding"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -124,8 +124,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app source-grounding"
+next-command: handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -576,6 +576,35 @@ workflow-files:
   - 04-plan-source-grounding.yaml
   - 04-plan-source-grounding.html.fragment
   - 05-implement-source-grounding.md
+  - 06-verify-source-grounding.md
+  - 07-review-source-grounding-correctness.md
+  - 07-review-source-grounding-correctness.yaml
+  - 07-review-source-grounding-security.md
+  - 07-review-source-grounding-security.yaml
+  - 07-review-source-grounding-security.html.fragment
+  - 07-review-source-grounding-code-simplification.md
+  - 07-review-source-grounding-code-simplification.yaml
+  - 07-review-source-grounding-code-simplification.html.fragment
+  - 07-review-source-grounding-testing.md
+  - 07-review-source-grounding-testing.yaml
+  - 07-review-source-grounding-maintainability.md
+  - 07-review-source-grounding-maintainability.yaml
+  - 07-review-source-grounding-maintainability.html.fragment
+  - 07-review-source-grounding-reliability.md
+  - 07-review-source-grounding-reliability.yaml
+  - 07-review-source-grounding-backend-concurrency.md
+  - 07-review-source-grounding-backend-concurrency.yaml
+  - 07-review-source-grounding-data-integrity.md
+  - 07-review-source-grounding-data-integrity.yaml
+  - 07-review-source-grounding-migrations.md
+  - 07-review-source-grounding-migrations.yaml
+  - 07-review-source-grounding-privacy.md
+  - 07-review-source-grounding-privacy.yaml
+  - 07-review-source-grounding-logging.md
+  - 07-review-source-grounding-logging.yaml
+  - 07-review-source-grounding.md
+  - 07-review-source-grounding.yaml
+  - 07-review-source-grounding.html.fragment
 progress:
   intake: complete
   shape: complete

@@ -1,0 +1,25 @@
+artifact: review-dimension
+dimension: maintainability
+parent: 07-review-source-grounding.md
+rev: 1
+verdict: ship
+summary: "New module fetchSourceUrl is well-documented and narrow. Wiring changes are additive. One NIT (duplicated parse helper) deferred. Overall high maintainability."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 1
+findings:
+  - id: MAINT-1
+    severity: NIT
+    file: src/server/interview.ts
+    line: 91
+    confidence: High
+    action: deferred
+    msg: "parseSourceContent mirrors parseSourceUrls — a shared utility would reduce duplication"
+    evidence: "Both parse JSON arrays from DB columns with identical error fallback pattern"
+    fix: "Extract to shared src/lib/interview/parse-utils.ts: parseJsonArray<T>"
+    status: deferred
+    surfaced-at: "2026-07-12T07:32:29Z"
+    pre-existing: false

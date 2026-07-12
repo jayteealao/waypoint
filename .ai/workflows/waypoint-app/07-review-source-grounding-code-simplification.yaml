@@ -1,0 +1,37 @@
+artifact: review-dimension
+dimension: code-simplification
+parent: 07-review-source-grounding.md
+rev: 1
+verdict: ship
+summary: "Two NITs (duplicated JSON parse pattern, eslint-disable comment) deferred as out-of-scope cleanups. Main logic is well-structured at the correct simplicity rung."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 2
+findings:
+  - id: CS-1
+    severity: NIT
+    file: src/server/interview.ts
+    line: 91
+    confidence: High
+    action: deferred
+    msg: "parseSourceContent duplicates parseSourceUrls pattern — extractable to shared generic"
+    evidence: "Both functions have identical try/catch JSON parse + Array.isArray guard"
+    fix: "Extract parseJsonArray<T>(json: string, fallback: T[]): T[] utility; share across both"
+    status: deferred
+    surfaced-at: "2026-07-12T07:32:29Z"
+    pre-existing: false
+  - id: CS-2
+    severity: NIT
+    file: src/server/interview.ts
+    line: 241
+    confidence: High
+    action: deferred
+    msg: "eslint-disable-next-line prefer-const comment; split declaration from assignment to remove"
+    evidence: "// eslint-disable-next-line prefer-const\\nlet nextStage = sm.transition(userContent)"
+    fix: "Split: declare `let nextStage: InterviewStage` then assign on next line; no disable needed"
+    status: deferred
+    surfaced-at: "2026-07-12T07:32:29Z"
+    pre-existing: false

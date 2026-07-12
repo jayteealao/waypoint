@@ -1,0 +1,13 @@
+artifact: review-dimension
+dimension: correctness
+parent: 07-review-source-grounding.md
+rev: 1
+verdict: ship
+summary: "One MED correctness issue found (AbortController timeout cleared before body streaming) and fixed in commit 71cba3c. No open correctness findings remain."
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []
