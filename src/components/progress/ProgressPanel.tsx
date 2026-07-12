@@ -52,7 +52,7 @@ function StreakChip({ streak }: { streak: number }) {
       />
       <span className="font-semibold tabular-nums">{streak}</span>
       <span className="text-[var(--ink-muted)]">
-        {streak === 1 ? 'day streak' : 'day streak'}
+        {streak === 1 ? 'day streak' : 'days streak'}
       </span>
     </div>
   )
@@ -175,11 +175,12 @@ function QuizHistoryTable({
                           ? 'text-[var(--success)] font-semibold'
                           : 'text-[var(--ink-muted)]'
                       }
+                      aria-label={row.score >= 1 ? 'Pass' : 'Fail'}
                     >
                       {row.score >= 1 ? '✓' : '✗'}
                     </span>
                   ) : (
-                    <span className="text-[var(--ink-muted)]">—</span>
+                    <span className="text-[var(--ink-muted)]" aria-label="No score">—</span>
                   )}
                 </td>
               </tr>
