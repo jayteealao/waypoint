@@ -1,0 +1,17 @@
+artifact: review-dimension
+dimension: observability
+parent: 07-review-ai-gateway.md
+rev: 1
+verdict: ship
+summary: >
+  All 5 signals from 04b-instrument.md are present and correctly structured.
+  generation.started, generation.completed, model.fallback_triggered, quota.rejected,
+  and generation.cost_recomputed all use structured JSON to console.log, routed
+  to Cloudflare Logpush via observability: { enabled: true }.
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 0
+  nit: 0
+findings: []

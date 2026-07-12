@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T00:20:07Z"
+updated-at: "2026-07-12T00:30:06Z"
 selected-slice: "ai-gateway"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -93,8 +93,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app ai-gateway"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -334,6 +334,35 @@ workflow-files:
   - 06-verify-sample-journey.md
   - 05-implement-ai-gateway.md
   - 06-verify-ai-gateway.md
+  - 07-review-ai-gateway-correctness.md
+  - 07-review-ai-gateway-correctness.yaml
+  - 07-review-ai-gateway-security.md
+  - 07-review-ai-gateway-security.yaml
+  - 07-review-ai-gateway-code-simplification.md
+  - 07-review-ai-gateway-code-simplification.yaml
+  - 07-review-ai-gateway-testing.md
+  - 07-review-ai-gateway-testing.yaml
+  - 07-review-ai-gateway-maintainability.md
+  - 07-review-ai-gateway-maintainability.yaml
+  - 07-review-ai-gateway-reliability.md
+  - 07-review-ai-gateway-reliability.yaml
+  - 07-review-ai-gateway-backend-concurrency.md
+  - 07-review-ai-gateway-backend-concurrency.yaml
+  - 07-review-ai-gateway-performance.md
+  - 07-review-ai-gateway-performance.yaml
+  - 07-review-ai-gateway-data-integrity.md
+  - 07-review-ai-gateway-data-integrity.yaml
+  - 07-review-ai-gateway-privacy.md
+  - 07-review-ai-gateway-privacy.yaml
+  - 07-review-ai-gateway-api-contracts.md
+  - 07-review-ai-gateway-api-contracts.yaml
+  - 07-review-ai-gateway-cost.md
+  - 07-review-ai-gateway-cost.yaml
+  - 07-review-ai-gateway-observability.md
+  - 07-review-ai-gateway-observability.yaml
+  - 07-review-ai-gateway.md
+  - 07-review-ai-gateway.yaml
+  - 07-review-ai-gateway.html.fragment
   - 07-review-sample-journey-correctness.md
   - 07-review-sample-journey-correctness.yaml
   - 07-review-sample-journey-correctness.html.fragment

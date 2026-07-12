@@ -1,0 +1,29 @@
+artifact: review-dimension
+dimension: reliability
+parent: 07-review-ai-gateway.md
+rev: 1
+verdict: ship
+summary: >
+  Fallback chain provides resilience against primary model failure. Error classification
+  is explicit. QuotaExhaustedError is typed with status attached. One LOW deferred:
+  failed calls don't record partial usage to D1 (minimal impact at v1 scale).
+counts:
+  blocker: 0
+  high: 0
+  med: 0
+  low: 1
+  nit: 0
+findings:
+  - id: AG-CR-3
+    severity: low
+    file: src/lib/ai/gateway.ts
+    line: 310
+    confidence: low
+    action: defer
+    status: deferred
+    pre-existing: false
+    surfaced-at: "2026-07-12T00:28:12Z"
+    msg: "When all models in the fallback chain fail, no usage row is recorded; partial token costs consumed before failure are untracked"
+    evidence:
+      code: "// Lines 310-326: generation.completed log (outcome: failure) then throw lastError\n// No INSERT INTO usage_events on the all-models-fail path"
+    fix: "Insert a failure row with cost_usd=0, outcome='failure' on chain exhaustion. Deferred: minimal impact at v1 scale; generation.completed log provides observability."

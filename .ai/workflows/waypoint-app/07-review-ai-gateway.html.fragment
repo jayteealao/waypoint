@@ -1,0 +1,64 @@
+<section class="fragment-review" data-artifact="review" data-rev="1">
+<style>
+.fr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 1.5rem; }
+.fr-chip { border-radius: 6px; padding: 8px 12px; font-size: 0.82rem; }
+.fr-chip--clean { background: color-mix(in srgb, #22c55e 12%, transparent); border: 1px solid #22c55e44; }
+.fr-chip--issues { background: color-mix(in srgb, #f59e0b 12%, transparent); border: 1px solid #f59e0b44; }
+.fr-chip__name { font-weight: 600; display: block; margin-bottom: 2px; }
+.fr-chip__counts { color: color-mix(in srgb, currentColor 60%, transparent); font-size: 0.75rem; }
+.fr-finding { border-left: 3px solid #f59e0b; padding: 10px 14px; margin: 8px 0; border-radius: 0 6px 6px 0; background: color-mix(in srgb, #f59e0b 6%, transparent); }
+.fr-finding--low { border-color: #6b7280; background: color-mix(in srgb, #6b7280 6%, transparent); }
+.fr-finding__header { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; font-size: 0.82rem; font-weight: 600; }
+.fr-badge { padding: 2px 7px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; }
+.fr-badge--low { background: #6b7280; color: #fff; }
+.fr-badge--deferred { background: #3b82f6; color: #fff; }
+.fr-finding__file { font-size: 0.75rem; color: color-mix(in srgb, currentColor 65%, transparent); font-family: monospace; }
+.fr-finding__msg { font-size: 0.82rem; margin-top: 4px; }
+</style>
+
+<div class="fr-grid">
+  <div class="fr-chip fr-chip--issues"><span class="fr-chip__name">correctness</span><span class="fr-chip__counts">1 LOW (deferred)</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">security</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">code-simplification</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">testing</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">maintainability</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--issues"><span class="fr-chip__name">reliability</span><span class="fr-chip__counts">1 LOW (deferred)</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">backend-concurrency</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">performance</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">data-integrity</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">privacy</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">api-contracts</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">cost</span><span class="fr-chip__counts">clean</span></div>
+  <div class="fr-chip fr-chip--clean"><span class="fr-chip__name">observability</span><span class="fr-chip__counts">clean</span></div>
+</div>
+
+<h3 style="font-size:0.9rem;margin-bottom:0.5rem;">Open Findings (deferred)</h3>
+
+<div class="fr-finding fr-finding--low">
+  <div class="fr-finding__header">
+    <span class="fr-badge fr-badge--low">LOW</span>
+    <span class="fr-badge fr-badge--deferred">deferred</span>
+    AG-CR-2
+  </div>
+  <div class="fr-finding__file">src/lib/ai/gateway.ts:187</div>
+  <div class="fr-finding__msg">TOCTOU race in quota enforcement — check-then-act not atomic; concurrent same-user requests can both pass the gate.</div>
+</div>
+
+<div class="fr-finding fr-finding--low">
+  <div class="fr-finding__header">
+    <span class="fr-badge fr-badge--low">LOW</span>
+    <span class="fr-badge fr-badge--deferred">deferred</span>
+    AG-CR-3
+  </div>
+  <div class="fr-finding__file">src/lib/ai/gateway.ts:310</div>
+  <div class="fr-finding__msg">Failed calls don't insert usage row; partial token costs on full chain exhaustion go untracked.</div>
+</div>
+
+<script>
+(function() {
+  window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+    detail: { name: 'review', artifact: 'review', counts: { findings: 2, blockers: 0 } }
+  }));
+})();
+</script>
+</section>
