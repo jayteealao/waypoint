@@ -5,12 +5,12 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-11T23:11:57Z"
-slices-implemented: 7
+updated-at: "2026-07-12T01:08:00Z"
+slices-implemented: 8
 slices-total: 12
-metric-total-files-changed: 129
-metric-total-lines-added: 23018
-metric-total-lines-removed: 430
+metric-total-files-changed: 146
+metric-total-lines-added: 25228
+metric-total-lines-removed: 438
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution]
 refs:
   index: 00-index.md
@@ -194,10 +194,23 @@ next-invocation: "/wf verify waypoint-app sample-journey"
   and is included in the `quota.rejected` signal for attribution. Consumer slices must pass `type` as the third arg.
 
 - **AI-gateway: quota card `data-testid="quota-card"` is on a wrapper `<div>`** — not on the inner `<Card>`.
+
+- **Tutor-interview: `CapturedRecord` is the interview → roadmap contract** — `src/types/interview.ts:CapturedRecord` (`mission`, `scope`, `priorKnowledge`, `sourceUrls`, `bestEffort`) is what `completeInterview()` returns and what `roadmap-lesson-generation` receives as input. Do not change its shape without updating the roadmap slice.
+
+- **Tutor-interview: `InterviewStateMachine` is pure and re-instantiable** — Takes `initialStage` in its constructor. Each server function call creates a new instance from the stored D1 `stage` field. No in-memory state survives across Workers invocations.
+
+- **Tutor-interview: `STAGE_CHIPS` is the authoritative chip set** — exported from `src/types/interview.ts`. If the interview stage sequence changes, update `STAGE_CHIPS` and the `InterviewStateMachine.transition()` accordingly. Do not hardcode chip labels in route or component files.
+
+- **Tutor-interview: `?mock=1` on the interview route** — `validateSearch` in `interview.tsx` exposes `mock: boolean`. The `sendTurn` server function honors `mock: true` only when `NODE_ENV !== 'production'`. E2E tests use this seam; never use it in production configurations.
+
+- **Tutor-interview: `interview_records.turns` is JSON** — serialized `InterviewTurn[]`. Slices reading this column must call `JSON.parse(record.turns)` with a try/catch. `parseTurns()` in `src/server/interview.ts` provides the safe parser; import and reuse it if needed.
+
+- **Tutor-interview: dashboard CTA now points to `/journey/new`** — `JourneysDashboard` `EmptyState` links to `/journey/new` (sdlc-debt comment removed). The first-login redirect in `useEffect` still goes to `/sample` for users who haven't visited it. These two behaviours are independent.
+
+- **Tutor-interview: prompt suite lives in `src/lib/interview/prompts.ts`** — `LESSON_SYSTEM_PROMPT`, `QUIZ_SYSTEM_PROMPT`, `ROADMAP_SYSTEM_PROMPT` are drafted thin with `// FIDELITY-NOTE:` comments. Consuming slices (`roadmap-lesson-generation`, `quiz-fsrs`) should import from this file and refine wording rather than authoring a new prompt file.
   Playwright selectors must use `[data-testid="quota-card"]` not a Card class selector.
 
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app ai-gateway` — 8 unit tests pass; Playwright harness route live; BETTER_AUTH_SECRET + OPENROUTER_API_KEY walls pre-registered.
-- **Option B:** `/wf review waypoint-app ai-gateway` — Skip verify; unit tests provide strong proxy evidence for all observable-false ACs.
-- **Option C (from prior state):** `/wf verify waypoint-app sample-journey` — 11 Vitest unit tests pass; Playwright ACs deferred under existing ADL deferral (BETTER_AUTH_SECRET wall); proxy evidence recorded.
+- **Option A (default):** `/wf verify waypoint-app tutor-interview` — 18 state-machine unit tests + 4 Playwright E2E tests (3 seeded-session, 1 always-run). BETTER_AUTH_SECRET deferral pre-registered and absorbed into existing entry.
+- **Option B:** `/wf review waypoint-app tutor-interview` — Skip verify; state-machine unit tests cover all observable-false ACs; Playwright deferral pre-accepted.

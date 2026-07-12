@@ -23,6 +23,8 @@ import { Route as AuthenticatedSampleQuizRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSampleLesson2RouteImport } from './routes/_authenticated/sample/lesson-2'
 import { Route as AuthenticatedSampleLesson1RouteImport } from './routes/_authenticated/sample/lesson-1'
 import { Route as AuthenticatedLessonFixtureRouteImport } from './routes/_authenticated/lesson/fixture'
+import { Route as AuthenticatedJourneyNewRouteImport } from './routes/_authenticated/journey/new'
+import { Route as AuthenticatedJourneyJourneyIdInterviewRouteImport } from './routes/_authenticated/journey/$journeyId/interview'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -98,6 +100,17 @@ const AuthenticatedLessonFixtureRoute =
     path: '/lesson/fixture',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedJourneyNewRoute = AuthenticatedJourneyNewRouteImport.update({
+  id: '/journey/new',
+  path: '/journey/new',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedJourneyJourneyIdInterviewRoute =
+  AuthenticatedJourneyJourneyIdInterviewRouteImport.update({
+    id: '/journey/$journeyId/interview',
+    path: '/journey/$journeyId/interview',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -107,12 +120,14 @@ export interface FileRoutesByFullPath {
   '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
+  '/journey/new': typeof AuthenticatedJourneyNewRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
   '/sample/lesson-2': typeof AuthenticatedSampleLesson2Route
   '/sample/quiz': typeof AuthenticatedSampleQuizRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/sample/': typeof AuthenticatedSampleIndexRoute
+  '/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AboutRoute
@@ -121,12 +136,14 @@ export interface FileRoutesByTo {
   '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/': typeof AuthenticatedIndexRoute
+  '/journey/new': typeof AuthenticatedJourneyNewRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
   '/sample/lesson-2': typeof AuthenticatedSampleLesson2Route
   '/sample/quiz': typeof AuthenticatedSampleQuizRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/sample': typeof AuthenticatedSampleIndexRoute
+  '/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -138,12 +155,14 @@ export interface FileRoutesById {
   '/_authenticated/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/journey/new': typeof AuthenticatedJourneyNewRoute
   '/_authenticated/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/_authenticated/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
   '/_authenticated/sample/lesson-2': typeof AuthenticatedSampleLesson2Route
   '/_authenticated/sample/quiz': typeof AuthenticatedSampleQuizRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/sample/': typeof AuthenticatedSampleIndexRoute
+  '/_authenticated/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -155,12 +174,14 @@ export interface FileRouteTypes {
     | '/quota-fixture'
     | '/sample'
     | '/api/demo-stream'
+    | '/journey/new'
     | '/lesson/fixture'
     | '/sample/lesson-1'
     | '/sample/lesson-2'
     | '/sample/quiz'
     | '/api/auth/$'
     | '/sample/'
+    | '/journey/$journeyId/interview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -169,12 +190,14 @@ export interface FileRouteTypes {
     | '/quota-fixture'
     | '/api/demo-stream'
     | '/'
+    | '/journey/new'
     | '/lesson/fixture'
     | '/sample/lesson-1'
     | '/sample/lesson-2'
     | '/sample/quiz'
     | '/api/auth/$'
     | '/sample'
+    | '/journey/$journeyId/interview'
   id:
     | '__root__'
     | '/_authenticated'
@@ -185,12 +208,14 @@ export interface FileRouteTypes {
     | '/_authenticated/sample'
     | '/api/demo-stream'
     | '/_authenticated/'
+    | '/_authenticated/journey/new'
     | '/_authenticated/lesson/fixture'
     | '/_authenticated/sample/lesson-1'
     | '/_authenticated/sample/lesson-2'
     | '/_authenticated/sample/quiz'
     | '/api/auth/$'
     | '/_authenticated/sample/'
+    | '/_authenticated/journey/$journeyId/interview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -301,6 +326,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLessonFixtureRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/journey/new': {
+      id: '/_authenticated/journey/new'
+      path: '/journey/new'
+      fullPath: '/journey/new'
+      preLoaderRoute: typeof AuthenticatedJourneyNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/journey/$journeyId/interview': {
+      id: '/_authenticated/journey/$journeyId/interview'
+      path: '/journey/$journeyId/interview'
+      fullPath: '/journey/$journeyId/interview'
+      preLoaderRoute: typeof AuthenticatedJourneyJourneyIdInterviewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -326,7 +365,9 @@ interface AuthenticatedRouteChildren {
   AuthenticatedQuotaFixtureRoute: typeof AuthenticatedQuotaFixtureRoute
   AuthenticatedSampleRoute: typeof AuthenticatedSampleRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedJourneyNewRoute: typeof AuthenticatedJourneyNewRoute
   AuthenticatedLessonFixtureRoute: typeof AuthenticatedLessonFixtureRoute
+  AuthenticatedJourneyJourneyIdInterviewRoute: typeof AuthenticatedJourneyJourneyIdInterviewRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -334,7 +375,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedQuotaFixtureRoute: AuthenticatedQuotaFixtureRoute,
   AuthenticatedSampleRoute: AuthenticatedSampleRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedJourneyNewRoute: AuthenticatedJourneyNewRoute,
   AuthenticatedLessonFixtureRoute: AuthenticatedLessonFixtureRoute,
+  AuthenticatedJourneyJourneyIdInterviewRoute:
+    AuthenticatedJourneyJourneyIdInterviewRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

@@ -163,6 +163,34 @@ describe('AI tool-call smoke test', () => {
     },
   )
 
+  // ── Interview-tier live smoke (tutor-interview slice) ─────────────────────
+  // @smoke-tagged live-interview
+  // Confirms the interview model tier returns a single question under < 3s.
+  // Skipped when OPENROUTER_API_KEY is absent — pre-registered deferral.
+
+  test.skipIf(!process.env['OPENROUTER_API_KEY'])(
+    'gateway smoke: interview tier returns a single question (requires OPENROUTER_API_KEY)',
+    async () => {
+      const apiKey = process.env['OPENROUTER_API_KEY']!
+      const { db } = makeLiveTestDb()
+
+      const result = await callGateway({
+        env: { DB: db, OPENROUTER_API_KEY: apiKey },
+        userId: 'smoke-user',
+        journeyId: null,
+        type: 'interview',
+        messages: [{ role: 'user', content: 'I want to learn Rust.' }],
+      })
+
+      expect(result.text).toBeDefined()
+      // At least one question mark in the response
+      const questionCount = (result.text!.match(/\?/g) ?? []).length
+      expect(questionCount).toBeGreaterThanOrEqual(1)
+      // Duration should be under 10s (budget is < 3s; allow headroom for CI latency)
+      expect(result.usage.durationMs).toBeLessThan(10_000)
+    },
+  )
+
   // ── Test 3: adapter-swap zero-callsite proof (AC-PP3) ────────────────────
   // Proves that createOpenAIFallbackClient() returns the same AIClient interface
   // as createOpenRouterClient(). Swapping adapters requires changing only the

@@ -49,9 +49,8 @@ function EmptyState() {
         </p>
       </div>
 
-      {/* sdlc-debt: links to /sample (guided tour) until tutor-interview ships /journey/new */}
       <Link
-        to="/sample"
+        to="/journey/new"
         className="btn-base btn-primary btn-md inline-flex items-center gap-2"
         data-testid="create-journey-cta"
       >

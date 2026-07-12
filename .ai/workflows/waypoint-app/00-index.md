@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T00:30:06Z"
-selected-slice: "ai-gateway"
+updated-at: "2026-07-12T01:08:00Z"
+selected-slice: "tutor-interview"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -93,8 +93,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app tutor-interview"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -284,6 +284,9 @@ workflow-files:
   - 04-plan-ai-gateway.md
   - 04-plan-ai-gateway.yaml
   - 04-plan-ai-gateway.html.fragment
+  - 04-plan-tutor-interview.md
+  - 04-plan-tutor-interview.yaml
+  - 04-plan-tutor-interview.html.fragment
   - 05-implement-lesson-renderer.md
   - 06-verify-lesson-renderer.md
   - 07-review-lesson-renderer-correctness.md
@@ -334,6 +337,7 @@ workflow-files:
   - 06-verify-sample-journey.md
   - 05-implement-ai-gateway.md
   - 06-verify-ai-gateway.md
+  - 05-implement-tutor-interview.md
   - 07-review-ai-gateway-correctness.md
   - 07-review-ai-gateway-correctness.yaml
   - 07-review-ai-gateway-security.md
