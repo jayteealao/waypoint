@@ -132,19 +132,11 @@ jobs:
 
       - name: Smoke test (${{ env.DEPLOY_ENV }})
         run: |
-          # TODO: replace <subdomain> with the account's workers.dev subdomain after the
-          # first deploy prints it, then remove the placeholder guard (ship-plan Block D).
           if [ "$DEPLOY_ENV" = "production" ]; then
-            URL="https://waypoint.<subdomain>.workers.dev/"
+            URL="https://waypoint.jayteealao.workers.dev/"
           else
-            URL="https://waypoint-staging.<subdomain>.workers.dev/"
+            URL="https://waypoint-staging.jayteealao.workers.dev/"
           fi
-          case "$URL" in
-            *"<subdomain>"*)
-              echo "::warning::Smoke test skipped — <subdomain> placeholder not yet filled in deploy.yml (ship-plan Block D)."
-              exit 0
-              ;;
-          esac
           MAX_WAIT=$(( 5 * 60 ))
           ELAPSED=0
           while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do

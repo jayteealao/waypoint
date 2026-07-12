@@ -2,9 +2,9 @@
 schema: sdlc/v1
 type: ship-plan
 slug: waypoint
-plan-version: 3
+plan-version: 4
 created-at: "2026-07-12T09:25:48Z"
-updated-at: "2026-07-12T10:32:00Z"
+updated-at: "2026-07-12T10:58:00Z"
 project-name: "Waypoint"
 template-hint: none
 
@@ -75,11 +75,11 @@ ci-pipeline:
     path-filters: false
 
 # Block D — post-publish verification contract
-# Per-env smoke URLs. <subdomain> is the account's workers.dev subdomain — fill in after the
-# first deploy prints it (both URLs share it). Staging worker: waypoint-staging; production: waypoint.
+# Per-env smoke URLs. workers.dev subdomain is `jayteealao` (both URLs share it).
+# Staging worker: waypoint-staging; production: waypoint.
 post-publish-checks:
-  - { kind: smoke-test, env: staging, cmd: "curl -fsS https://waypoint-staging.<subdomain>.workers.dev/", expect: "HTTP 200" }
-  - { kind: smoke-test, env: production, cmd: "curl -fsS https://waypoint.<subdomain>.workers.dev/", expect: "HTTP 200" }
+  - { kind: smoke-test, env: staging, cmd: "curl -fsS https://waypoint-staging.jayteealao.workers.dev/", expect: "HTTP 200" }
+  - { kind: smoke-test, env: production, cmd: "curl -fsS https://waypoint.jayteealao.workers.dev/", expect: "HTTP 200" }
   - { kind: wrangler-deployments, cmd: "wrangler deployments list --env <env>", expect: "newest deployment matches released version" }
 propagation-window-min-minutes: 1
 propagation-window-max-minutes: 5
@@ -216,7 +216,7 @@ The existing `.github/workflows/ci.yml` carries a **single job named `ci`** that
 
 ## Post-publish verification
 
-After each deploy, smoke-test that environment's URL (`curl -fsS <url>/` expecting HTTP 200) and confirm `wrangler deployments list --env <env>` shows the released version as newest. The workers are `waypoint-staging` (staging) and `waypoint` (production); both URLs share the account's workers.dev subdomain, which the first deploy prints — **fill the `<subdomain>` placeholder in Block D then**. Cloudflare propagates globally in seconds, so the window is short: 1–5 minutes, polled every 15s.
+After each deploy, smoke-test that environment's URL (`curl -fsS <url>/` expecting HTTP 200) and confirm `wrangler deployments list --env <env>` shows the released version as newest. The workers are `waypoint-staging` (staging) and `waypoint` (production); both URLs share the account's workers.dev subdomain `jayteealao` (resolved 2026-07-12, plan v4 — smoke tests now use concrete URLs). Cloudflare propagates globally in seconds, so the window is short: 1–5 minutes, polled every 15s.
 
 ## Rollout strategy
 
