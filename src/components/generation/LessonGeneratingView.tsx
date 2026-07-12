@@ -53,6 +53,9 @@ export function LessonGeneratingView({ journeyId, waypointId, initialSections = 
     sections: initialSections,
   }))
   const [reconnecting, setReconnecting] = useState(false)
+  // retryCount increments when the user clicks "Try again"; it re-triggers the
+  // useEffect below so a new EventSource is opened without a full page reload.
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     const url = `/api/journey/${journeyId}/lesson?waypointId=${encodeURIComponent(waypointId)}`
@@ -112,7 +115,7 @@ export function LessonGeneratingView({ journeyId, waypointId, initialSections = 
     return () => {
       es.close()
     }
-  }, [journeyId, waypointId])
+  }, [journeyId, waypointId, retryCount])
 
   // Error state — all fallbacks failed
   if (doc.error) {
@@ -130,7 +133,11 @@ export function LessonGeneratingView({ journeyId, waypointId, initialSections = 
         <button
           type="button"
           className="btn-base btn-primary mt-4"
-          onClick={() => window.location.reload()}
+          aria-label="Retry lesson generation"
+          onClick={() => {
+            setDoc({ ...INITIAL_DOC })
+            setRetryCount((c) => c + 1)
+          }}
           style={{ marginTop: '1rem' }}
         >
           Try again

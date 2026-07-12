@@ -57,6 +57,15 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
         }
         const userId = session.user.id
 
+        // ── 2b. Verify journey ownership ──────────────────────────────────────
+        const journeyRow = await env.DB.prepare(
+          'SELECT user_id FROM journeys WHERE id = ?',
+        )
+          .bind(journeyId)
+          .first<{ user_id: string }>()
+        if (!journeyRow) return new Response(null, { status: 404 })
+        if (journeyRow.user_id !== userId) return new Response(null, { status: 403 })
+
         // ── 3. Quota check ───────────────────────────────────────────────────
         const quotaStatus = await checkQuota(env.DB, userId, 'lesson')
         if (!quotaStatus.allowed) {
@@ -162,8 +171,13 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
                 let promptTokens = 0
                 let completionTokens = 0
                 let totalCost: number | undefined
+                const MODEL_TIMEOUT_MS = 120_000 // 2 minutes per model attempt
+                const modelCallStart = Date.now()
 
                 for await (const chunk of chatStream as AsyncIterable<Record<string, unknown>>) {
+                  if (Date.now() - modelCallStart > MODEL_TIMEOUT_MS) {
+                    throw new Error('lesson-sse: model stream timeout exceeded')
+                  }
                   const chunkType = chunk['type'] as string | undefined
 
                   if (chunkType === 'TEXT_DELTA') {
@@ -284,11 +298,14 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
 
             // ── 7e. All models failed — emit terminal error event ────────────
             if (!succeeded) {
-              const errorMsg =
-                lastError instanceof Error ? lastError.message : 'Generation failed'
+              // Use a generic client-facing message; log the actual error server-side.
+              const clientMsg = 'Lesson generation failed. Please try again.'
+              if (lastError instanceof Error) {
+                console.error('[lesson-sse] all models failed:', lastError.message)
+              }
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({ type: 'error', message: errorMsg })}\n\n`,
+                  `data: ${JSON.stringify({ type: 'error', message: clientMsg })}\n\n`,
                 ),
               )
 
@@ -301,7 +318,7 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
                   model: modelChain[modelChain.length - 1],
                   generation_type: 'lesson',
                   outcome: 'failure',
-                  error_code: errorMsg,
+                  error_code: lastError instanceof Error ? lastError.message : 'unknown',
                 }),
               )
             }
