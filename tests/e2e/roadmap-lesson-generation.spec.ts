@@ -128,7 +128,8 @@ test('AC-5: seeded waypoints appear in sidebar and persist on reload', async ({ 
   const page = await ctx.newPage()
 
   // Navigate to the first waypoint page
-  await page.goto(`/_authenticated/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_1}`)
+  // Note: /_authenticated is a pathless layout group; public URL omits it
+  await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_1}`)
 
   // Sidebar should show both waypoint links
   await expect(page.locator('[data-testid="waypoint-link"]')).toHaveCount(2, { timeout: 8000 })
@@ -173,7 +174,7 @@ test('AC-6: lesson streams progressively and checkpoint widget is interactive', 
   })
 
   const t0 = Date.now()
-  await page.goto(`/_authenticated/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_1}`)
+  await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_1}`)
 
   // Wait for lesson-content wrapper (LessonGeneratingView renders this)
   await expect(page.locator('[data-testid="lesson-content"]')).toBeVisible({ timeout: 10000 })
@@ -194,8 +195,8 @@ test('AC-6: lesson streams progressively and checkpoint widget is interactive', 
   await expect(firstOption).toBeVisible({ timeout: 5000 })
   await firstOption.click()
 
-  // Feedback should appear
-  await expect(page.locator('[data-testid="checkpoint-feedback"]').first()).toBeVisible({ timeout: 3000 })
+  // Feedback should appear (testid is "checkpoint-explanation" per the widget component)
+  await expect(page.locator('[data-testid="checkpoint-explanation"]').first()).toBeVisible({ timeout: 3000 })
 
   await ctx.close()
 })
@@ -240,7 +241,7 @@ test('AC-12: reconnecting banner appears on SSE error, content preserved on retr
     }
   })
 
-  await page.goto(`/_authenticated/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_2}`)
+  await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_2}`)
 
   // Wait for initial sections to render
   await expect(page.locator('[data-testid="lesson-content"]')).toBeVisible({ timeout: 10000 })
@@ -280,7 +281,7 @@ test('all-fallbacks-fail: friendly error message shown', async ({ browser }, tes
     })
   })
 
-  await page.goto(`/_authenticated/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_2}`)
+  await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_2}`)
 
   // Error state should render
   await expect(page.locator('[data-testid="lesson-error"]')).toBeVisible({ timeout: 8000 })
