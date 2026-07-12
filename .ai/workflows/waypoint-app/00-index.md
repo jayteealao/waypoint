@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T03:30:00Z"
+updated-at: "2026-07-12T02:22:28Z"
 selected-slice: "tutor-interview"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -287,6 +287,9 @@ workflow-files:
   - 04-plan-tutor-interview.md
   - 04-plan-tutor-interview.yaml
   - 04-plan-tutor-interview.html.fragment
+  - 04-plan-roadmap-lesson-generation.md
+  - 04-plan-roadmap-lesson-generation.yaml
+  - 04-plan-roadmap-lesson-generation.html.fragment
   - 05-implement-lesson-renderer.md
   - 06-verify-lesson-renderer.md
   - 07-review-lesson-renderer-correctness.md

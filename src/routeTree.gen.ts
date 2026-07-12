@@ -24,7 +24,10 @@ import { Route as AuthenticatedSampleLesson2RouteImport } from './routes/_authen
 import { Route as AuthenticatedSampleLesson1RouteImport } from './routes/_authenticated/sample/lesson-1'
 import { Route as AuthenticatedLessonFixtureRouteImport } from './routes/_authenticated/lesson/fixture'
 import { Route as AuthenticatedJourneyNewRouteImport } from './routes/_authenticated/journey/new'
+import { Route as AuthenticatedJourneyJourneyIdRouteImport } from './routes/_authenticated/journey/$journeyId'
+import { Route as ApiJourneyJourneyIdLessonRouteImport } from './routes/api/journey/$journeyId/lesson'
 import { Route as AuthenticatedJourneyJourneyIdInterviewRouteImport } from './routes/_authenticated/journey/$journeyId/interview'
+import { Route as AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteImport } from './routes/_authenticated/journey/$journeyId/waypoint/$waypointId'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -105,11 +108,29 @@ const AuthenticatedJourneyNewRoute = AuthenticatedJourneyNewRouteImport.update({
   path: '/journey/new',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedJourneyJourneyIdRoute =
+  AuthenticatedJourneyJourneyIdRouteImport.update({
+    id: '/journey/$journeyId',
+    path: '/journey/$journeyId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const ApiJourneyJourneyIdLessonRoute =
+  ApiJourneyJourneyIdLessonRouteImport.update({
+    id: '/api/journey/$journeyId/lesson',
+    path: '/api/journey/$journeyId/lesson',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedJourneyJourneyIdInterviewRoute =
   AuthenticatedJourneyJourneyIdInterviewRouteImport.update({
-    id: '/journey/$journeyId/interview',
-    path: '/journey/$journeyId/interview',
-    getParentRoute: () => AuthenticatedRoute,
+    id: '/interview',
+    path: '/interview',
+    getParentRoute: () => AuthenticatedJourneyJourneyIdRoute,
+  } as any)
+const AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute =
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteImport.update({
+    id: '/waypoint/$waypointId',
+    path: '/waypoint/$waypointId',
+    getParentRoute: () => AuthenticatedJourneyJourneyIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -120,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
+  '/journey/$journeyId': typeof AuthenticatedJourneyJourneyIdRouteWithChildren
   '/journey/new': typeof AuthenticatedJourneyNewRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
@@ -128,6 +150,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/sample/': typeof AuthenticatedSampleIndexRoute
   '/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
+  '/api/journey/$journeyId/lesson': typeof ApiJourneyJourneyIdLessonRoute
+  '/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AboutRoute
@@ -136,6 +160,7 @@ export interface FileRoutesByTo {
   '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/': typeof AuthenticatedIndexRoute
+  '/journey/$journeyId': typeof AuthenticatedJourneyJourneyIdRouteWithChildren
   '/journey/new': typeof AuthenticatedJourneyNewRoute
   '/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
@@ -144,6 +169,8 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/sample': typeof AuthenticatedSampleIndexRoute
   '/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
+  '/api/journey/$journeyId/lesson': typeof ApiJourneyJourneyIdLessonRoute
+  '/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -155,6 +182,7 @@ export interface FileRoutesById {
   '/_authenticated/sample': typeof AuthenticatedSampleRouteWithChildren
   '/api/demo-stream': typeof ApiDemoStreamRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/journey/$journeyId': typeof AuthenticatedJourneyJourneyIdRouteWithChildren
   '/_authenticated/journey/new': typeof AuthenticatedJourneyNewRoute
   '/_authenticated/lesson/fixture': typeof AuthenticatedLessonFixtureRoute
   '/_authenticated/sample/lesson-1': typeof AuthenticatedSampleLesson1Route
@@ -163,6 +191,8 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/sample/': typeof AuthenticatedSampleIndexRoute
   '/_authenticated/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
+  '/api/journey/$journeyId/lesson': typeof ApiJourneyJourneyIdLessonRoute
+  '/_authenticated/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -174,6 +204,7 @@ export interface FileRouteTypes {
     | '/quota-fixture'
     | '/sample'
     | '/api/demo-stream'
+    | '/journey/$journeyId'
     | '/journey/new'
     | '/lesson/fixture'
     | '/sample/lesson-1'
@@ -182,6 +213,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/sample/'
     | '/journey/$journeyId/interview'
+    | '/api/journey/$journeyId/lesson'
+    | '/journey/$journeyId/waypoint/$waypointId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -190,6 +223,7 @@ export interface FileRouteTypes {
     | '/quota-fixture'
     | '/api/demo-stream'
     | '/'
+    | '/journey/$journeyId'
     | '/journey/new'
     | '/lesson/fixture'
     | '/sample/lesson-1'
@@ -198,6 +232,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/sample'
     | '/journey/$journeyId/interview'
+    | '/api/journey/$journeyId/lesson'
+    | '/journey/$journeyId/waypoint/$waypointId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -208,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sample'
     | '/api/demo-stream'
     | '/_authenticated/'
+    | '/_authenticated/journey/$journeyId'
     | '/_authenticated/journey/new'
     | '/_authenticated/lesson/fixture'
     | '/_authenticated/sample/lesson-1'
@@ -216,6 +253,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/_authenticated/sample/'
     | '/_authenticated/journey/$journeyId/interview'
+    | '/api/journey/$journeyId/lesson'
+    | '/_authenticated/journey/$journeyId/waypoint/$waypointId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -224,6 +263,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   ApiDemoStreamRoute: typeof ApiDemoStreamRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiJourneyJourneyIdLessonRoute: typeof ApiJourneyJourneyIdLessonRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -333,12 +373,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJourneyNewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/journey/$journeyId': {
+      id: '/_authenticated/journey/$journeyId'
+      path: '/journey/$journeyId'
+      fullPath: '/journey/$journeyId'
+      preLoaderRoute: typeof AuthenticatedJourneyJourneyIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/journey/$journeyId/lesson': {
+      id: '/api/journey/$journeyId/lesson'
+      path: '/api/journey/$journeyId/lesson'
+      fullPath: '/api/journey/$journeyId/lesson'
+      preLoaderRoute: typeof ApiJourneyJourneyIdLessonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/journey/$journeyId/interview': {
       id: '/_authenticated/journey/$journeyId/interview'
-      path: '/journey/$journeyId/interview'
+      path: '/interview'
       fullPath: '/journey/$journeyId/interview'
       preLoaderRoute: typeof AuthenticatedJourneyJourneyIdInterviewRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      parentRoute: typeof AuthenticatedJourneyJourneyIdRoute
+    }
+    '/_authenticated/journey/$journeyId/waypoint/$waypointId': {
+      id: '/_authenticated/journey/$journeyId/waypoint/$waypointId'
+      path: '/waypoint/$waypointId'
+      fullPath: '/journey/$journeyId/waypoint/$waypointId'
+      preLoaderRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteImport
+      parentRoute: typeof AuthenticatedJourneyJourneyIdRoute
     }
   }
 }
@@ -360,14 +421,32 @@ const AuthenticatedSampleRouteChildren: AuthenticatedSampleRouteChildren = {
 const AuthenticatedSampleRouteWithChildren =
   AuthenticatedSampleRoute._addFileChildren(AuthenticatedSampleRouteChildren)
 
+interface AuthenticatedJourneyJourneyIdRouteChildren {
+  AuthenticatedJourneyJourneyIdInterviewRoute: typeof AuthenticatedJourneyJourneyIdInterviewRoute
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+}
+
+const AuthenticatedJourneyJourneyIdRouteChildren: AuthenticatedJourneyJourneyIdRouteChildren =
+  {
+    AuthenticatedJourneyJourneyIdInterviewRoute:
+      AuthenticatedJourneyJourneyIdInterviewRoute,
+    AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute:
+      AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute,
+  }
+
+const AuthenticatedJourneyJourneyIdRouteWithChildren =
+  AuthenticatedJourneyJourneyIdRoute._addFileChildren(
+    AuthenticatedJourneyJourneyIdRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedQuotaFixtureRoute: typeof AuthenticatedQuotaFixtureRoute
   AuthenticatedSampleRoute: typeof AuthenticatedSampleRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedJourneyJourneyIdRoute: typeof AuthenticatedJourneyJourneyIdRouteWithChildren
   AuthenticatedJourneyNewRoute: typeof AuthenticatedJourneyNewRoute
   AuthenticatedLessonFixtureRoute: typeof AuthenticatedLessonFixtureRoute
-  AuthenticatedJourneyJourneyIdInterviewRoute: typeof AuthenticatedJourneyJourneyIdInterviewRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -375,10 +454,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedQuotaFixtureRoute: AuthenticatedQuotaFixtureRoute,
   AuthenticatedSampleRoute: AuthenticatedSampleRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedJourneyJourneyIdRoute:
+    AuthenticatedJourneyJourneyIdRouteWithChildren,
   AuthenticatedJourneyNewRoute: AuthenticatedJourneyNewRoute,
   AuthenticatedLessonFixtureRoute: AuthenticatedLessonFixtureRoute,
-  AuthenticatedJourneyJourneyIdInterviewRoute:
-    AuthenticatedJourneyJourneyIdInterviewRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -391,6 +470,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   ApiDemoStreamRoute: ApiDemoStreamRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiJourneyJourneyIdLessonRoute: ApiJourneyJourneyIdLessonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

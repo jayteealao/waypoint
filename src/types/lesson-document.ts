@@ -18,6 +18,8 @@ export interface ProseSection {
   id: string
   /** Inline HTML from model output — must pass through sanitizeHtml() before render */
   html: string
+  /** Concepts from the roadmap that this section teaches. Added in roadmap-lesson-generation; optional for backward compat. */
+  concept_tags?: string[]
 }
 
 export interface CodeSection {
@@ -25,6 +27,8 @@ export interface CodeSection {
   id: string
   language: string
   code: string
+  /** Concepts from the roadmap that this section teaches. Optional for backward compat. */
+  concept_tags?: string[]
 }
 
 export interface HeadingSection {
@@ -32,6 +36,8 @@ export interface HeadingSection {
   id: string
   level: 2 | 3
   text: string
+  /** Concepts from the roadmap that this section teaches. Optional for backward compat. */
+  concept_tags?: string[]
 }
 
 export interface CitationSection {
@@ -40,6 +46,8 @@ export interface CitationSection {
   quote: string
   source: string
   url: string | null
+  /** Concepts from the roadmap that this section teaches. Optional for backward compat. */
+  concept_tags?: string[]
 }
 
 export interface WidgetSection {
@@ -47,6 +55,8 @@ export interface WidgetSection {
   id: string
   widget_type: string
   props: Record<string, unknown>
+  /** Concepts from the roadmap that this section teaches. Optional for backward compat. */
+  concept_tags?: string[]
 }
 
 export type LessonSection =

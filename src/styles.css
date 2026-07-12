@@ -1553,3 +1553,146 @@ pre code {
   color: var(--error);
   margin: 0;
 }
+
+/* ─── Generation state components ─────────────────────────────────────── */
+
+/* Roadmap pending card — shown while roadmap is generating after interview */
+.wp-roadmap-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 50vh;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.wp-roadmap-pending__spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--ember-subtle);
+  border-top-color: var(--ember);
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes wp-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .wp-roadmap-pending__spinner {
+    animation: wp-spin 0.9s linear infinite;
+  }
+}
+
+.wp-roadmap-pending__title {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.wp-roadmap-pending__subtitle {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin: 0;
+  max-width: 32ch;
+  line-height: 1.55;
+}
+
+/* Reconnecting banner — fixed-top, ember background, slides in from above */
+.wp-reconnecting-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background: var(--ember);
+  color: oklch(0.98 0.005 90);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.wp-reconnecting-banner__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes wp-banner-slide-in {
+    from { transform: translateY(-100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .wp-reconnecting-banner {
+    animation: wp-banner-slide-in 0.2s ease-out;
+  }
+}
+
+/* Lesson section fade-in on progressive reveal */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes wp-section-reveal {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .wp-lesson-section-reveal {
+    animation: wp-section-reveal 0.3s ease-out;
+  }
+}
+
+/* Skeleton placeholders for lesson title/summary (generating view) */
+.wp-lesson-skeleton-title {
+  height: 2rem;
+  width: 60%;
+  background: var(--ink-faint);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.75rem;
+  opacity: 0.2;
+}
+
+.wp-lesson-skeleton-summary {
+  height: 1rem;
+  width: 85%;
+  background: var(--ink-faint);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  opacity: 0.15;
+}
+
+/* Sidebar waypoint links with data-testid for E2E */
+.wp-sidebar-waypoint-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background var(--motion-fast);
+}
+
+.wp-sidebar-waypoint-link:hover {
+  background: var(--ember-subtle);
+}
+
+.wp-sidebar-waypoint-link--active {
+  background: var(--ember-subtle);
+  color: var(--ember);
+  font-weight: 600;
+}

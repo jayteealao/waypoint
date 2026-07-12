@@ -55,3 +55,51 @@ export const getLesson = createServerFn()
       return null
     }
   })
+
+/**
+ * Fetch the lesson row for a waypoint (by waypoint_id, not lesson id).
+ * Returns null when no lesson has been generated yet.
+ * Used by the waypoint route loader to decide whether to show LessonView or LessonGeneratingView.
+ */
+export const getLessonByWaypointId = createServerFn()
+  .middleware([withSession])
+  .validator((waypointId: string) => waypointId)
+  .handler(async ({ data: waypointId }): Promise<Lesson | null> => {
+    try {
+      const row = await env.DB.prepare('SELECT * FROM lessons WHERE waypoint_id = ?')
+        .bind(waypointId)
+        .first<Lesson>()
+      return row ?? null
+    } catch (err) {
+      console.error('[lessons] D1 error fetching lesson by waypointId:', waypointId, err)
+      return null
+    }
+  })
+
+/**
+ * Upsert a lesson row for a waypoint (INSERT OR REPLACE).
+ * Used by the SSE lesson route to persist completed sections progressively.
+ * The content column stores JSON.stringify(LessonSection[]) — accumulated sections.
+ *
+ * NOT a createServerFn — called directly from the SSE route handler (not a client RPC call).
+ * Exported as a plain async function so the SSE handler can call it with the D1 binding it has.
+ */
+export async function upsertLesson(
+  db: D1Database,
+  waypointId: string,
+  lessonId: string,
+  content: string,    // JSON.stringify(sections[])
+  sources: string,    // JSON.stringify(LessonSource[])
+): Promise<void> {
+  const now = Date.now()
+  await db
+    .prepare(
+      `INSERT INTO lessons (id, waypoint_id, content, sources, created_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         content = excluded.content,
+         sources = excluded.sources`,
+    )
+    .bind(lessonId, waypointId, content, sources, now)
+    .run()
+}

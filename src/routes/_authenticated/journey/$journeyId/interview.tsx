@@ -10,11 +10,14 @@
  * falls back to an empty interview starting at 'consent'.
  */
 
-import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import type { InterviewStage, InterviewTurn, TurnResponse } from '#/types/interview'
 import { STAGE_CHIPS } from '#/types/interview'
 import { getInterviewState, sendTurn, completeInterview } from '#/server/interview'
+import { generateRoadmap } from '#/server/roadmap'
 import { InterviewView } from '#/components/interview/InterviewView'
+import { RoadmapPendingCard } from '#/components/generation/RoadmapPendingCard'
 
 /** Validate search params — `mock=1` enables scripted test responses. */
 function validateSearch(raw: Record<string, unknown>): { mock?: boolean } {
@@ -39,6 +42,10 @@ function InterviewPage() {
   const { journeyId } = Route.useParams()
   const { mock } = Route.useSearch()
   const { record } = Route.useLoaderData()
+  const navigate = useNavigate()
+
+  const [generatingRoadmap, setGeneratingRoadmap] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   // Parse existing turns for resume hydration
   let initialTurns: InterviewTurn[] = []
@@ -62,13 +69,67 @@ function InterviewPage() {
   }
 
   async function handleComplete(stage: 'complete' | 'declined') {
-    if (stage === 'complete') {
-      try {
-        await completeInterview({ data: journeyId })
-      } catch {
-        // Best-effort: completion card still shows even if the server call fails
-      }
+    if (stage !== 'complete') return
+
+    try {
+      await completeInterview({ data: journeyId })
+    } catch {
+      // Best-effort: completion was already persisted by sendTurn's terminal stage handling
     }
+
+    // Show the roadmap pending card and trigger generation
+    setGeneratingRoadmap(true)
+    setGenerationError(null)
+
+    try {
+      const result = await generateRoadmap({ data: journeyId })
+      // Navigate to the first waypoint lesson page
+      await navigate({
+        to: '/journey/$journeyId/waypoint/$waypointId',
+        params: { journeyId, waypointId: result.firstWaypointId },
+      })
+    } catch (err) {
+      setGeneratingRoadmap(false)
+      setGenerationError(
+        err instanceof Error ? err.message : 'Roadmap generation failed. Please try again.',
+      )
+    }
+  }
+
+  // Roadmap generation in progress — replace the interview surface
+  if (generatingRoadmap) {
+    return (
+      <div data-testid="interview-page">
+        <RoadmapPendingCard />
+      </div>
+    )
+  }
+
+  // Generation error fallback
+  if (generationError) {
+    return (
+      <div
+        data-testid="interview-page"
+        style={{ padding: '2rem 1rem', textAlign: 'center' }}
+      >
+        <p style={{ color: 'var(--error)', fontWeight: 600, marginBottom: '0.5rem' }}>
+          Roadmap generation failed
+        </p>
+        <p style={{ color: 'var(--ink-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+          {generationError}
+        </p>
+        <button
+          type="button"
+          className="btn-base btn-primary"
+          onClick={() => {
+            setGenerationError(null)
+            void handleComplete('complete')
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    )
   }
 
   return (

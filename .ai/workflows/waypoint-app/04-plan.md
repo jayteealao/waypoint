@@ -5,9 +5,9 @@ slug: waypoint-app
 status: complete
 stage-number: 4
 created-at: "2026-07-11T00:13:07Z"
-updated-at: "2026-07-11T13:37:14Z"
+updated-at: "2026-07-12T02:22:28Z"
 planning-mode: single
-slices-planned: 4
+slices-planned: 9
 slices-total: 12
 implementation-order: [foundation, platform-proofs, accounts-data-layer, design-system-shell, lesson-renderer, sample-journey, ai-gateway, tutor-interview, roadmap-lesson-generation, quiz-fsrs, adaptation-progress, source-grounding]
 conflicts-found: 0
@@ -68,8 +68,70 @@ next-invocation: "/wf implement waypoint-app design-system-shell"
   the pre/post-rename grep audit is the only gate. AC-DSS1/3/4 Playwright tests are behind the
   existing BETTER_AUTH_SECRET deferral wall (no new deferral entry needed).
 
-### Plans not yet written (8 remaining slices)
-Plans for slices 5–12 will be authored before or during their respective implement stages.
+### `lesson-renderer`
+- **Files to touch:** 18 files (14 new, 4 modified) across schema types, widget registry,
+  sanitization, lesson components, fixture route, styles, and tests
+- **Strategy:** Schema-first. `LessonDocumentV1` TypeScript type authored and locked before any
+  component code opens (3-slice contract consumed by sample-journey, roadmap-lesson-generation,
+  quiz-fsrs). Widget registry as typed Map with type-guard validation. DOMPurify 3.x with SSR
+  guard. Fixture route at `/_authenticated/lesson/fixture` drives all Playwright tests.
+- **Key risk:** Lesson schema is a 3-slice contract — rename or type narrowing after consumer
+  slices begin forces coordinated rework. Mitigated by `version: 1` discriminant + pre-review
+  against all consumer slice definitions before implementing.
+
+### `sample-journey`
+- **Files to touch:** 15 files (10 new, 5 modified) across shell context extension, fixture
+  content, quiz surface component, 6 sample journey routes, styles, and tests
+- **Strategy:** Shell extension first, then fixture content, then quiz surface, then routes.
+  Fixture lessons authored against `LessonDocumentV1`; quiz surface born here against
+  fixture questions with localStorage attempt persistence; first-login routing via
+  `useEffect` in `JourneysDashboard`; sidebar waypoint list seam filled via ShellContext
+  extension (`waypoints` + `setWaypoints`).
+- **Key risk:** Fixture content quality — sample lessons are most users' first impression;
+  equal-length MC options enforced by a Vitest lint test at `pnpm test` time.
+
+### `ai-gateway`
+- **Files to touch:** 10 files (7 new, 3 modified) across gateway core, quota engine, UI card, server
+  function, test harness route, and extended test suite
+- **Strategy:** Gateway wraps, not replaces. `src/lib/ai-client.ts` adapter factories stay untouched;
+  `gateway.ts` adds quota gate + model tiering + retry/fallback + usage recording + instrumentation above
+  them. Quota unit: cost_usd (daily window, $0.50/day default). Quota card is a warm blocking component
+  with reset time — no paywall language.
+- **Key risk:** OpenRouter `usage.total_cost` absent from adapter payload — fallback to token-count
+  recomputation handled; unit test covers both paths. Structured+tool-call separation enforced as a
+  TypeScript discriminated union + runtime TypeError.
+
+### `tutor-interview`
+- **Files to touch:** 15 files (13 new, 2 modified) across DB migration, types, state machine,
+  prompt suite, server functions, 4 UI components, 2 routes, styles, and 2 test files
+- **Strategy:** State-machine-first. `InterviewStateMachine` enforces the one-Q-per-turn
+  contract structurally (first-question-extraction regex); `prompts.ts` carries the full
+  prompt suite (interview fully exercised; lesson/quiz/roadmap drafted thin with fidelity notes);
+  `server/interview.ts` routes through `callGateway({ type: 'interview' })`. Non-streaming
+  turns (gpt-4o-mini fast enough for < 3s NFR). Stage-defined client-side chips. New
+  `interview_records` table via additive migration.
+- **Key risk:** Prompt iteration time — voice quality (warm, encouraging, one-question) is
+  only observable in live-model runs; mocked tests pin structure. BETTER_AUTH_SECRET deferral
+  wall absorbed into existing AC-ADL1+AC-ADL5 entry.
+
+### `roadmap-lesson-generation`
+- **Files to touch:** 15 files (9 new, 6 modified) across prompts, roadmap schema, server
+  functions, SSE API route, generation UI components, waypoint route, layout loader, styles,
+  and test files.
+- **Strategy:** Two-phase. Phase 1 (roadmap): refine ROADMAP_SYSTEM_PROMPT with explicit JSON
+  schema, author `src/lib/roadmap/schema.ts` + `src/server/roadmap.ts` (one re-ask on malformed
+  JSON, D1 batch insert), wire trigger in interview route. Phase 2 (lesson SSE): refine
+  LESSON_SYSTEM_PROMPT for NDJSON per-section, build SSE API route with line-buffer NDJSON parser
+  + per-section D1 writes (resume path), build `LessonGeneratingView` EventSource consumer,
+  build `ReconnectingBanner` (content-preserving on failure). Concept tags added as optional
+  field on LessonSection (additive, no version bump).
+- **Key risk:** NDJSON chunk boundary splitting — line-buffer accumulator mandatory, unit-tested
+  with split-chunk fixtures. Real-transport integration (wrangler dev + real stream) scheduled
+  as step 1 of implementation to catch cadence issues early.
+
+### Plans not yet written (3 remaining slices)
+Plans for slices 10–12 (quiz-fsrs, adaptation-progress, source-grounding) will be authored
+before or during their respective implement stages.
 Each will follow the same sub-agent research + autonomous-override pattern.
 
 ## Cross-Cutting Concerns

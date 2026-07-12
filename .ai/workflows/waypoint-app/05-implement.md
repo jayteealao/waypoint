@@ -5,12 +5,12 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-12T01:08:00Z"
-slices-implemented: 8
+updated-at: "2026-07-12T02:43:03Z"
+slices-implemented: 9
 slices-total: 12
-metric-total-files-changed: 146
-metric-total-lines-added: 25228
-metric-total-lines-removed: 438
+metric-total-files-changed: 164
+metric-total-lines-added: 25753
+metric-total-lines-removed: 486
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution]
 refs:
   index: 00-index.md
@@ -210,7 +210,19 @@ next-invocation: "/wf verify waypoint-app sample-journey"
 - **Tutor-interview: prompt suite lives in `src/lib/interview/prompts.ts`** — `LESSON_SYSTEM_PROMPT`, `QUIZ_SYSTEM_PROMPT`, `ROADMAP_SYSTEM_PROMPT` are drafted thin with `// FIDELITY-NOTE:` comments. Consuming slices (`roadmap-lesson-generation`, `quiz-fsrs`) should import from this file and refine wording rather than authoring a new prompt file.
   Playwright selectors must use `[data-testid="quota-card"]` not a Card class selector.
 
+- **Roadmap-lesson-generation: `concept_tags?` on all `LessonSection` types** — `src/types/lesson-document.ts` adds `concept_tags?: string[]` to all five section union members (`ProseSection`, `CodeSection`, `HeadingSection`, `CitationSection`, `WidgetSection`). This is additive and backward-compatible. The quiz-fsrs slice reads these tags; if absent, it should default to the waypoint's concept list.
+
+- **Roadmap-lesson-generation: `generateRoadmap` returns `{ firstWaypointId, waypointCount }`** — The interview route navigates to `/journey/$journeyId/waypoint/$waypointId` using `firstWaypointId`. All waypoints are inserted atomically via `DB.batch([DELETE_OLD, ...INSERTs])`. Prior roadmaps are replaced, not appended.
+
+- **Roadmap-lesson-generation: SSE route bypasses callGateway** — `src/routes/api/journey/$journeyId/lesson.ts` calls `createOpenRouterText()` + `chat()` directly (streaming, not drained). It still calls `checkQuota()` and records to `usage_events`. Consumer slices adding streaming paths should follow this same pattern.
+
+- **Roadmap-lesson-generation: `upsertLesson()` is a plain async** — NOT a createServerFn. Called directly from the SSE route's ReadableStream controller. The `content` column stores `JSON.stringify(LessonSection[])` (accumulated sections). The `sources` column stores `JSON.stringify({ sources, recommended_primary_source })`.
+
+- **Roadmap-lesson-generation: Journey layout route** — `src/routes/_authenticated/journey/$journeyId.tsx` loads `getJourneyWithWaypoints()` and sets ShellContext waypoints via `useEffect`. All journey-scoped child routes benefit from this automatically. The waypoints are cleared when leaving the journey context (cleanup in useEffect).
+
+- **Roadmap-lesson-generation: `data-testid="waypoint-link"`** — Added to each `<Link>` in `Sidebar.tsx` for Playwright E2E. The attribute is alongside the existing `data-waypoint={wp.id}` attribute.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app tutor-interview` — 18 state-machine unit tests + 4 Playwright E2E tests (3 seeded-session, 1 always-run). BETTER_AUTH_SECRET deferral pre-registered and absorbed into existing entry.
-- **Option B:** `/wf review waypoint-app tutor-interview` — Skip verify; state-machine unit tests cover all observable-false ACs; Playwright deferral pre-accepted.
+- **Option A (default):** `/wf verify waypoint-app roadmap-lesson-generation` — 20 Vitest unit tests (roadmap schema + NDJSON parser) + 4 Playwright E2E tests (seeded-session, BETTER_AUTH_SECRET deferral applies). BETTER_AUTH_SECRET deferral absorbed into existing AC-ADL1+AC-ADL5 entry.
+- **Option B:** `/wf review waypoint-app roadmap-lesson-generation` — Skip verify if unit tests + typecheck are sufficient. Not recommended given SSE path complexity.

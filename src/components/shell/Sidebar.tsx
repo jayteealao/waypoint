@@ -76,6 +76,7 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
                     key={wp.id}
                     to={wp.href}
                     data-waypoint={wp.id}
+                    data-testid="waypoint-link"
                     data-completed={wp.completed ? 'true' : 'false'}
                     className={`wp-sidebar-nav-item${pathname === wp.href ? ' wp-sidebar-nav-item--active' : ''}`}
                   >

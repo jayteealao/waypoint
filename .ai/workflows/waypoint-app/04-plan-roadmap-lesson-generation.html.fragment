@@ -1,0 +1,160 @@
+<section class="fragment-plan" data-artifact="plan" data-slice="roadmap-lesson-generation" data-rev="0">
+  <style>
+    .fragment-plan .pl-files-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 1rem; }
+    .fragment-plan .pl-files-table th { text-align: left; padding: 0.4rem 0.6rem; background: var(--surface-2, #f4f4f4); border-bottom: 1px solid var(--border, #ddd); }
+    .fragment-plan .pl-files-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border, #eee); vertical-align: top; }
+    .fragment-plan .pl-status-new    { color: #2a9d2a; font-weight: 600; }
+    .fragment-plan .pl-status-mod    { color: #c77c00; font-weight: 600; }
+    .fragment-plan .pl-callout { border-left: 3px solid; padding: 0.6rem 0.9rem; margin: 0.8rem 0; border-radius: 0 4px 4px 0; font-size: 0.85rem; }
+    .fragment-plan .pl-callout-risk  { border-color: #e53e3e; background: rgba(229,62,62,0.07); }
+    .fragment-plan .pl-callout-warn  { border-color: #c77c00; background: rgba(199,124,0,0.07); }
+    .fragment-plan .pl-callout-info  { border-color: #3182ce; background: rgba(49,130,206,0.07); }
+    .fragment-plan .pl-callout-title { font-weight: 700; margin-bottom: 0.25rem; }
+    .fragment-plan .pl-revs { margin-top: 1rem; }
+    .fragment-plan .pl-revs summary { cursor: pointer; font-size: 0.8rem; color: var(--ink-muted, #666); }
+    .fragment-plan details.pl-expand summary { cursor: pointer; font-size: 0.8rem; color: var(--ink-muted, #666); padding: 0.2rem 0; }
+    .fragment-plan details.pl-expand pre { font-size: 0.75rem; overflow-x: auto; background: var(--surface-2,#f4f4f4); padding: 0.5rem; border-radius: 4px; }
+    @media (prefers-color-scheme: dark) {
+      .fragment-plan .pl-files-table th { background: var(--surface-2, #222); }
+      .fragment-plan .pl-files-table td { border-color: var(--border, #333); }
+      .fragment-plan details.pl-expand pre { background: var(--surface-2, #1a1a1a); }
+    }
+    :root[data-theme="dark"] .fragment-plan .pl-files-table th { background: var(--surface-2, #222); }
+    :root[data-theme="light"] .fragment-plan .pl-files-table th { background: var(--surface-2, #f4f4f4); }
+  </style>
+
+  <!-- Files touched table -->
+  <table class="pl-files-table files-touched">
+    <thead>
+      <tr><th>File</th><th>Change</th><th>Module</th><th>Intent</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>src/lib/interview/prompts.ts</code></td>
+        <td><span class="pl-status-mod">modified</span></td>
+        <td>Prompt suite</td>
+        <td>Refine ROADMAP + LESSON prompts for JSON schema and NDJSON</td>
+      </tr>
+      <tr>
+        <td><code>src/lib/roadmap/schema.ts</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Roadmap schema</td>
+        <td>WaypointOutput type, JSON schema, validateRoadmap(), buildRoadmapPrompt()</td>
+      </tr>
+      <tr>
+        <td><code>src/server/roadmap.ts</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Server functions</td>
+        <td>generateRoadmap server fn: capture → gateway → D1 bulk insert</td>
+      </tr>
+      <tr>
+        <td><code>src/server/lessons.ts</code></td>
+        <td><span class="pl-status-mod">modified</span></td>
+        <td>Server functions</td>
+        <td>Add upsertLesson() + getLessonByWaypointId() for progressive writes</td>
+      </tr>
+      <tr>
+        <td><code>src/server/journeys.ts</code></td>
+        <td><span class="pl-status-mod">modified</span></td>
+        <td>Server functions</td>
+        <td>Add getJourneyWithWaypoints() for sidebar population</td>
+      </tr>
+      <tr>
+        <td><code>src/routes/api/journey/$journeyId/lesson.ts</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>SSE lesson streaming API</td>
+        <td>SSE API route: quota check → stream → NDJSON parse → D1 write → resume</td>
+      </tr>
+      <tr>
+        <td><code>src/routes/_authenticated/journey/$journeyId/waypoint/$waypointId.tsx</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Routes</td>
+        <td>Waypoint lesson route: render stored or stream new lesson</td>
+      </tr>
+      <tr>
+        <td><code>src/routes/_authenticated/journey/$journeyId/interview.tsx</code></td>
+        <td><span class="pl-status-mod">modified</span></td>
+        <td>Routes</td>
+        <td>Wire generateRoadmap() trigger + nav to first waypoint after completion</td>
+      </tr>
+      <tr>
+        <td><code>src/routes/_authenticated.tsx</code></td>
+        <td><span class="pl-status-mod">modified</span></td>
+        <td>Routes</td>
+        <td>Extend layout loader: populate ShellContext waypoints from D1</td>
+      </tr>
+      <tr>
+        <td><code>src/components/generation/RoadmapPendingCard.tsx</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Generation UI</td>
+        <td>Animated pending card shown during roadmap generation wait</td>
+      </tr>
+      <tr>
+        <td><code>src/components/generation/ReconnectingBanner.tsx</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Generation UI</td>
+        <td>Fixed-top reconnecting banner (data-testid="reconnecting-banner")</td>
+      </tr>
+      <tr>
+        <td><code>src/components/generation/LessonGeneratingView.tsx</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Generation UI</td>
+        <td>EventSource consumer: drives PartialLessonDocument from SSE events</td>
+      </tr>
+      <tr>
+        <td><code>src/styles.css</code></td>
+        <td><span class="pl-status-mod">modified</span></td>
+        <td>Generation UI</td>
+        <td>Generation state styles: reconnecting-banner, roadmap-pending, section fade-in</td>
+      </tr>
+      <tr>
+        <td><code>tests/smoke/roadmap-generation.test.ts</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Tests</td>
+        <td>Vitest unit: validateRoadmap, NDJSON parser, schema checks</td>
+      </tr>
+      <tr>
+        <td><code>tests/e2e/roadmap-lesson-generation.spec.ts</code></td>
+        <td><span class="pl-status-new">new</span></td>
+        <td>Tests</td>
+        <td>Playwright E2E: roadmap, lesson stream, reconnect, all-fail scenarios</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Risk callouts -->
+  <div class="pl-callout pl-callout-risk">
+    <div class="pl-callout-title">R1 (HIGH) — Real SSE cadence may split NDJSON lines</div>
+    OpenRouter chunk boundaries may arrive mid-JSON-line. A naive per-chunk JSON.parse will silently drop sections. The line-buffer accumulator is mandatory; unit-tested with split-chunk fixtures. Schedule the real-transport integration test (wrangler dev + real stream) as step 1 of implementation.
+  </div>
+
+  <div class="pl-callout pl-callout-warn">
+    <div class="pl-callout-title">R2 (MED) — Model NDJSON compliance is not guaranteed</div>
+    claude-3.5-haiku may emit markdown fences or prose between NDJSON lines. The parser must skip non-JSON lines gracefully. Manual smoke with the real model required before sign-off.
+  </div>
+
+  <div class="pl-callout pl-callout-info">
+    <div class="pl-callout-title">R3 (MED) — D1 write-per-section adds resume lag</div>
+    Fire-and-forget D1 writes mean the resume position may lag 1 section behind the client state. Acceptable — the client already has the section in React state; the lag is only visible on hard reconnect.
+  </div>
+
+  <!-- Prior revisions -->
+  <details class="pl-revs">
+    <summary>Prior revisions (0)</summary>
+    <p style="font-size:0.8rem;color:var(--ink-muted,#666);padding:0.4rem 0">No prior revisions. Initial plan.</p>
+  </details>
+
+  <script>
+    ;(function() {
+      const section = document.currentScript.closest('.fragment-plan')
+      if (!section) return
+      window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+        detail: {
+          name: 'plan',
+          artifact: 'plan',
+          counts: { files: 15, modules: 7, risks: 3 }
+        }
+      }))
+    })()
+  </script>
+</section>

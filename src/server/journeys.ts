@@ -14,7 +14,7 @@
 import { createServerFn, createMiddleware } from '@tanstack/react-start'
 import { env } from 'cloudflare:workers'
 import { requireAuth, requireOwnership } from '#/lib/auth-guard'
-import type { Journey } from '#/db/schema'
+import type { Journey, Waypoint } from '#/db/schema'
 
 // Triage deviation from plan: TanStack Start v1.168.x does not expose
 // `getWebRequest()`. Using a `type: 'request'` middleware to capture the
@@ -75,6 +75,37 @@ export const createJourney = createServerFn({ method: 'POST' })
       created_at: now,
       updated_at: now,
     }
+  })
+
+/** Result type for getJourneyWithWaypoints. */
+export interface JourneyWithWaypoints {
+  journey: Journey
+  waypoints: Waypoint[]
+}
+
+/**
+ * Fetch a journey and all of its waypoints, ordered by position ASC.
+ * Used by the _authenticated/$journeyId layout route to populate ShellContext.
+ */
+export const getJourneyWithWaypoints = createServerFn()
+  .middleware([withSession])
+  .validator((id: string) => id)
+  .handler(async ({ data: id, context }): Promise<JourneyWithWaypoints | null> => {
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
+
+    const journey = await env.DB.prepare('SELECT * FROM journeys WHERE id = ?')
+      .bind(id)
+      .first<Journey>()
+    if (!journey) return null
+    requireOwnership(session.user.id, journey.user_id)
+
+    const waypointResult = await env.DB.prepare(
+      'SELECT * FROM waypoints WHERE journey_id = ? ORDER BY position ASC',
+    )
+      .bind(id)
+      .all<Waypoint>()
+
+    return { journey, waypoints: waypointResult.results }
   })
 
 /** Update title, goal, or status of a journey the authenticated user owns. */
