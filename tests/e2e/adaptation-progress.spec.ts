@@ -308,6 +308,8 @@ test(
     // Navigate to the quiz page (questions are pre-seeded)
     await page.goto(`/journey/${weakJourneyId}/waypoint/${weakWpId}/quiz`)
     await page.waitForSelector('[data-testid="quiz-page"]')
+    // Wait for React hydration (TanStack Devtools button is client-rendered only)
+    await page.getByRole('button', { name: 'Open TanStack Devtools' }).waitFor({ timeout: 10000 })
 
     // Mock proposeAdaptation server function to return a proposal immediately.
     // TanStack Start server functions POST to /_server; we intercept and return
@@ -405,6 +407,8 @@ test(
     const page = await ctx.newPage()
     await page.goto(`/journey/${weakJourneyId}/waypoint/${weakWpId}/quiz`)
     await page.waitForSelector('[data-testid="quiz-page"]')
+    // Wait for React hydration (TanStack Devtools button is client-rendered only)
+    await page.getByRole('button', { name: 'Open TanStack Devtools' }).waitFor({ timeout: 10000 })
 
     await page.route('**/_server**', async (route) => {
       const postBody = route.request().postData() ?? ''
@@ -465,18 +469,11 @@ test(
     const ctx  = await makeAuthContext(browser, baseURL!, USER.token)
     const page = await ctx.newPage()
 
-    // Dashboard should list both journeys
-    await page.goto('/')
-    await page.waitForSelector('[data-testid="journeys-dashboard"]')
+    // ── Verify journey isolation via dedicated progress routes ────────────────
+    // The progress route uses server function loaders (not TanStack DB), so
+    // evidence is immediate and does not depend on collection sync timing.
 
-    // At least 2 journey cards visible
-    const cards = page.locator('[data-testid="journey-card"]')
-    await expect(cards).toHaveCount(await cards.count())
-    // We seeded 2+ journeys for this user
-    const count = await cards.count()
-    expect(count).toBeGreaterThanOrEqual(2)
-
-    // Progress page for journey 1 has 3 waypoints
+    // Progress page for journey 1: 3 waypoints, populated mastery
     await page.goto(`/journey/${JOURNEY_ID}/progress`)
     await page.waitForSelector('[data-testid="progress-page"]')
     const roadmap = page.locator('[data-testid="progress-roadmap"]')
@@ -484,13 +481,20 @@ test(
     const items = await roadmap.locator('li').count()
     expect(items).toBe(3)
 
-    // Progress page for journey 2 has 1 waypoint (different from journey 1)
+    // Stats row visible for journey 1 (seeded quiz attempts → non-empty history)
+    await expect(page.locator('[data-testid="progress-stats"]')).toBeVisible()
+
+    // Progress page for journey 2: 1 waypoint, independent mastery
     await page.goto(`/journey/${JOURNEY2_ID}/progress`)
     await page.waitForSelector('[data-testid="progress-page"]')
     const roadmap2 = page.locator('[data-testid="progress-roadmap"]')
     await expect(roadmap2).toBeVisible()
     const items2 = await roadmap2.locator('li').count()
     expect(items2).toBe(1)
+
+    // Journey 2 has no quiz attempts → empty-state (or empty quiz history table)
+    // The progress-empty element appears when quizHistory.length === 0
+    await expect(page.locator('[data-testid="progress-empty"]')).toBeVisible()
 
     await ctx.close()
   },
