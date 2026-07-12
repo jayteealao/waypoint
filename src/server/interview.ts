@@ -186,6 +186,7 @@ export const sendTurn = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }): Promise<TurnResponse> => {
     const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
     const { journeyId, userContent, mock = false } = data
+    const turnStart = Date.now()
 
     // Load the interview record
     const record = await env.DB.prepare(
@@ -296,6 +297,16 @@ export const sendTurn = createServerFn({ method: 'POST' })
         record.id,
       )
       .run()
+
+    // Instrumentation: interview.turn_completed (04b-instrument.md §2)
+    console.log(JSON.stringify({
+      event: 'interview.turn_completed',
+      user_id: session.user.id,
+      journey_id: journeyId,
+      turn_number: turns.length,
+      question_type: nextStage,
+      latency_ms: Date.now() - turnStart,
+    }))
 
     return {
       question,

@@ -574,6 +574,16 @@ pre code {
   }
 }
 
+/* Hide mobile topbar and progress bar at md+ (≥768px).
+ * Unlayered .wp-mobile-topbar { display: flex } beats Tailwind's @layer utilities md:hidden.
+ * An unlayered media-query rule at the same specificity but later in source wins at ≥768px. */
+@media (min-width: 768px) {
+  .wp-mobile-topbar,
+  .wp-mobile-progress {
+    display: none;
+  }
+}
+
 /* ─── Drawer nav (mobile) ────────────────────────────────────────────── */
 
 .wp-drawer-backdrop {
@@ -605,6 +615,15 @@ pre code {
 @keyframes wp-drawer-in {
   from { transform: translateX(-100%); }
   to   { transform: translateX(0); }
+}
+
+/* Hidden state: unlayered component CSS overrides Tailwind's @layer utilities.
+ * Explicitly re-apply display:none with higher specificity (2 classes) so the
+ * drawer and backdrop are truly invisible and pointer-event-free when closed. */
+.wp-drawer.hidden,
+.wp-drawer-backdrop.hidden {
+  display: none;
+  pointer-events: none;
 }
 
 /* ─── Dashboard layout ───────────────────────────────────────────────── */

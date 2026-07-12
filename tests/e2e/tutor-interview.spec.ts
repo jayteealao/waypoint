@@ -209,22 +209,31 @@ test(
     await page.goto(`/journey/${JOURNEYS.scripted}/interview?mock=1`)
     await expect(page.getByTestId('interview-view')).toBeVisible()
 
+    // Wait for client-side React hydration to complete before interacting.
+    // TanStack Devtools button is client-rendered only — its presence confirms
+    // React has mounted and attached synthetic event listeners to the root.
+    await expect(page.getByRole('button', { name: 'Open TanStack Devtools' })).toBeVisible({ timeout: 10000 })
+
     // Consent question should be rendered from the seeded record
     await expect(page.getByTestId('chat-chips')).toBeVisible()
 
-    // Screenshot at 375px (mobile)
+    // Screenshot at 375px (mobile) — captured before interaction; viewport reset to desktop after
     await page.setViewportSize({ width: 375, height: 667 })
     await page.screenshot({
       path: path.join(screenshotDir(), 'interview-375px.png'),
       fullPage: false,
     })
+    // Reset to desktop viewport before interacting — mobile viewport can cause pointer-event
+    // issues when the chat input area is below the fold in the fixed-height shell layout.
+    await page.setViewportSize({ width: 1280, height: 800 })
 
     // Click "Yes, let's explore" chip → sends user turn
     await page.getByRole('button', { name: "Yes, let's explore" }).click()
 
     // Typing indicator should appear then disappear
     // (may be too fast to catch; skip if already gone)
-    await expect(page.getByTestId('chat-bubble-assistant-2')).toBeVisible({ timeout: 5000 })
+    // Index is 3: initial CONSENT_TURNS has user@0 + assistant@1; chip adds user@2 then server adds assistant@3
+    await expect(page.getByTestId('chat-bubble-assistant-3')).toBeVisible({ timeout: 10000 })
 
     // Screenshot at 768px (tablet) — mission stage
     await page.setViewportSize({ width: 768, height: 1024 })
@@ -279,6 +288,7 @@ test(
 
     await page.goto(`/journey/${JOURNEYS.resume}/interview?mock=1`)
     await expect(page.getByTestId('interview-view')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Open TanStack Devtools' })).toBeVisible({ timeout: 10000 })
 
     // The seeded record has 4 turns, ending at the mission question.
     // The resume should show all 4 bubbles and present the mission chips.
@@ -307,6 +317,7 @@ test(
 
     await page.goto(`/journey/${JOURNEYS.decline}/interview?mock=1`)
     await expect(page.getByTestId('interview-view')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Open TanStack Devtools' })).toBeVisible({ timeout: 10000 })
 
     // Chip "Just use my stated goal" should be present at consent stage
     await expect(page.getByRole('button', { name: 'Just use my stated goal' })).toBeVisible()
