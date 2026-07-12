@@ -152,12 +152,25 @@ test(
 
     const ctx = await makeAuthContext(browser, baseURL!)
     const page = await ctx.newPage()
-    await page.goto('/lesson/fixture')
+
+    // Capture console messages and errors for diagnostics
+    const consoleMessages: string[] = []
+    page.on('console', (msg) => consoleMessages.push(`[${msg.type()}] ${msg.text()}`))
+    page.on('pageerror', (err) => consoleMessages.push(`[pageerror] ${err.message}`))
+
+    await page.goto('/lesson/fixture', { waitUntil: 'load' })
     await expect(page.getByTestId('lesson-view')).toBeVisible()
 
     // --- Checkpoint ---
+    // Wait for the CheckpointQuestion's useEffect to fire — it sets data-hydrated="true"
+    // on the wrapper div, confirming React has fully taken control of the component
+    // and event handlers are registered on the root container.
+    await page.waitForSelector('[data-testid="checkpoint-question"][data-hydrated="true"]')
+
+    // Options are <button role="radio">. Standard .click() works on hydrated buttons.
     const option0 = page.getByTestId('checkpoint-option-0')
     await expect(option0).toBeVisible()
+    await option0.scrollIntoViewIfNeeded()
     await option0.click()
 
     // Explanation should appear after answering

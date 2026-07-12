@@ -8,7 +8,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Local D1 (SQLite file) cannot handle concurrent wrangler CLI writes from
+  // multiple spec files. Run with 1 worker to avoid SQLITE_BUSY errors from
+  // parallel beforeAll seeds. Increase if D1 contention is resolved.
+  workers: 1,
   reporter: 'html',
   use: {
     baseURL,

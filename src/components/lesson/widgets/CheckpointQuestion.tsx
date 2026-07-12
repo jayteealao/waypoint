@@ -28,9 +28,12 @@ export function CheckpointQuestion({
 }: CheckpointQuestionProps) {
   const storageKey = `wp:checkpoint:${id}`
   const [selected, setSelected] = useState<number | null>(null)
+  const [hydrated, setHydrated] = useState(false)
 
-  // Restore a prior answer from localStorage on mount
+  // Restore a prior answer from localStorage on mount; mark component as hydrated
+  // so E2E tests can wait for data-hydrated="true" before interacting.
   useEffect(() => {
+    setHydrated(true)
     try {
       const stored = localStorage.getItem(storageKey)
       if (stored !== null) {
@@ -66,6 +69,7 @@ export function CheckpointQuestion({
       className="wp-checkpoint"
       data-testid="checkpoint-question"
       aria-label="Checkpoint question"
+      data-hydrated={hydrated}
     >
       <p className="wp-checkpoint-question">{question}</p>
 
@@ -77,12 +81,14 @@ export function CheckpointQuestion({
         {options.map((option, i) => {
           const isSelected = selected === i
           return (
-            // div rather than button: role="radio" on a native <button> can produce
-            // conflicting announcements in some AT (e.g., "button — radio button").
-            // Using a non-interactive host with explicit keyboard handling matches
-            // the WAI-ARIA radiogroup/radio Authoring Practices Guide pattern.
-            <div
+            // button with role="radio" — WAI-ARIA permits role overrides on native
+            // elements; <button role="radio"> gives us native click/keyboard semantics
+            // without event-delegation surprises in test and SSR environments.
+            // aria-disabled (not disabled) keeps the element focusable after answering
+            // so the selected option remains reachable by keyboard.
+            <button
               key={i}
+              type="button"
               role="radio"
               aria-checked={isSelected}
               aria-disabled={answered && !isSelected}
@@ -96,7 +102,7 @@ export function CheckpointQuestion({
                 {isSelected ? '●' : '○'}
               </span>
               {option}
-            </div>
+            </button>
           )
         })}
       </div>
