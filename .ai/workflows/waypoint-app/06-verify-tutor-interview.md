@@ -21,7 +21,7 @@ metric-issues-found-initial: 5
 metric-issues-found-final: 0
 fix-rounds-run: 1
 convergence: converged
-verify-owned-fix-commit: "TBD — pending commit"
+verify-owned-fix-commit: "c4377e3"
 regression-tests-added: 0
 constraint-resolution-missing: []
 interactive-verification: required
