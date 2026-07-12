@@ -5,12 +5,12 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-12T02:43:03Z"
-slices-implemented: 9
+updated-at: "2026-07-12T04:14:40Z"
+slices-implemented: 10
 slices-total: 12
-metric-total-files-changed: 164
-metric-total-lines-added: 25753
-metric-total-lines-removed: 486
+metric-total-files-changed: 181
+metric-total-lines-added: 27203
+metric-total-lines-removed: 618
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution]
 refs:
   index: 00-index.md
@@ -222,7 +222,19 @@ next-invocation: "/wf verify waypoint-app sample-journey"
 
 - **Roadmap-lesson-generation: `data-testid="waypoint-link"`** — Added to each `<Link>` in `Sidebar.tsx` for Playwright E2E. The attribute is alongside the existing `data-waypoint={wp.id}` attribute.
 
+- **Quiz-fsrs: `ts-fsrs@5.4.1` required** — install before running code that imports `ts-fsrs`. Workers-compatible pure ESM, no Node builtins. Add to `package.json` with exact pin.
+
+- **Quiz-fsrs: `QuizView` requires `mode` prop** — discriminated union `mode: 'sample' | 'journey'`. Any new usage of `QuizView` must specify mode; omitting it is a typecheck error.
+
+- **Quiz-fsrs: server function route paths drop `_authenticated` prefix** — `Link to` and `router.navigate` must use `/journey/$journeyId/...`, not `/_authenticated/journey/$journeyId/...`. TanStack Router strips layout segment names from registered paths.
+
+- **Quiz-fsrs: `generateQuiz` is on-demand** — Called only when `getQuizQuestions` returns an empty array (first visit to the quiz route). Never called during lesson generation or roadmap creation.
+
+- **Quiz-fsrs: `gradeAnswer` returns `GradingOutput`** — `{ verdict: 'correct'|'incorrect'|'partial', score: 0|1|2, feedback: string }`. The FSRS rating mapping is: score=2 → `Rating.Good`, score=1 → `Rating.Hard`, score=0 → `Rating.Again`.
+
+- **Quiz-fsrs: waypoint route moved to index file** — `src/routes/_authenticated/journey/$journeyId/waypoint/$waypointId.tsx` became `index.tsx` inside a `$waypointId/` subdirectory to allow the `quiz.tsx` child route.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app roadmap-lesson-generation` — 20 Vitest unit tests (roadmap schema + NDJSON parser) + 4 Playwright E2E tests (seeded-session, BETTER_AUTH_SECRET deferral applies). BETTER_AUTH_SECRET deferral absorbed into existing AC-ADL1+AC-ADL5 entry.
-- **Option B:** `/wf review waypoint-app roadmap-lesson-generation` — Skip verify if unit tests + typecheck are sufficient. Not recommended given SSE path complexity.
+- **Option A (default):** `/wf verify waypoint-app quiz-fsrs` — 21 Vitest unit tests (FSRS scheduler, quiz schema, grading fixture) + 2 Playwright E2E tests (seeded-session, BETTER_AUTH_SECRET deferral applies). Unit tests pass clean; E2E absorbed into existing AC-ADL1+AC-ADL5 deferral entry.
+- **Option B:** `/wf review waypoint-app quiz-fsrs` — Skip verify if unit test evidence is sufficient for the review gate.

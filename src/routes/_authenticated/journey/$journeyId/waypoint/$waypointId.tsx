@@ -1,72 +1,27 @@
 /**
- * Waypoint lesson page: /_authenticated/journey/$journeyId/waypoint/$waypointId
+ * Waypoint layout route: /_authenticated/journey/$journeyId/waypoint/$waypointId
  *
- * Loader reads the D1 lesson for this waypoint (via getLessonByWaypointId).
- * - If a complete lesson exists: renders LessonView with the parsed LessonDocumentV1.
- * - If no lesson yet (null or empty content): renders LessonGeneratingView,
- *   which opens EventSource to /api/journey/$journeyId/lesson?waypointId=$waypointId
- *   and streams content progressively.
+ * Pure layout route that renders <Outlet /> so child routes (index, quiz) can
+ * be nested under the $waypointId path segment. No loader or UI of its own —
+ * lesson content lives in $waypointId/index.tsx and the quiz in
+ * $waypointId/quiz.tsx.
  *
- * Verification seams:
- *   data-testid="waypoint-page"  — page wrapper (always present)
- *   data-testid="lesson-content" — rendered by LessonGeneratingView when streaming
- *   data-testid="lesson-view"    — rendered by LessonView when content is complete
+ * Deviation from plan step 8: the plan specified modifying this file to add
+ * lesson content + completion status + "Take Quiz" link. In TanStack Router
+ * file-based routing, a route file that also has a child directory MUST render
+ * <Outlet /> for children to display. Moving the page content to index.tsx and
+ * making this a pure layout is the correct pattern (matches $journeyId.tsx).
+ * Recorded as plan deviation PD-1.
  */
 
-import { createFileRoute } from '@tanstack/react-router'
-import { getLessonByWaypointId } from '#/server/lessons'
-import { LessonView } from '#/components/lesson/LessonView'
-import { LessonGeneratingView } from '#/components/generation/LessonGeneratingView'
-import type { LessonDocumentV1, LessonSection } from '#/types/lesson-document'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 
 export const Route = createFileRoute(
   '/_authenticated/journey/$journeyId/waypoint/$waypointId',
 )({
-  head: () => ({ meta: [{ title: 'Waypoint — Lesson' }] }),
-  loader: async ({ params }) => {
-    const lesson = await getLessonByWaypointId({ data: params.waypointId })
-    return { lesson }
-  },
-  component: WaypointPage,
+  component: WaypointLayout,
 })
 
-function WaypointPage() {
-  const { journeyId, waypointId } = Route.useParams()
-  const { lesson } = Route.useLoaderData()
-
-  // Parse the stored lesson content if available
-  let parsedDoc: LessonDocumentV1 | null = null
-  let resumeSections: LessonSection[] = []
-
-  if (lesson?.content) {
-    // Attempt to parse as a full LessonDocumentV1 first
-    try {
-      const raw = JSON.parse(lesson.content) as unknown
-      // If it's an array, it's the progressive sections format used during streaming
-      if (Array.isArray(raw)) {
-        resumeSections = raw as LessonSection[]
-      } else {
-        // Full document (e.g. from an older format or future format)
-        parsedDoc = raw as LessonDocumentV1
-      }
-    } catch {
-      parsedDoc = null
-    }
-  }
-
-  return (
-    <div data-testid="waypoint-page" style={{ padding: '1.5rem 1rem' }}>
-      {parsedDoc ? (
-        // Complete stored lesson — render directly
-        <LessonView doc={parsedDoc} />
-      ) : (
-        // No complete lesson or partial sections — stream/resume
-        <LessonGeneratingView
-          journeyId={journeyId}
-          waypointId={waypointId}
-          initialSections={resumeSections}
-        />
-      )}
-    </div>
-  )
+function WaypointLayout() {
+  return <Outlet />
 }

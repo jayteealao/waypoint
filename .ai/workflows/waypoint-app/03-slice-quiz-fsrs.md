@@ -3,7 +3,7 @@ schema: sdlc/v1
 type: slice
 slug: waypoint-app
 slice-slug: quiz-fsrs
-status: defined
+status: complete
 stage-number: 3
 created-at: "2026-07-10T22:43:12Z"
 updated-at: "2026-07-10T22:43:12Z"

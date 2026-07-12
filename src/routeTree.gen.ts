@@ -28,6 +28,8 @@ import { Route as AuthenticatedJourneyJourneyIdRouteImport } from './routes/_aut
 import { Route as ApiJourneyJourneyIdLessonRouteImport } from './routes/api/journey/$journeyId/lesson'
 import { Route as AuthenticatedJourneyJourneyIdInterviewRouteImport } from './routes/_authenticated/journey/$journeyId/interview'
 import { Route as AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteImport } from './routes/_authenticated/journey/$journeyId/waypoint/$waypointId'
+import { Route as AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRouteImport } from './routes/_authenticated/journey/$journeyId/waypoint/$waypointId/index'
+import { Route as AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRouteImport } from './routes/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -132,6 +134,18 @@ const AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute =
     path: '/waypoint/$waypointId',
     getParentRoute: () => AuthenticatedJourneyJourneyIdRoute,
   } as any)
+const AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute =
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute,
+  } as any)
+const AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute =
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRouteImport.update({
+    id: '/quiz',
+    path: '/quiz',
+    getParentRoute: () => AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -151,7 +165,9 @@ export interface FileRoutesByFullPath {
   '/sample/': typeof AuthenticatedSampleIndexRoute
   '/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
   '/api/journey/$journeyId/lesson': typeof ApiJourneyJourneyIdLessonRoute
-  '/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+  '/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteWithChildren
+  '/journey/$journeyId/waypoint/$waypointId/quiz': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute
+  '/journey/$journeyId/waypoint/$waypointId/': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/about': typeof AboutRoute
@@ -170,7 +186,8 @@ export interface FileRoutesByTo {
   '/sample': typeof AuthenticatedSampleIndexRoute
   '/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
   '/api/journey/$journeyId/lesson': typeof ApiJourneyJourneyIdLessonRoute
-  '/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+  '/journey/$journeyId/waypoint/$waypointId/quiz': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute
+  '/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -192,7 +209,9 @@ export interface FileRoutesById {
   '/_authenticated/sample/': typeof AuthenticatedSampleIndexRoute
   '/_authenticated/journey/$journeyId/interview': typeof AuthenticatedJourneyJourneyIdInterviewRoute
   '/api/journey/$journeyId/lesson': typeof ApiJourneyJourneyIdLessonRoute
-  '/_authenticated/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+  '/_authenticated/journey/$journeyId/waypoint/$waypointId': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteWithChildren
+  '/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute
+  '/_authenticated/journey/$journeyId/waypoint/$waypointId/': typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -215,6 +234,8 @@ export interface FileRouteTypes {
     | '/journey/$journeyId/interview'
     | '/api/journey/$journeyId/lesson'
     | '/journey/$journeyId/waypoint/$waypointId'
+    | '/journey/$journeyId/waypoint/$waypointId/quiz'
+    | '/journey/$journeyId/waypoint/$waypointId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
@@ -233,6 +254,7 @@ export interface FileRouteTypes {
     | '/sample'
     | '/journey/$journeyId/interview'
     | '/api/journey/$journeyId/lesson'
+    | '/journey/$journeyId/waypoint/$waypointId/quiz'
     | '/journey/$journeyId/waypoint/$waypointId'
   id:
     | '__root__'
@@ -255,6 +277,8 @@ export interface FileRouteTypes {
     | '/_authenticated/journey/$journeyId/interview'
     | '/api/journey/$journeyId/lesson'
     | '/_authenticated/journey/$journeyId/waypoint/$waypointId'
+    | '/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz'
+    | '/_authenticated/journey/$journeyId/waypoint/$waypointId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -401,6 +425,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteImport
       parentRoute: typeof AuthenticatedJourneyJourneyIdRoute
     }
+    '/_authenticated/journey/$journeyId/waypoint/$waypointId/': {
+      id: '/_authenticated/journey/$journeyId/waypoint/$waypointId/'
+      path: '/'
+      fullPath: '/journey/$journeyId/waypoint/$waypointId/'
+      preLoaderRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRouteImport
+      parentRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+    }
+    '/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz': {
+      id: '/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz'
+      path: '/quiz'
+      fullPath: '/journey/$journeyId/waypoint/$waypointId/quiz'
+      preLoaderRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRouteImport
+      parentRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+    }
   }
 }
 
@@ -421,9 +459,27 @@ const AuthenticatedSampleRouteChildren: AuthenticatedSampleRouteChildren = {
 const AuthenticatedSampleRouteWithChildren =
   AuthenticatedSampleRoute._addFileChildren(AuthenticatedSampleRouteChildren)
 
+interface AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteChildren {
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute
+}
+
+const AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteChildren: AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteChildren =
+  {
+    AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute:
+      AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute,
+    AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute:
+      AuthenticatedJourneyJourneyIdWaypointWaypointIdIndexRoute,
+  }
+
+const AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteWithChildren =
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute._addFileChildren(
+    AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteChildren,
+  )
+
 interface AuthenticatedJourneyJourneyIdRouteChildren {
   AuthenticatedJourneyJourneyIdInterviewRoute: typeof AuthenticatedJourneyJourneyIdInterviewRoute
-  AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute
+  AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute: typeof AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteWithChildren
 }
 
 const AuthenticatedJourneyJourneyIdRouteChildren: AuthenticatedJourneyJourneyIdRouteChildren =
@@ -431,7 +487,7 @@ const AuthenticatedJourneyJourneyIdRouteChildren: AuthenticatedJourneyJourneyIdR
     AuthenticatedJourneyJourneyIdInterviewRoute:
       AuthenticatedJourneyJourneyIdInterviewRoute,
     AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute:
-      AuthenticatedJourneyJourneyIdWaypointWaypointIdRoute,
+      AuthenticatedJourneyJourneyIdWaypointWaypointIdRouteWithChildren,
   }
 
 const AuthenticatedJourneyJourneyIdRouteWithChildren =

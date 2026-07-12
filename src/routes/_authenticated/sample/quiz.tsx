@@ -32,7 +32,7 @@ function SampleQuizPage() {
           Check Your Understanding
         </h1>
       </div>
-      <QuizView questions={SAMPLE_QUIZ} onComplete={handleComplete} />
+      <QuizView mode="sample" questions={SAMPLE_QUIZ} onComplete={handleComplete} />
     </div>
   )
 }

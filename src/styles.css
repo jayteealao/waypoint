@@ -1696,3 +1696,108 @@ pre code {
   color: var(--ember);
   font-weight: 600;
 }
+
+/* ── Quiz: FRQ input, grading state, grade verdict ──────────────────────────── */
+
+.wp-quiz-frq-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--ink);
+  background: transparent;
+  resize: vertical;
+  transition: border-color var(--motion-fast);
+  outline: none;
+}
+
+.wp-quiz-frq-input:focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 2px var(--ember-subtle);
+}
+
+.wp-quiz-frq-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  resize: none;
+}
+
+@keyframes wp-blink-ellipsis {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.wp-quiz-grading-state {
+  margin-top: 0.75rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  font-size: 0.9375rem;
+}
+
+.wp-quiz-grading-state::after {
+  content: '…';
+  display: inline-block;
+  animation: wp-blink-ellipsis 1.2s ease-in-out infinite;
+}
+
+.wp-quiz-grade-verdict {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  background: var(--ember-subtle);
+  border-left: 3px solid var(--ink-faint);
+}
+
+.wp-quiz-grade-verdict.wp-quiz-grade-verdict--correct {
+  background: oklch(0.94 0.03 145);
+  border-left-color: var(--success);
+  color: var(--ink);
+}
+
+.wp-quiz-grade-verdict.wp-quiz-grade-verdict--incorrect {
+  background: oklch(0.95 0.03 28);
+  border-left-color: var(--ember-dark);
+  color: var(--ink);
+}
+
+.wp-quiz-grade-verdict.wp-quiz-grade-verdict--partial {
+  background: oklch(0.95 0.04 50);
+  border-left-color: var(--ember);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .wp-quiz-grade-verdict.wp-quiz-grade-verdict--correct {
+  background: oklch(0.26 0.05 145);
+}
+
+:root[data-theme="dark"] .wp-quiz-grade-verdict.wp-quiz-grade-verdict--incorrect {
+  background: oklch(0.24 0.05 28);
+}
+
+:root[data-theme="dark"] .wp-quiz-grade-verdict.wp-quiz-grade-verdict--partial {
+  background: oklch(0.25 0.05 38);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wp-quiz-grade-verdict.wp-quiz-grade-verdict--correct {
+    background: oklch(0.26 0.05 145);
+  }
+  :root:not([data-theme="light"]) .wp-quiz-grade-verdict.wp-quiz-grade-verdict--incorrect {
+    background: oklch(0.24 0.05 28);
+  }
+  :root:not([data-theme="light"]) .wp-quiz-grade-verdict.wp-quiz-grade-verdict--partial {
+    background: oklch(0.25 0.05 38);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wp-quiz-grading-state::after {
+    animation: none;
+  }
+}

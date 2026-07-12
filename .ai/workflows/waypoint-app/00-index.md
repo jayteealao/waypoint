@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: verify
-stage-number: 6
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T03:11:02Z"
-selected-slice: "roadmap-lesson-generation"
+updated-at: "2026-07-12T04:14:40Z"
+selected-slice: "quiz-fsrs"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -99,8 +99,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-review
-next-invocation: "/wf review waypoint-app roadmap-lesson-generation"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -296,6 +296,9 @@ workflow-files:
   - 04-plan-roadmap-lesson-generation.md
   - 04-plan-roadmap-lesson-generation.yaml
   - 04-plan-roadmap-lesson-generation.html.fragment
+  - 04-plan-quiz-fsrs.md
+  - 04-plan-quiz-fsrs.yaml
+  - 04-plan-quiz-fsrs.html.fragment
   - 05-implement-lesson-renderer.md
   - 06-verify-lesson-renderer.md
   - 07-review-lesson-renderer-correctness.md
@@ -350,6 +353,7 @@ workflow-files:
   - 06-verify-tutor-interview.md
   - 05-implement-roadmap-lesson-generation.md
   - 06-verify-roadmap-lesson-generation.md
+  - 05-implement-quiz-fsrs.md
   - 07-review-ai-gateway-correctness.md
   - 07-review-ai-gateway-correctness.yaml
   - 07-review-ai-gateway-security.md
@@ -437,6 +441,39 @@ workflow-files:
   - 07-review-tutor-interview.md
   - 07-review-tutor-interview.yaml
   - 07-review-tutor-interview.html.fragment
+  - 07-review-roadmap-lesson-generation-security.md
+  - 07-review-roadmap-lesson-generation-security.yaml
+  - 07-review-roadmap-lesson-generation-correctness.md
+  - 07-review-roadmap-lesson-generation-correctness.yaml
+  - 07-review-roadmap-lesson-generation-reliability.md
+  - 07-review-roadmap-lesson-generation-reliability.yaml
+  - 07-review-roadmap-lesson-generation-backend-concurrency.md
+  - 07-review-roadmap-lesson-generation-backend-concurrency.yaml
+  - 07-review-roadmap-lesson-generation-accessibility.md
+  - 07-review-roadmap-lesson-generation-accessibility.yaml
+  - 07-review-roadmap-lesson-generation-frontend-accessibility.md
+  - 07-review-roadmap-lesson-generation-frontend-accessibility.yaml
+  - 07-review-roadmap-lesson-generation-frontend-performance.md
+  - 07-review-roadmap-lesson-generation-frontend-performance.yaml
+  - 07-review-roadmap-lesson-generation-interface-craft.md
+  - 07-review-roadmap-lesson-generation-interface-craft.yaml
+  - 07-review-roadmap-lesson-generation-ux-copy.md
+  - 07-review-roadmap-lesson-generation-ux-copy.yaml
+  - 07-review-roadmap-lesson-generation-testing.md
+  - 07-review-roadmap-lesson-generation-testing.yaml
+  - 07-review-roadmap-lesson-generation-privacy.md
+  - 07-review-roadmap-lesson-generation-privacy.yaml
+  - 07-review-roadmap-lesson-generation-cost.md
+  - 07-review-roadmap-lesson-generation-cost.yaml
+  - 07-review-roadmap-lesson-generation-code-simplification.md
+  - 07-review-roadmap-lesson-generation-code-simplification.yaml
+  - 07-review-roadmap-lesson-generation-maintainability.md
+  - 07-review-roadmap-lesson-generation-maintainability.yaml
+  - 07-review-roadmap-lesson-generation-api-contracts.md
+  - 07-review-roadmap-lesson-generation-api-contracts.yaml
+  - 07-review-roadmap-lesson-generation.md
+  - 07-review-roadmap-lesson-generation.yaml
+  - 07-review-roadmap-lesson-generation.html.fragment
 progress:
   intake: complete
   shape: complete
