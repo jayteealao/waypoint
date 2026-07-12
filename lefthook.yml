@@ -1,0 +1,26 @@
+# Added by wf ship-plan build — plan v2, 2026-07-12
+# Local git hooks from .ai/ship-plan.md Block I. lefthook is a pinned devDependency
+# (allow-listed in pnpm.onlyBuiltDependencies), so `pnpm install` wires .git/hooks.
+# gitleaks is a system binary — install via `winget install gitleaks` / `scoop install gitleaks`.
+
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      run: pnpm exec oxlint
+    format-check:
+      run: pnpm exec oxfmt --check .
+    secret-scan:
+      run: gitleaks protect --staged --no-banner
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  commands:
+    typecheck:
+      run: pnpm exec tsc --noEmit
+    test:
+      run: pnpm exec vitest run

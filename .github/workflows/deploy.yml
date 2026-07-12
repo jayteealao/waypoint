@@ -1,0 +1,169 @@
+# Added by wf ship-plan build — plan v2, 2026-07-12
+# CD contract from .ai/ship-plan.md: merge to main → staging; tag vX.Y.Z → production
+# (gated by the `production` GitHub Environment approval). workflow_dispatch is the
+# manual fallback — select a vX.Y.Z tag as the ref to run a production deploy, since
+# tags pushed by release-cut.yml with GITHUB_TOKEN do not trigger this workflow.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  DEPLOY_ENV: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate route types
+        run: pnpm generate-routes
+
+      - name: Build
+        run: pnpm run build
+
+  d1-migrate:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply D1 migrations (${{ env.DEPLOY_ENV }})
+        run: pnpm exec wrangler d1 migrations apply DB --env ${{ env.DEPLOY_ENV }} --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  deploy:
+    needs: d1-migrate
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate route types
+        run: pnpm generate-routes
+
+      - name: Deploy (${{ env.DEPLOY_ENV }})
+        run: pnpm run build && pnpm exec wrangler deploy --env ${{ env.DEPLOY_ENV }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  post-publish:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Wait for propagation
+        run: sleep 60
+
+      - name: Smoke test (${{ env.DEPLOY_ENV }})
+        run: |
+          # TODO: replace <subdomain> with the account's workers.dev subdomain after the
+          # first deploy prints it, then remove the placeholder guard (ship-plan Block D).
+          if [ "$DEPLOY_ENV" = "production" ]; then
+            URL="https://waypoint.<subdomain>.workers.dev/"
+          else
+            URL="https://waypoint-staging.<subdomain>.workers.dev/"
+          fi
+          case "$URL" in
+            *"<subdomain>"*)
+              echo "::warning::Smoke test skipped — <subdomain> placeholder not yet filled in deploy.yml (ship-plan Block D)."
+              exit 0
+              ;;
+          esac
+          MAX_WAIT=$(( 5 * 60 ))
+          ELAPSED=0
+          while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
+            if curl -fsS "$URL" > /dev/null; then
+              echo "Smoke test passed: $URL"
+              exit 0
+            fi
+            sleep 15
+            ELAPSED=$(( ELAPSED + 15 ))
+          done
+          echo "Smoke test timed out after 5 minutes: $URL"
+          exit 1
+
+      - name: Check newest deployment (${{ env.DEPLOY_ENV }})
+        run: |
+          # expect: newest deployment matches the released version (ship-plan Block D)
+          pnpm exec wrangler deployments list --env ${{ env.DEPLOY_ENV }}
+          # TODO: assert the newest entry matches the released version once the output
+          # format/version tagging is confirmed after the first deploy.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

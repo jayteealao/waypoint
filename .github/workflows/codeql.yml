@@ -1,0 +1,28 @@
+# Added by wf ship-plan build — plan v2, 2026-07-12
+# SAST gate from .ai/ship-plan.md Block K: CodeQL on PR + weekly schedule.
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3

@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Added by wf ship-plan build — plan v2, 2026-07-12 (full history for commitlint range)
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -38,6 +41,10 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      # Added by wf ship-plan build — plan v2, 2026-07-12
+      - name: Format check
+        run: pnpm exec oxfmt --check .
 
       - name: Unit tests
         run: pnpm test
@@ -65,3 +72,28 @@ jobs:
             }
             console.log('All dependencies are exactly pinned.');
           "
+
+      # Added by wf ship-plan build — plan v2, 2026-07-12
+      - name: Commit lint
+        if: github.event_name == 'pull_request'
+        run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+
+      # Added by wf ship-plan build — plan v2, 2026-07-12
+      - name: Publish dry-run
+        run: pnpm run build && pnpm exec wrangler deploy --dry-run --outdir dist
+
+  # Added by wf ship-plan build — plan v2, 2026-07-12
+  gitleaks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

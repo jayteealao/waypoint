@@ -1,0 +1,62 @@
+# Added by wf ship-plan build — plan v2, 2026-07-12
+# Cuts a production release per .ai/ship-plan.md Block B: git-cliff derives the next
+# SemVer from Conventional Commits, the same step syncs package.json, the CHANGELOG is
+# regenerated, and the commit is tagged vX.Y.Z and pushed.
+#
+# NOTE: tags pushed with GITHUB_TOKEN do NOT trigger other workflows (GitHub recursion
+# guard), so this tag will not auto-start deploy.yml. After this workflow completes,
+# run the Deploy workflow manually via workflow_dispatch selecting the new vX.Y.Z tag
+# as the ref — or cut releases locally (git tag + git push origin vX.Y.Z) instead.
+name: Release Cut
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Guard — main only
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Release Cut must run on main (got ${{ github.ref }})."
+          exit 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bump version
+        run: NEW=$(pnpm exec git-cliff --bumped-version) && pnpm version --no-git-tag-version --allow-same-version "${NEW#v}"
+
+      - name: Generate changelog
+        run: pnpm exec git-cliff -o CHANGELOG.md
+
+      - name: Commit, tag, and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          NEW=$(node -p "require('./package.json').version")
+          git add package.json CHANGELOG.md
+          git diff --staged --quiet || git commit -m "chore(release): v${NEW}"
+          git tag -a "v${NEW}" -m "v${NEW}"
+          git push origin HEAD --follow-tags
+          echo "Released v${NEW}. Now run the Deploy workflow with ref v${NEW} to deploy production."

@@ -1,0 +1,61 @@
+# Added by wf ship-plan build — plan v2, 2026-07-12
+# Rollback contract from .ai/ship-plan.md Block E: redeploy-prior — wrangler rolls the
+# Worker back to the previous immutable version (~2 min). Code only: D1 schema state is
+# NOT rolled back (migrations 0000–0003 are forward-only; expand-contract policy).
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to roll back'
+        required: true
+        type: choice
+        options: [staging, production]
+      version-id:
+        description: 'Cloudflare version ID to roll back to (blank = previous version)'
+        required: false
+      reason:
+        description: 'Reason for rollback'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Roll back Worker (${{ inputs.environment }})
+        run: pnpm exec wrangler rollback ${{ inputs.version-id }} --env ${{ inputs.environment }} --message "${{ inputs.reason }}" --yes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify current deployments
+        run: pnpm exec wrangler deployments list --env ${{ inputs.environment }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Record rollback
+        run: |
+          echo "Rolled back ${{ inputs.environment }} to ${{ inputs.version-id || 'previous version' }}: ${{ inputs.reason }}"

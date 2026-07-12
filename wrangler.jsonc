@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "waypoint",
+  // Top-level config is for LOCAL DEV ONLY (wrangler dev / vite). Named waypoint-dev so a
+  // bare `wrangler deploy` can never clobber the production worker (env.production = "waypoint").
+  "name": "waypoint-dev",
   "compatibility_date": "2025-11-01",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
@@ -9,10 +11,35 @@
     {
       "binding": "DB",
       "database_name": "waypoint-dev",
-      // Placeholder ID valid for wrangler dev / miniflare local D1.
-      // Replace with the real ID from `wrangler d1 create waypoint-dev` on first deploy.
+      // Placeholder ID valid for wrangler dev / miniflare local D1 only.
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  // Deploy targets. D1 bindings are NOT inherited by environments — each env
+  // declares its own database. Deploy with `wrangler deploy --env <staging|production>`.
+  "env": {
+    "staging": {
+      "name": "waypoint-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "waypoint-staging",
+          "database_id": "0ea56221-8a9e-479f-b8f1-f59720eceb6c",
+          "migrations_dir": "migrations"
+        }
+      ]
+    },
+    "production": {
+      "name": "waypoint",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "waypoint-prod",
+          "database_id": "9254f3af-c97c-4ade-a074-9117d22aaf52",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }
