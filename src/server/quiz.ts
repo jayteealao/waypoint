@@ -302,11 +302,14 @@ export const gradeAnswer = createServerFn({ method: 'POST' })
     const { questionId, response: learnerResponse, journeyId = null } = data
     const userId = session.user.id
 
-    // Read question for context
+    // Read question for context — and verify it belongs to a journey owned by this user
     const question = await env.DB.prepare(
-      'SELECT * FROM quiz_questions WHERE id = ?',
+      `SELECT q.* FROM quiz_questions q
+       JOIN waypoints w ON w.id = q.waypoint_id
+       JOIN journeys j ON j.id = w.journey_id
+       WHERE q.id = ? AND j.user_id = ?`,
     )
-      .bind(questionId)
+      .bind(questionId, userId)
       .first<QuizQuestion>()
     if (!question) throw new Response(null, { status: 404 })
 
@@ -440,6 +443,12 @@ export const getWaypointCompletionStatus = createServerFn()
   .handler(async ({ data: journeyId, context }): Promise<Record<string, boolean>> => {
     const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
     const userId = session.user.id
+
+    // Verify journey ownership before revealing waypoint IDs
+    const journey = await env.DB.prepare('SELECT id FROM journeys WHERE id = ? AND user_id = ?')
+      .bind(journeyId, userId)
+      .first<{ id: string }>()
+    if (!journey) throw new Response(null, { status: 404 })
 
     // Get all waypoint IDs in this journey that have quiz questions
     const waypointIds = await env.DB.prepare(
