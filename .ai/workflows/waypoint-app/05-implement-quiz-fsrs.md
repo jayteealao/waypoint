@@ -12,7 +12,7 @@ metric-lines-added: 1450
 metric-lines-removed: 132
 metric-deviations-from-plan: 3
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "aa48317"
 tags: [quiz-generation, ai-grading, fsrs, spaced-repetition, learner-model]
 refs:
   index: 00-index.md
