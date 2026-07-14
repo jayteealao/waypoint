@@ -1,77 +1,64 @@
 /**
- * TanStack DB QueryCollection for journeys.
+ * Journeys collection — the factory-standard, schema-typed, localStorage-backed
+ * TanStack DB collection for the signed-in user's journeys.
  *
- * The collection uses `listJourneys` server function as its sync source.
- * On mount (or when invalidated), it fetches all journeys for the signed-in
- * user and populates the in-memory store; components read from the store via
- * `useJourneys()` without per-render network round trips (AC-ADL4).
+ * Rebuilt on `defineDomainCollection` (shape D1). The three "beta gap" comments
+ * the old module carried were re-verified against installed source and found to
+ * be misuse, not gaps (MEMORY: TanStack assume-missing anti-pattern):
+ *  - the `as any` on `useLiveQuery` → gone; a Zod v4 `schema` makes types flow
+ *    (source: @tanstack/db local-storage.d.ts:164 `schema: T`).
+ *  - the fire-and-forget syncer → gone; the loader seeds the collection and the
+ *    library's localStorage sync is the read source.
+ *  - in-memory only → gone; `localStorageCollectionOptions` persists per user.
  *
- * Triage deviation from plan (recorded in 05-implement-accounts-data-layer.md):
- * @tanstack/db@0.6.14 does not include IndexedDB persistence. The plan's
- * `persistence: { type: 'indexeddb' }` API does not exist in this version.
- * Resolution: in-memory collection; subsequent slices can add persistence once
- * the stable API lands. The reactive read AC (AC-ADL4) is fully satisfied
- * by the in-memory collection.
+ * Read path: the route loader passes its D1 result as `seed`; the collection is
+ * seeded (LWW-by-`updated_at`) then read reactively — the loader is the single
+ * fetch per navigation (F8 / AC-DLU1), not a second `listJourneys()` call.
  *
- * Also: the plan referenced `createReactCollection` which does not exist in
- * @tanstack/react-db@0.1.92. Resolved: `createCollection` from @tanstack/db
- * + `useLiveQuery` from @tanstack/react-db is the correct API combination.
+ * Write path: `onUpdate` flushes optimistic edits to D1 via `updateJourney`
+ * (id-stable). CREATE deliberately stays on the `createJourney` server fn (see
+ * `journey/new`), NOT an optimistic `collection.insert`: the journey PK is
+ * generated server-side, so a client-assigned optimistic id would diverge from
+ * the persisted row and orphan on the next seed. Recorded in the implement
+ * artifact as a deliberate deviation from the plan's "onInsert→createJourney".
  */
-import { createCollection } from '@tanstack/db'
 import { useLiveQuery } from '@tanstack/react-db'
-import { listJourneys } from '#/server/journeys'
+import { updateJourney } from '#/server/journeys'
+import { journeySchema } from '#/lib/db/schemas'
+import { defineDomainCollection } from '#/lib/db/collection-factory'
 import type { Journey } from '#/db/schema'
 
-/**
- * Reactive collection of the signed-in user's journeys.
- * Syncs from the `listJourneys` server function on mount.
- */
-export const journeysCollection = createCollection<Journey, string>({
-  id: 'journeys',
-  // Extract the row primary key for internal indexing.
-  getKey: (journey) => journey.id,
-  // Server-function syncer: calls listJourneys on mount and on invalidation,
-  // then writes all rows into the in-memory store atomically.
-  sync: {
-    // TanStack DB@0.6.14: the sync fn must return `void | CleanupFn | SyncConfigRes`,
-    // not a Promise. Async work is launched fire-and-forget; markReady() signals
-    // completion. Errors are swallowed after markReady() to avoid unhandled rejection;
-    // the component layer must handle empty-collection fallback for the auth-error case.
-    sync: ({ begin, write, commit, markReady }) => {
-      void listJourneys()
-        .then((journeys) => {
-          begin()
-          for (const journey of journeys) {
-            write({ type: 'insert', value: journey })
-          }
-          commit()
-          markReady()
-        })
-        .catch((err: unknown) => {
-          // Auth errors (401/403): expected when the user is unauthenticated or
-          // unauthorized — mark ready with an empty collection. The route guard
-          // will redirect to sign-in before the component renders.
-          // All other errors (D1 unavailable, network failure, etc.) are logged
-          // so they surface in developer tools and Cloudflare Logpush.
-          if (!(err instanceof Response) || (err.status !== 401 && err.status !== 403)) {
-            console.error('[journeys-collection] unexpected sync error:', err)
-          }
-          markReady()
-        })
+const journeysHandle = defineDomainCollection({
+  entity: 'journeys',
+  schema: journeySchema,
+  getKey: (j) => j.id,
+  versionOf: (j) => j.updated_at,
+  handlers: {
+    onUpdate: async (j) => {
+      await updateJourney({
+        data: { id: j.id, patch: { title: j.title, goal: j.goal, status: j.status } },
+      })
     },
   },
 })
 
 /**
- * React hook: returns all journeys for the authenticated user, sorted by
- * created_at descending (same order as the server function returns them).
- *
- * Note: `as any` cast is required because @tanstack/react-db@0.1.92's
- * `useLiveQuery` type signature requires a StandardSchemaV1-typed collection,
- * but our collection uses a plain TypeScript interface (Journey). The runtime
- * behaviour is correct; this is a beta-library type gap.
+ * Get (or lazily create) the current user's journeys collection, LWW-seeding it
+ * from the loader's D1 payload when provided. Client-only cache; on the server
+ * this returns a throwaway empty collection (SSR renders from loader data).
  */
-export function useJourneys() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return useLiveQuery((q) => q.from({ journeys: journeysCollection as any }))
+export function getJourneysCollection(userId: string, seed?: Journey[]) {
+  return journeysHandle.get(userId, seed)
+}
+
+/** Test-only: reset the per-user registry between specs. */
+export const _resetJourneysRegistry = journeysHandle._resetRegistry
+
+/**
+ * Reactive live query over a journeys collection. Returns rows newest-first to
+ * match the server function's ORDER BY created_at DESC. The collection is
+ * schema-typed, so `data` is `Journey[]` with no `as any` (AC-DLU2).
+ */
+export function useJourneys(collection: ReturnType<typeof getJourneysCollection>) {
+  return useLiveQuery((q) => q.from({ journey: collection }))
 }

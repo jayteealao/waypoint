@@ -1,4 +1,5 @@
 import { createAuthClient } from 'better-auth/react'
+import { purgeUserCache } from '#/lib/db/storage-keys'
 
 /**
  * Client-side better-auth instance.
@@ -24,4 +25,18 @@ export const authClient = createAuthClient({
 })
 
 // Named re-exports for ergonomic imports in route components.
-export const { useSession, signIn, signOut } = authClient
+export const { useSession, signIn } = authClient
+
+/**
+ * Sign out, purging every per-user client cache (`wp:*`) first (AC-DLU7).
+ *
+ * Wrapping the raw `authClient.signOut` guarantees that switching accounts on a
+ * shared browser cannot surface user A's cached collection rows to user B: the
+ * namespaced localStorage keys are removed before the session ends and the next
+ * user seeds fresh. Signature mirrors the underlying action so existing call
+ * sites are unchanged.
+ */
+export const signOut: typeof authClient.signOut = (...args) => {
+  purgeUserCache()
+  return authClient.signOut(...args)
+}

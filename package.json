@@ -32,7 +32,6 @@
     "@tanstack/react-devtools": "0.10.8",
     "@tanstack/react-router": "1.170.17",
     "@tanstack/react-router-devtools": "1.167.0",
-    "@tanstack/react-router-ssr-query": "1.167.1",
     "@tanstack/react-start": "1.168.27",
     "@tanstack/router-plugin": "1.168.19",
     "better-auth": "1.6.23",
@@ -41,7 +40,8 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "tailwindcss": "4.3.2",
-    "ts-fsrs": "5.4.1"
+    "ts-fsrs": "5.4.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.44.0",

@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T14:26:42Z"
-slices-implemented: 16
-slices-total: 16
-metric-total-files-changed: 243
-metric-total-lines-added: 30014
-metric-total-lines-removed: 1443
+updated-at: "2026-07-14T15:36:52Z"
+slices-implemented: 17
+slices-total: 17
+metric-total-files-changed: 258
+metric-total-lines-added: 30883
+metric-total-lines-removed: 1622
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tanstack-router-typed-context"
+next-invocation: "/wf verify waypoint-app tanstack-data-layer-unification"
 ---
 
 # Implement Index
@@ -306,9 +306,36 @@ next-invocation: "/wf verify waypoint-app tanstack-router-typed-context"
   or reintroduce a cast.** The `src/server/*.ts` `context as { session }` casts are a *different* DI chain
   (server-fn middleware) and are intentionally untouched.
 
+- **Tanstack-data-layer-unification: `defineDomainCollection` is the one collection factory** —
+  `src/lib/db/collection-factory.ts` (`defineDomainCollection` + `seedStorage` + lazy per-user
+  registry) is the shape for EVERY client-read collection. Journeys lives in `src/lib/store/journeys.ts`;
+  the other 7 client entities in `src/lib/store/collections.ts`. Rules any future collection must follow:
+  (1) carry a Zod v4 `schema` from `src/lib/db/schemas.ts` so `useLiveQuery` types flow with no `as any`;
+  (2) persist under `wp:<userId>:<entity>` via `storageKey()` and be purged by `purgeUserCache()` on
+  sign-out; (3) be created lazily per-user — NEVER a module singleton (a server-cached collection bleeds
+  users across a warm isolate); (4) SEED via `getXCollection(userId, loaderRows)` which writes the
+  localStorage blob directly (LWW-by-`updated_at`) — do NOT `collection.insert` loader data (that flushes
+  it back to D1). **This supersedes the two earlier `useJourneys()`/`createCollection` notes**
+  (Accounts-data-layer "TanStack DB API" and Design-system-shell "`useJourneys()` return-type"): the
+  `{ sync: … markReady }` fire-and-forget syncer, the `as any`, and the `Journey[] | {journeys:Journey}[]`
+  normalisation are all gone. SSR renders from route loaders (D1), never from a collection (shape D3).
+- **Tanstack-data-layer-unification: Query bridge removed** — `@tanstack/react-query` +
+  `@tanstack/react-router-ssr-query` are no longer dependencies (−189 packages); `zod@4.4.3` is a direct
+  exact-pin. No `src/` code may import either query package. `defaultPreloadStaleTime` is `30_000` (not `0`).
+- **Tanstack-data-layer-unification: write path stays on server commands** — quiz-attempts/FSRS writes go
+  through `recordAttemptAndUpdateFsrs` (a coupled grading command), NOT optimistic collection inserts;
+  those collections are read caches. Future optimistic-write wiring needs a client-id-honoring insert fn.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app tanstack-router-typed-context` — typing/DI change on
+- **(current) Option A (default):** `/wf verify waypoint-app tanstack-data-layer-unification` — DB-everywhere
+  data-layer unification (F2+F3+F7+F8). Automated ACs green now (typecheck/lint clean; 211 Vitest pass;
+  AC-DLU2/3/4/5 grep-verified); verify owns the interactive half (AC-DLU1 single-fetch, AC-DLU6 per-entity
+  SSR/hydration at 3 breakpoints, AC-DLU7 two-identity isolation, AC-DLU8 optimistic UI) — `BETTER_AUTH_SECRET`
+  present so the seeded-session harness runs, no seam to build. RIM-E7 (nine-entity local-first big-bang)
+  makes runtime SSR/isolation proof load-bearing.
+
+- **(prior) Option A:** `/wf verify waypoint-app tanstack-router-typed-context` — typing/DI change on
   the root route (every navigation). AC1/AC2 are green via `pnpm typecheck` at implement; verify owns AC3
   (seeded-session auth-redirect suite `tests/e2e/auth-flow.spec.ts` + a `pnpm dev` hydration smoke, RIM-E6
   parity). The auth harness and `BETTER_AUTH_SECRET` already exist — no seam to build.

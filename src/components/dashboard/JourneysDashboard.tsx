@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
 import type { Journey } from '#/db/schema'
-import { useJourneys } from '#/lib/store/journeys'
+import { getJourneysCollection, useJourneys } from '#/lib/store/journeys'
 import { JourneyCard } from './JourneyCard'
-import { Skeleton } from '../ui/Skeleton'
 import { Compass } from 'lucide-react'
 import { SAMPLE_JOURNEY_VISITED_KEY } from '#/fixtures/sample-journey'
 
@@ -61,73 +60,60 @@ function EmptyState() {
   )
 }
 
-/** Loading skeleton grid — three card skeletons. */
-function LoadingSkeleton() {
-  return (
-    <div className="wp-journey-grid" aria-busy="true" aria-label="Loading journeys">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="wp-card p-5 flex flex-col gap-3">
-          <Skeleton height="1.5rem" width="75%" />
-          <Skeleton height="0.875rem" width="90%" />
-          <Skeleton height="0.875rem" width="60%" />
-          <Skeleton height="0.5rem" />
-          <div className="flex justify-between mt-2">
-            <Skeleton height="0.875rem" width="4rem" />
-            <Skeleton height="2rem" width="6rem" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export interface JourneysDashboardProps {
-  /** Per-journey mastery percentages (0–100) from the route loader. Defaults to {}. */
+  /** Journeys from the route loader (D1). Seeds the collection and is the SSR /
+   *  first-paint render source so hydration matches the server exactly. */
+  journeys: Journey[]
+  /** Per-journey mastery percentages (0–100) from the route loader. */
   masteryByJourneyId?: Record<string, number>
+  /** Signed-in user id — namespaces the client collection (AC-DLU7). */
+  userId: string
 }
 
 /**
  * Journeys dashboard — the returning learner's "where was I?" surface.
  *
- * Loading state: renders skeletons for one frame after mount while the
- * TanStack DB syncer completes. The syncer calls `markReady()` asynchronously.
- *
- * sdlc-debt: TanStack DB@0.6.14 does not expose a collection `isReady` flag
- * on the public API. This component uses a useEffect-flipped boolean as a proxy.
- * When @tanstack/db stabilises a `useCollectionReady()` hook, replace the
- * boolean with that. Ceiling: 1-frame flash of skeleton on first mount.
+ * SSR / hydration (AC-DLU6): the server has no localStorage, so it renders the
+ * loader `journeys` prop directly. The first client render does the same (before
+ * the mount effect flips `hydrated`), so hydration is byte-identical — no
+ * mismatch and no first-paint-from-empty-store. After mount the component reads
+ * the seeded, reactive collection (F3 readiness via `collection.isReady()`, no
+ * `requestAnimationFrame` proxy, no `as any`).
  */
-export function JourneysDashboard({ masteryByJourneyId = {} }: JourneysDashboardProps) {
-  const [isReady, setIsReady] = useState(false)
-  const navigate              = useNavigate()
+export function JourneysDashboard({
+  journeys: seed,
+  masteryByJourneyId = {},
+  userId,
+}: JourneysDashboardProps) {
+  const navigate = useNavigate()
 
-  // Flip ready after the first paint so the syncer has time to call markReady().
+  // Seed (client) / throwaway (server) collection for this user.
+  const collection = getJourneysCollection(userId, seed)
+  const live = useJourneys(collection)
+
+  // Render loader data until hydrated so SSR and first client paint agree.
+  const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
-    const id = requestAnimationFrame(() => setIsReady(true))
-    return () => cancelAnimationFrame(id)
+    setHydrated(true)
   }, [])
 
-  // useJourneys() returns any — @tanstack/react-db@0.1.92 type gap
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawRows: any = useJourneys()
-
-  // Normalise: handle both Journey[] and { journeys: Journey }[] return shapes
-  const journeys: Journey[] = Array.isArray(rawRows)
-    ? rawRows.map((r: Journey | { journeys: Journey }) =>
-        r && typeof r === 'object' && 'journeys' in r ? r.journeys : (r as Journey),
-      )
-    : []
+  // After hydration, prefer the reactive collection (kept in localStorage +
+  // optimistic writes); before that, the loader seed. Sort newest-first to
+  // match the server's ORDER BY created_at DESC.
+  const journeys: Journey[] = hydrated && collection.isReady()
+    ? [...live.data].sort((a, b) => b.created_at - a.created_at)
+    : seed
 
   // First-login redirect: new users with no journeys land in the sample journey.
-  // Returning users who have already visited the sample journey stay on the dashboard.
-  // Only runs client-side (localStorage is not available during SSR).
+  // Returning users who already visited the sample stay on the dashboard.
+  // Client-only (localStorage is unavailable during SSR).
   useEffect(() => {
-    if (!isReady) return
+    if (!hydrated) return
     if (journeys.length !== 0) return
     if (typeof localStorage === 'undefined') return
     if (localStorage.getItem(SAMPLE_JOURNEY_VISITED_KEY) === 'true') return
     void navigate({ to: '/sample' })
-  }, [isReady, journeys.length, navigate])
+  }, [hydrated, journeys.length, navigate])
 
   return (
     <section
@@ -144,9 +130,7 @@ export function JourneysDashboard({ masteryByJourneyId = {} }: JourneysDashboard
         </p>
       </header>
 
-      {!isReady ? (
-        <LoadingSkeleton />
-      ) : journeys.length === 0 ? (
+      {journeys.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="wp-journey-grid">

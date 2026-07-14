@@ -15,19 +15,31 @@ import { useEffect } from 'react'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { getJourneyWithWaypoints } from '#/server/journeys'
 import { useShell } from '#/components/shell/AppShell'
+import { getWaypointsCollection } from '#/lib/store/collections'
 
 export const Route = createFileRoute('/_authenticated/journey/$journeyId')({
-  loader: async ({ params }) => {
+  loader: async ({ params, context }) => {
     const result = await getJourneyWithWaypoints({ data: params.journeyId })
-    return { journeyData: result }
+    // userId namespaces the client waypoints collection (AC-DLU7).
+    return { journeyData: result, userId: context.auth?.user.id ?? '' }
   },
   component: JourneyLayout,
 })
 
 function JourneyLayout() {
   const { journeyId } = Route.useParams()
-  const { journeyData } = Route.useLoaderData()
+  const { journeyData, userId } = Route.useLoaderData()
   const { setWaypoints } = useShell()
+
+  // Seed the waypoints collection from the loader's D1 payload (shape D5 loader-
+  // seed pattern, second read exemplar after journeys). Additive: the shell nav
+  // still renders from loader data below, so SSR/hydration is unaffected; the
+  // collection is warmed for client-side navigation reads.
+  useEffect(() => {
+    if (journeyData && userId) {
+      getWaypointsCollection(userId, journeyData.waypoints)
+    }
+  }, [journeyData, userId])
 
   useEffect(() => {
     if (!journeyData) {

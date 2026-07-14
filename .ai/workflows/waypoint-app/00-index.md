@@ -7,8 +7,8 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T14:26:42Z"
-selected-slice: "tanstack-ai-gateway-hygiene"
+updated-at: "2026-07-14T15:36:52Z"
+selected-slice: "tanstack-router-typed-context"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -770,6 +770,30 @@ workflow-files:
   - 04-plan-tanstack-router-typed-context.yaml
   - 04-plan-tanstack-router-typed-context.html.fragment
   - 05-implement-tanstack-router-typed-context.md
+  - 06-verify-tanstack-router-typed-context.md
+  - 07-review-tanstack-router-typed-context.md
+  - 07-review-tanstack-router-typed-context.yaml
+  - 07-review-tanstack-router-typed-context.html.fragment
+  - 07-review-tanstack-router-typed-context-correctness.md
+  - 07-review-tanstack-router-typed-context-correctness.yaml
+  - 07-review-tanstack-router-typed-context-security.md
+  - 07-review-tanstack-router-typed-context-security.yaml
+  - 07-review-tanstack-router-typed-context-code-simplification.md
+  - 07-review-tanstack-router-typed-context-code-simplification.yaml
+  - 07-review-tanstack-router-typed-context-intent-fidelity.md
+  - 07-review-tanstack-router-typed-context-intent-fidelity.yaml
+  - 07-review-tanstack-router-typed-context-testing.md
+  - 07-review-tanstack-router-typed-context-testing.yaml
+  - 07-review-tanstack-router-typed-context-maintainability.md
+  - 07-review-tanstack-router-typed-context-maintainability.yaml
+  - 07-review-tanstack-router-typed-context-reliability.md
+  - 07-review-tanstack-router-typed-context-reliability.yaml
+  - 07-review-tanstack-router-typed-context-refactor-safety.md
+  - 07-review-tanstack-router-typed-context-refactor-safety.yaml
+  - 04-plan-tanstack-data-layer-unification.md
+  - 04-plan-tanstack-data-layer-unification.yaml
+  - 04-plan-tanstack-data-layer-unification.html.fragment
+  - 05-implement-tanstack-data-layer-unification.md
 progress:
   intake: complete
   shape: complete
