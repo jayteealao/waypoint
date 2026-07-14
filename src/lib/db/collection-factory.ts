@@ -165,15 +165,27 @@ export function defineDomainCollection<TSchema extends StandardSchemaV1<unknown,
     )
 
   const registry = new Map<string, ReturnType<typeof build>>()
+  // Tracks the last seed reference applied per key, so a reactive re-render that
+  // passes the SAME loader payload does not rewrite localStorage every render.
+  const lastSeed = new Map<string, unknown>()
 
   return {
     get(userId: string, seed?: Row[]): ReturnType<typeof build> {
+      // Fail closed on a missing user id: an empty id must never collapse
+      // distinct users onto one shared cache namespace (the isolation guarantee
+      // this data layer exists to hold). Authenticated routes always supply a
+      // real id; if one is ever absent, hand back an unseeded, uncached throwaway
+      // so no user's rows can persist under, or be read from, a shared key.
+      if (!userId) return build(storageKey('__anon__', def.entity))
       const key = storageKey(userId, def.entity)
       const isClient = typeof window !== 'undefined'
-      if (seed !== undefined && isClient) {
-        // Seed BEFORE (re)creating so sync-init reads it; on an already-created
-        // collection this refreshes localStorage for the next full load.
+      // Seed BEFORE (re)creating so sync-init reads it; on an already-created
+      // collection this refreshes localStorage for the next full load. Guard on
+      // the seed reference: a new navigation/loader run brings a fresh array and
+      // re-seeds, but a re-render with the same payload is a no-op.
+      if (seed !== undefined && isClient && lastSeed.get(key) !== seed) {
         seedStorage(key, seed, def.getKey, def.versionOf)
+        lastSeed.set(key, seed)
       }
       // Collections are CLIENT-ONLY (shape D3). On the server we never cache: a
       // module-level registry in a warm Cloudflare isolate would bleed one
@@ -193,6 +205,7 @@ export function defineDomainCollection<TSchema extends StandardSchemaV1<unknown,
     /** Test-only: drop the per-user registry so specs start clean. */
     _resetRegistry() {
       registry.clear()
+      lastSeed.clear()
     },
   }
 }
