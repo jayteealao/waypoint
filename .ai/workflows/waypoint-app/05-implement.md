@@ -5,9 +5,9 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T20:54:18Z"
-slices-implemented: 21
-slices-total: 21
+updated-at: "2026-07-14T21:42:17Z"
+slices-implemented: 22
+slices-total: 22
 metric-total-files-changed: 408
 metric-total-lines-added: 39024
 metric-total-lines-removed: 9067
@@ -16,7 +16,7 @@ refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app e2e-session-cookie-prefix"
+next-invocation: "/wf verify waypoint-app fsrs-scheduler-test-determinism"
 ---
 
 # Implement Index
@@ -371,9 +371,29 @@ next-invocation: "/wf verify waypoint-app e2e-session-cookie-prefix"
   pre-existing, unrelated `tutor-interview.spec.ts` AC-TI1 failure was surfaced by the full-suite
   regression (out of this slice's scope — flagged separately).
 
+- **Fsrs-scheduler-test-determinism: fixture pins the review card to a fixed absolute instant** —
+  `tests/smoke/fsrs-scheduler.test.ts`'s shared `reviewCard` fixture uses
+  `REVIEW_CARD_TS = new Date("2026-07-10T00:00:00Z")` for `due` / `last_review` (before the tests'
+  pinned `serverNow = 2026-07-12`), NOT `Date.now() - 1 day` (the old latent time-bomb). Any future
+  test that pins a `serverNow` and feeds a card fixture into `applyGradeToCard` / `repeat()` MUST
+  keep the fixture's `last_review` strictly before that `serverNow`, or ts-fsrs throws
+  `Invalid delta_t` on the negative interval. The scheduler (`src/lib/quiz/fsrs-scheduler.ts`) is
+  intentionally left strict — no non-positive-`delta_t` clamp was added — because ts-fsrs 5.4.1
+  throws on `t < 0` by design (`node_modules/ts-fsrs/dist/index.cjs:938`) and the production caller
+  (`src/server/quiz.ts:420`) never produces a negative interval; a negative value should surface
+  loudly, not be masked. This slice made no code change (fix rode in on `4274839`).
+
 ## Recommended Next Stage
 
-- **(current) Option A (default):** `/wf verify waypoint-app e2e-session-cookie-prefix` — e2e
+- **(current) Option A (default):** `/wf verify waypoint-app fsrs-scheduler-test-determinism` — FSRS
+  scheduler test-determinism confirm-and-reconcile (round-5 test slice). No code change: the fixture
+  fix landed on `4274839`. AC-FSD1 (11/11, no `Invalid delta_t`, date-independent) and AC-FSD2
+  (other 10 tests green) proven by a real `pnpm test tests/smoke/fsrs-scheduler.test.ts` run;
+  AC-FSD3 (conventional, non-`--no-verify` commit) reconciled against the already-landed `4274839`.
+  `tsc --noEmit` clean. verify should independently re-drive the suite and confirm date-independence.
+  Consider `/compact` first — workflow state lives in the artifact files.
+
+- **(prior) Option A (default):** `/wf verify waypoint-app e2e-session-cookie-prefix` — e2e
   seeded-session cookie-prefix fix (round-5 test slice). AC-ECP1 (both specs authenticate, no `/sign-in`)
   and AC-ECP2 (AC-DSS3 empty state) proven by a real green 12/12 target-spec run under the present
   `BETTER_AUTH_SECRET`; AC-ECP3 (deferral clusters flipped to `cleared`) is a doc-state AC gated behind

@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T20:54:18Z"
+updated-at: "2026-07-14T21:42:17Z"
 selected-slice: "tanstack-data-layer-unification"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -921,6 +921,25 @@ workflow-files:
   - 07-review-repo-format-baseline-dx.md
   - 07-review-repo-format-baseline-dx.yaml
   - 05-implement-e2e-session-cookie-prefix.md
+  - 06-verify-e2e-session-cookie-prefix.md
+  - 07-review-e2e-session-cookie-prefix.md
+  - 07-review-e2e-session-cookie-prefix.yaml
+  - 07-review-e2e-session-cookie-prefix.html.fragment
+  - 07-review-e2e-session-cookie-prefix-correctness.md
+  - 07-review-e2e-session-cookie-prefix-correctness.yaml
+  - 07-review-e2e-session-cookie-prefix-security.md
+  - 07-review-e2e-session-cookie-prefix-security.yaml
+  - 07-review-e2e-session-cookie-prefix-code-simplification.md
+  - 07-review-e2e-session-cookie-prefix-code-simplification.yaml
+  - 07-review-e2e-session-cookie-prefix-intent-fidelity.md
+  - 07-review-e2e-session-cookie-prefix-intent-fidelity.yaml
+  - 07-review-e2e-session-cookie-prefix-testing.md
+  - 07-review-e2e-session-cookie-prefix-testing.yaml
+  - 07-review-e2e-session-cookie-prefix-testing.html.fragment
+  - 04-plan-fsrs-scheduler-test-determinism.md
+  - 04-plan-fsrs-scheduler-test-determinism.yaml
+  - 04-plan-fsrs-scheduler-test-determinism.html.fragment
+  - 05-implement-fsrs-scheduler-test-determinism.md
 progress:
   intake: complete
   shape: complete
