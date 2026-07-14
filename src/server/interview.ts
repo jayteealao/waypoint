@@ -14,6 +14,7 @@
  * This is the same test-harness pattern as lesson/fixture.tsx.
  */
 import { createServerFn, createMiddleware } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import { requireAuth, requireOwnership } from '#/lib/auth-guard'
 import { callGateway } from '#/lib/ai/gateway'
@@ -33,9 +34,9 @@ import type { Journey } from '#/db/schema'
 
 // ── withSession middleware (reused pattern from journeys.ts) ───────────────
 
-const withSession = createMiddleware({ type: 'request' }).server(
-  async ({ request, next }) => {
-    const sessionData = await requireAuth(env, request)
+const withSession = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => {
+    const sessionData = await requireAuth(env, getRequest())
     return next({ context: { session: sessionData } })
   },
 )

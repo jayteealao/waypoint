@@ -7,17 +7,16 @@
  * from client-side code.
  */
 import { createServerFn, createMiddleware } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import { requireAuth } from '#/lib/auth-guard'
 import { checkQuota } from '#/lib/ai/quota'
 
-// Triage: TanStack Start v1.168.x does not expose `getWebRequest()`.
-// Using a `type: 'request'` middleware to capture the request and inject
-// the authenticated session into the server function context.
-// (Same deviation documented in src/server/journeys.ts.)
-const withSession = createMiddleware({ type: 'request' }).server(
-  async ({ request, next }) => {
-    const sessionData = await requireAuth(env, request)
+// Shared auth middleware (same pattern as src/server/journeys.ts): resolve the
+// request via getRequest() and inject the authenticated session into context.
+const withSession = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => {
+    const sessionData = await requireAuth(env, getRequest())
     return next({ context: { session: sessionData } })
   },
 )

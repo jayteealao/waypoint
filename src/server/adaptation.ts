@@ -15,15 +15,16 @@
  */
 
 import { createServerFn, createMiddleware } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import { requireAuth, requireOwnership } from '#/lib/auth-guard'
 import type { Adaptation, Waypoint } from '#/db/schema'
 
 // ─── withSession middleware ───────────────────────────────────────────────────
 
-const withSession = createMiddleware({ type: 'request' }).server(
-  async ({ request, next }) => {
-    const sessionData = await requireAuth(env, request)
+const withSession = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => {
+    const sessionData = await requireAuth(env, getRequest())
     return next({ context: { session: sessionData } })
   },
 )

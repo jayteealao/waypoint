@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T11:12:00Z"
-selected-slice: "model-refresh"
+updated-at: "2026-07-14T12:18:24Z"
+selected-slice: "tanstack-start-request-access"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -181,7 +181,7 @@ stack:
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app model-refresh"
+next-invocation: "/wf verify waypoint-app tanstack-start-request-access"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -674,7 +674,36 @@ workflow-files:
   - 04-plan-model-refresh.md
   - 04-plan-model-refresh.yaml
   - 04-plan-model-refresh.html.fragment
+  - 04-plan-tanstack-start-request-access.md
+  - 04-plan-tanstack-start-request-access.yaml
+  - 04-plan-tanstack-start-request-access.html.fragment
   - 05-implement-model-refresh.md
+  - 05-implement-tanstack-start-request-access.md
+  - 06-verify-model-refresh.md
+  - 07-review-model-refresh.md
+  - 07-review-model-refresh.yaml
+  - 07-review-model-refresh.html.fragment
+  - 07-review-model-refresh-correctness.md
+  - 07-review-model-refresh-correctness.yaml
+  - 07-review-model-refresh-security.md
+  - 07-review-model-refresh-security.yaml
+  - 07-review-model-refresh-code-simplification.md
+  - 07-review-model-refresh-code-simplification.yaml
+  - 07-review-model-refresh-intent-fidelity.md
+  - 07-review-model-refresh-intent-fidelity.yaml
+  - 07-review-model-refresh-testing.md
+  - 07-review-model-refresh-testing.yaml
+  - 07-review-model-refresh-testing.html.fragment
+  - 07-review-model-refresh-maintainability.md
+  - 07-review-model-refresh-maintainability.yaml
+  - 07-review-model-refresh-reliability.md
+  - 07-review-model-refresh-reliability.yaml
+  - 07-review-model-refresh-reliability.html.fragment
+  - 07-review-model-refresh-backend-concurrency.md
+  - 07-review-model-refresh-backend-concurrency.yaml
+  - 07-review-model-refresh-cost.md
+  - 07-review-model-refresh-cost.yaml
+  - 07-review-model-refresh-cost.html.fragment
 progress:
   intake: complete
   shape: complete

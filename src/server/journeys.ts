@@ -6,22 +6,21 @@
  * `cloudflare:workers` is safe here because server functions run in the Workers
  * runtime; `@cloudflare/vite-plugin` provides the shim in Vite dev mode.
  *
- * Request access: TanStack Start v1.x exposes the raw request in `type: 'request'`
- * middleware. `withSession` captures it and puts the authenticated session into
- * the server function context. This is the adapted pattern for `getWebRequest()`
- * (which is not present in the installed @tanstack/react-start@1.168.x).
+ * Request access: `withSession` reads the incoming request via the framework's
+ * own `getRequest()` primitive and puts the authenticated session into the
+ * server function context for downstream handlers.
  */
 import { createServerFn, createMiddleware } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import { requireAuth, requireOwnership } from '#/lib/auth-guard'
 import type { Journey, Waypoint } from '#/db/schema'
 
-// Triage deviation from plan: TanStack Start v1.168.x does not expose
-// `getWebRequest()`. Using a `type: 'request'` middleware to capture the
-// request and inject the authenticated session into the server function context.
-const withSession = createMiddleware({ type: 'request' }).server(
-  async ({ request, next }) => {
-    const sessionData = await requireAuth(env, request)
+// Shared auth middleware: resolve the request via getRequest() and inject the
+// authenticated session into the server function context.
+const withSession = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => {
+    const sessionData = await requireAuth(env, getRequest())
     return next({ context: { session: sessionData } })
   },
 )

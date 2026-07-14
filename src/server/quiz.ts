@@ -14,6 +14,7 @@
  */
 
 import { createServerFn, createMiddleware } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { env } from 'cloudflare:workers'
 import { Rating } from 'ts-fsrs'
 import { requireAuth, requireOwnership } from '#/lib/auth-guard'
@@ -33,9 +34,9 @@ import type { GradingOutput } from '#/lib/quiz/schema'
 
 // ─── withSession middleware (standard pattern) ────────────────────────────────
 
-const withSession = createMiddleware({ type: 'request' }).server(
-  async ({ request, next }) => {
-    const sessionData = await requireAuth(env, request)
+const withSession = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => {
+    const sessionData = await requireAuth(env, getRequest())
     return next({ context: { session: sessionData } })
   },
 )

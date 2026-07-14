@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T11:12:00Z"
-slices-implemented: 13
-slices-total: 13
-metric-total-files-changed: 216
-metric-total-lines-added: 29218
-metric-total-lines-removed: 699
+updated-at: "2026-07-14T12:18:24Z"
+slices-implemented: 14
+slices-total: 14
+metric-total-files-changed: 225
+metric-total-lines-added: 29264
+metric-total-lines-removed: 749
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app model-refresh"
+next-invocation: "/wf verify waypoint-app tanstack-start-request-access"
 ---
 
 # Implement Index
@@ -77,7 +77,12 @@ next-invocation: "/wf verify waypoint-app model-refresh"
 
 - **Accounts-data-layer: `withSession` middleware** — All server functions that need the
   authenticated user must use the `withSession` middleware from `src/server/journeys.ts`
-  (or copy the pattern). `getWebRequest()` is NOT available in `@tanstack/react-start@1.168.x`.
+  (or copy the pattern). NOTE (corrected by tanstack-start-request-access): the request is
+  obtained via the framework primitive `getRequest()` from `@tanstack/react-start/server`
+  inside a `type: 'function'` middleware — the earlier "`getWebRequest()` is NOT available"
+  note was a misconception (`getWebRequest` was renamed `getRequest`; verified in
+  `node_modules/@tanstack/start-server-core`). Do not reintroduce a `type: 'request'` shim
+  to capture the request.
 
 - **Accounts-data-layer: auth-guard.ts contract** — `requireAuth(env, request)` throws 401 Response;
   `requireOwnership(sessionUserId, resourceUserId)` throws 403 Response. Both are the exclusive
@@ -262,7 +267,10 @@ next-invocation: "/wf verify waypoint-app model-refresh"
 
 - **Model-refresh: live smoke needs a generous per-test timeout** — `tests/smoke/ai-tool-call.test.ts`'s gated live cases carry a `180_000` per-test timeout because reasoning-model tiers are slower than the prior non-reasoning models and time out under Vitest's 5 s default. Any new live-model smoke case must set its own timeout.
 
+- **Tanstack-start-request-access: `getRequest()` is the request-access primitive** — All server functions obtain the incoming `Request` via `getRequest()` from `@tanstack/react-start/server` (returns the raw `Request`; `getRequest().headers` for headers), inside a `type: 'function'` middleware. There is NO `createMiddleware({ type: 'request' })` request-capture shim anywhere in `src/` and NO comment claiming `getWebRequest()` is unavailable. Any new server function that needs the request must call `getRequest()` — do not resurrect the request-middleware workaround. Auth is still enforced by the shared `withSession` middleware calling `requireAuth(env, getRequest())`; `src/lib/get-session.ts` calls `getRequest().headers` inline (no middleware).
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app model-refresh` — model config + additive reasoning field; ACs verified by mocked assertions (AC-2), a grep (AC-4), typecheck + mocked suite (AC-5), and the tagged live smoke (AC-1/AC-3, 9/9 this round). Verify should independently re-run the live catalog gate and do the R3 lesson-prose spot-check.
-- **Option B:** `/wf review waypoint-app model-refresh` — skip verify only if the live-smoke evidence in `05-implement-model-refresh.md` is accepted as sufficient; not recommended.
+- **Option A (default):** `/wf verify waypoint-app tanstack-start-request-access` — behavior-preserving request-access refactor; AC1/AC2 by grep + `tsc --noEmit`, AC3/AC4 by Vitest (193 pass) and unchanged auth chains. Verify must adjudicate the runtime e2e leg: the branch's seeded-session Playwright suite is in a pre-existing app-rendering failure state (proven baseline-identical with the change stashed), so verify either fixes that rendering breakage to observe `getRequest()` end-to-end or accepts the static+typecheck+Vitest+baseline-identical evidence.
+- **Option B:** `/wf review waypoint-app tanstack-start-request-access` — viable if the pre-existing e2e wall (out of this slice's scope) is accepted and the static + typecheck + Vitest evidence is deemed sufficient for a pure server-side refactor.
+- Prior: `/wf verify waypoint-app model-refresh` (model-refresh implement was the previous slice; its verify/review is tracked separately).
