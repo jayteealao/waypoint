@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T20:14:40Z"
-slices-implemented: 19
-slices-total: 19
-metric-total-files-changed: 267
-metric-total-lines-added: 31264
-metric-total-lines-removed: 1624
+updated-at: "2026-07-14T20:54:18Z"
+slices-implemented: 21
+slices-total: 21
+metric-total-files-changed: 408
+metric-total-lines-added: 39024
+metric-total-lines-removed: 9067
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app precommit-gitleaks-resilience"
+next-invocation: "/wf verify waypoint-app e2e-session-cookie-prefix"
 ---
 
 # Implement Index
@@ -347,9 +347,49 @@ next-invocation: "/wf verify waypoint-app precommit-gitleaks-resilience"
   step should follow the same Node-wrapper + injectable-spawn pattern rather than a shell one-liner
   (cross-platform: no sh-vs-cmd-vs-PowerShell branching). No ruleset / `.gitleaks.toml` change.
 
+- **Repo-format-baseline: the tree is conformed to `.oxfmtrc.json`; `.prettierignore` owns the
+  format-exclusion set** — the whole tree now passes `pnpm exec oxfmt --check .` (baseline commit
+  `4274839`, 139 files, formatting-only). `.oxfmtrc.json` and `.prettierignore` are now **tracked**.
+  Two git-tracked machine-generated files (`src/routeTree.gen.ts`, `worker-configuration.d.ts`) are
+  excluded in `.prettierignore` — any future slice that adds a git-tracked generated file MUST add it
+  there too or the baseline will churn on regen. Any commit that reformats a file must keep the diff
+  formatting-only; mixing logic into a format sweep breaks the AC-RFB2 discipline. This slice is the
+  clearing event for the sibling `AC-GLR3 residual` deferral (precommit-gitleaks-resilience): the full
+  pre-commit gate (secret-scan + lint + format-check + commitlint) now passes without `--no-verify`.
+
+- **E2e-session-cookie-prefix: the seeded-session cookie name is `__Secure-better-auth.session_token`
+  / `secure:true`** — every Playwright spec that injects a seeded better-auth session MUST use this
+  cookie shape (the app resolves the session under the `__Secure-` prefix for the secure-context base
+  URL). `auth-flow.spec.ts` and `design-system.spec.ts` were the last two stale holdouts; they now match
+  the proven `adaptation-progress.spec.ts` / `data-layer-ssr.spec.ts` / `lesson-renderer` /
+  `sample-journey` / `tutor-interview` pattern. Two test-fidelity seams established as reusable idioms:
+  (1) seed `localStorage` `wp:sample-visited="true"` via `page.addInitScript` before navigating a
+  zero-journey user to `/` so the dashboard first-login redirect to `/sample` does not fire; (2) gate
+  any post-navigation interaction (clicks) behind React-19 hydration by waiting for the client-only
+  "Open TanStack Devtools" button — an un-gated click can be a pre-hydration no-op. This slice cleared
+  the AC-ADL1/AC-ADL5 and AC-DSS1/3/4/5 runtime-evidence deferral clusters (real green 12/12 run). A
+  pre-existing, unrelated `tutor-interview.spec.ts` AC-TI1 failure was surfaced by the full-suite
+  regression (out of this slice's scope — flagged separately).
+
 ## Recommended Next Stage
 
-- **(current) Option A (default):** `/wf verify waypoint-app precommit-gitleaks-resilience` — local
+- **(current) Option A (default):** `/wf verify waypoint-app e2e-session-cookie-prefix` — e2e
+  seeded-session cookie-prefix fix (round-5 test slice). AC-ECP1 (both specs authenticate, no `/sign-in`)
+  and AC-ECP2 (AC-DSS3 empty state) proven by a real green 12/12 target-spec run under the present
+  `BETTER_AUTH_SECRET`; AC-ECP3 (deferral clusters flipped to `cleared`) is a doc-state AC gated behind
+  that run. verify should independently re-drive the two specs and confirm the deferral-clearing
+  lawfulness. Consider `/compact` first — workflow state lives in the artifact files.
+
+- **(prior) Option A (default):** `/wf verify waypoint-app repo-format-baseline` — repo-wide oxfmt
+  format baseline (round-5 devex tooling). All three ACs verifiable now, no deferral: AC-RFB1 by
+  `pnpm run format:check` exit 0 over the post-reformat tree, AC-RFB2 by `git show --stat 4274839`
+  (139 files, formatting-only, `.oxfmtrc.json`/`.prettierignore` tracked) backed by a green
+  `tsc --noEmit` + 229-pass Vitest suite, AC-RFB3 by a subsequent one-file commit flowing through the
+  `format-check` pre-commit step without `--no-verify`. The baseline commit already exercised the full
+  gate (secret-scan + lint + format-check + commitlint) green. This slice clears the sibling
+  `AC-GLR3 residual` deferral. Consider `/compact` first — reformat context is noise for verification.
+
+- **(prior) Option A (default):** `/wf verify waypoint-app precommit-gitleaks-resilience` — local
   secret-scan pre-commit resilience (round-5 devex tooling). All three ACs verifiable now, no deferral:
   AC-GLR1 by real `node scripts/secret-scan.mjs` spawn in this gitleaks-absent env (exit 0 + warning),
   AC-GLR2 by fault injection on the exported `secretScan` seam, AC-GLR3 by the atomic commit flowing

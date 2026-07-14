@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T20:14:40Z"
+updated-at: "2026-07-14T20:54:18Z"
 selected-slice: "tanstack-data-layer-unification"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -81,14 +81,20 @@ runtime-evidence-deferrals:
     cleared-at: "2026-07-12T00:00:00Z"
   - ac: "AC-ADL1 + AC-ADL5 — seeded-session proxy tests (session persistence, cross-account isolation, identity display, sign-out)"
     slice: accounts-data-layer
+    status: cleared
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require this secret for HMAC-SHA-256 cookie signing. Ladder climbed: (rung 1) 2 always-run Playwright tests pass (sign-in UI, account redirect); (rung 2) BETTER_AUTH_SECRET env var checked — absent; (rung 3) seeded-session proxy requires the secret — residual: 3 proxy tests skip by design. Real OAuth flow is the original pre-registered plan residual. Plan pre-authorized constraint-resolution: proxy+deferral."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars, OR first deployed Google+GitHub sign-in on deployed environment"
     recorded-at: "2026-07-11T13:04:46Z"
+    cleared-at: "2026-07-14T20:54:18Z"
+    cleared-note: "CLEARED by the e2e-session-cookie-prefix fix + present BETTER_AUTH_SECRET (len 64 in .dev.vars). auth-flow.spec.ts now injects the seeded session under __Secure-better-auth.session_token / secure:true (the app's real cookie name for the secure-context base URL); all 5 auth-flow tests pass with no /sign-in redirect, including the two-account cross-user isolation test (distinct identities) and sign-out. Seeded-session automated coverage satisfied (the OR condition met). The real-OAuth-on-deployed residual remains its own separate track."
   - ac: "AC-DSS1 + AC-DSS3 + AC-DSS4 + AC-DSS5 — seeded-session design system Playwright tests (responsive layout, empty state, keyboard nav, reduced-motion drawer)"
     slice: design-system-shell
+    status: cleared
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests require HMAC-SHA-256 cookie signing. AC-DSS5 reclassified from auth-free to auth-required (DrawerNav lives inside AppShell). Proxy evidence: AC-DSS2 contrast smoke test (13 WCAG AA assertions) passes; typecheck clean; pnpm test 29/30 passing. Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
     cleared-by: "re-running E2E suite with BETTER_AUTH_SECRET set in .dev.vars"
     recorded-at: "2026-07-11T14:08:04Z"
+    cleared-at: "2026-07-14T20:54:18Z"
+    cleared-note: "CLEARED by the e2e-session-cookie-prefix fix + present BETTER_AUTH_SECRET. design-system.spec.ts makeAuthContext now injects __Secure-better-auth.session_token / secure:true; all 7 authenticated design-system tests pass (responsive 375/768/1280, empty state, keyboard nav, reduced-motion drawer), plus the AC-DSS2 proxy. Two verification seams built this slice made the cluster observable: (1) an addInitScript localStorage guard (wp:sample-visited='true') on the AC-DSS3 empty-state test so the dashboard's zero-journey first-login redirect to /sample does not fire; (2) a React-hydration gate (wait for the client-only 'Open TanStack Devtools' button) before the AC-DSS5 hamburger click — the cookie fix unmasked a latent hydration-timing no-op that was previously hidden behind the /sign-in redirect. Full 12/12 target-spec run green."
   - ac: "AC-LR1 + AC-LR2 + AC-LR3 — seeded-session lesson renderer Playwright tests (reading experience at 3 breakpoints, widget interaction, progressive rendering)"
     slice: lesson-renderer
     reason: "BETTER_AUTH_SECRET not set in .dev.vars; seeded-session Playwright tests for /_authenticated/lesson/fixture require HMAC-SHA-256 cookie signing (same wall as AC-ADL1/5 and AC-DSS1/3/4/5). AC-LR4 (security/trust-model) fully covered by 19 adversarial Vitest unit tests (all passing). Plan pre-authorized constraint-resolution: accepted into existing AC-ADL1+AC-ADL5 deferral entry."
@@ -138,6 +144,14 @@ runtime-evidence-deferrals:
     recorded-at: "2026-07-12T05:44:00Z"
     cleared-at: "2026-07-12T07:00:00Z"
     cleared-note: "CLEARED — verify run confirmed BETTER_AUTH_SECRET present in .dev.vars; all 6 Playwright tests pass after 1 fix round (3 test-infra fixes: React 19 hydration guard for adapt-accept + adapt-decline, AC-13 rewritten to use progress route loaders instead of TanStack DB collection); commit 93a2f94"
+  - ac: "AC-GLR3 residual — literal '--no-verify'-free whole-gate commit clause"
+    slice: precommit-gitleaks-resilience
+    reason: "This slice's owned deliverable — the secret-scan pre-commit gate no longer blocking — is fully evidenced live (real `node scripts/secret-scan.mjs` → exit 0 + skip warning; real `lefthook run pre-commit --command secret-scan --force` → ✔️ secret-scan exit 0, no exit 127). Rungs climbed and probe run THIS round: full `pnpm exec lefthook run pre-commit --force` → secret-scan ✔️ + lint ✔️ but format-check 🥊 exit 1 over ~145 pre-existing unformatted files. Residual: a whole-gate commit without --no-verify is walled SOLELY by the `format-check` step, which is the sibling slice `repo-format-baseline`'s scope (Scope-Out here — reformatting 145 files would breach this slice's boundary). Not an environment wall and not a code defect of this slice."
+    status: cleared
+    cleared-by: "sibling slice `repo-format-baseline` verify run 1 — commit 4274839 (oxfmt baseline) landed and a verify-stage probe commit (615460f) flowed through the full pre-commit gate (secret-scan ✔️ lint ✔️ format-check ✔️ commitlint ✔️) with NO --no-verify, then was reverted; format-check now exits 0 over 155 files"
+    needed-by: precommit-gitleaks-resilience
+    deferred-at: "2026-07-14T19:29:56Z"
+    cleared-at: "2026-07-14T20:18:40Z"
 tags: [greenfield, tanstack, ai-teaching, multi-platform, pwa]
 stack:
   detected-at: "2026-07-10T21:00:44Z"
@@ -856,10 +870,57 @@ workflow-files:
   - 03-slice-repo-format-baseline.md
   - 03-slice-fsrs-scheduler-test-determinism.md
   - 03-slice-e2e-session-cookie-prefix.md
+  - 04-plan-e2e-session-cookie-prefix.md
+  - 04-plan-e2e-session-cookie-prefix.yaml
+  - 04-plan-e2e-session-cookie-prefix.html.fragment
   - 04-plan-precommit-gitleaks-resilience.md
   - 04-plan-precommit-gitleaks-resilience.yaml
   - 04-plan-precommit-gitleaks-resilience.html.fragment
+  - 04-plan-repo-format-baseline.md
+  - 04-plan-repo-format-baseline.yaml
+  - 04-plan-repo-format-baseline.html.fragment
+  - 05-implement-repo-format-baseline.md
   - 05-implement-precommit-gitleaks-resilience.md
+  - 06-verify-precommit-gitleaks-resilience.md
+  - 06-verify-repo-format-baseline.md
+  - 07-review-precommit-gitleaks-resilience.md
+  - 07-review-precommit-gitleaks-resilience.yaml
+  - 07-review-precommit-gitleaks-resilience.html.fragment
+  - 07-review-precommit-gitleaks-resilience-correctness.md
+  - 07-review-precommit-gitleaks-resilience-correctness.yaml
+  - 07-review-precommit-gitleaks-resilience-security.md
+  - 07-review-precommit-gitleaks-resilience-security.yaml
+  - 07-review-precommit-gitleaks-resilience-security.html.fragment
+  - 07-review-precommit-gitleaks-resilience-code-simplification.md
+  - 07-review-precommit-gitleaks-resilience-code-simplification.yaml
+  - 07-review-precommit-gitleaks-resilience-intent-fidelity.md
+  - 07-review-precommit-gitleaks-resilience-intent-fidelity.yaml
+  - 07-review-precommit-gitleaks-resilience-testing.md
+  - 07-review-precommit-gitleaks-resilience-testing.yaml
+  - 07-review-precommit-gitleaks-resilience-maintainability.md
+  - 07-review-precommit-gitleaks-resilience-maintainability.yaml
+  - 07-review-precommit-gitleaks-resilience-reliability.md
+  - 07-review-precommit-gitleaks-resilience-reliability.yaml
+  - 07-review-precommit-gitleaks-resilience-ci.md
+  - 07-review-precommit-gitleaks-resilience-ci.yaml
+  - 07-review-precommit-gitleaks-resilience-docs.md
+  - 07-review-precommit-gitleaks-resilience-docs.yaml
+  - 07-review-repo-format-baseline.md
+  - 07-review-repo-format-baseline.yaml
+  - 07-review-repo-format-baseline.html.fragment
+  - 07-review-repo-format-baseline-correctness.md
+  - 07-review-repo-format-baseline-correctness.yaml
+  - 07-review-repo-format-baseline-security.md
+  - 07-review-repo-format-baseline-security.yaml
+  - 07-review-repo-format-baseline-code-simplification.md
+  - 07-review-repo-format-baseline-code-simplification.yaml
+  - 07-review-repo-format-baseline-intent-fidelity.md
+  - 07-review-repo-format-baseline-intent-fidelity.yaml
+  - 07-review-repo-format-baseline-refactor-safety.md
+  - 07-review-repo-format-baseline-refactor-safety.yaml
+  - 07-review-repo-format-baseline-dx.md
+  - 07-review-repo-format-baseline-dx.yaml
+  - 05-implement-e2e-session-cookie-prefix.md
 progress:
   intake: complete
   shape: complete

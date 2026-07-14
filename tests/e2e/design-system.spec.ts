@@ -86,12 +86,12 @@ async function makeAuthContext(browser: Browser, baseURL: string) {
   const ctx = await browser.newContext();
   await ctx.addCookies([
     {
-      name: "better-auth.session_token",
+      name: "__Secure-better-auth.session_token",
       value: cookieValue,
       domain: new URL(baseURL).hostname,
       path: "/",
       httpOnly: false,
-      secure: false,
+      secure: true,
     },
   ]);
   return ctx;
@@ -135,6 +135,12 @@ test("drawer transition is suppressed under prefers-reduced-motion (AC-DSS5)", a
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
+
+  // Wait for React hydration before interacting — the hamburger's onClick is
+  // wired client-side only, so an early click is a no-op. The client-rendered
+  // TanStack Devtools button signals hydration is complete (same gate the
+  // passing adaptation-progress spec uses).
+  await page.getByRole("button", { name: "Open TanStack Devtools" }).waitFor({ timeout: 10000 });
 
   // Hamburger button must be visible on mobile viewport
   const hamburger = page.getByRole("button", { name: /Open navigation/i });
@@ -230,6 +236,12 @@ test("empty state shown for user with zero journeys (AC-DSS3)", async ({ browser
   // The dashboard should render the empty state.
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
+  // A zero-journey user is redirected to /sample by the dashboard's first-login
+  // useEffect unless SAMPLE_JOURNEY_VISITED_KEY ("wp:sample-visited") is already
+  // "true". Seed it before page scripts run so the empty state renders in place.
+  await page.addInitScript(() => {
+    localStorage.setItem("wp:sample-visited", "true");
+  });
   await page.goto("/");
 
   // Wait for the dashboard to settle past the loading-skeleton phase

@@ -2,7 +2,7 @@
 //
 // Seeded-session proxy: we bypass real OAuth by:
 //   1. Inserting user + session rows directly into local D1 via wrangler CLI (beforeAll).
-//   2. Constructing a correctly signed `better-auth.session_token` cookie using Node.js
+//   2. Constructing a correctly signed `__Secure-better-auth.session_token` cookie using Node.js
 //      WebCrypto — same HMAC-SHA-256 / standard-base64 algorithm as better-call's
 //      `signCookieValue`. The signature is: btoa(HMAC-SHA256(token, secret)).
 //   3. Injecting the cookie via Playwright `context.addCookies()`.
@@ -141,12 +141,12 @@ test("seeded session shows correct identity on /account (AC-ADL1, AC-ADL5)", asy
   const ctx = await browser.newContext();
   await ctx.addCookies([
     {
-      name: "better-auth.session_token",
+      name: "__Secure-better-auth.session_token",
       value: cookieValue,
       domain: new URL(baseURL!).hostname,
       path: "/",
       httpOnly: false,
-      secure: false,
+      secure: true,
     },
   ]);
 
@@ -178,22 +178,22 @@ test("two seeded sessions see separate identities (AC-ADL1 cross-user isolation)
   await Promise.all([
     ctxA.addCookies([
       {
-        name: "better-auth.session_token",
+        name: "__Secure-better-auth.session_token",
         value: cookieA,
         domain: hostname,
         path: "/",
         httpOnly: false,
-        secure: false,
+        secure: true,
       },
     ]),
     ctxB.addCookies([
       {
-        name: "better-auth.session_token",
+        name: "__Secure-better-auth.session_token",
         value: cookieB,
         domain: hostname,
         path: "/",
         httpOnly: false,
-        secure: false,
+        secure: true,
       },
     ]),
   ]);
@@ -223,12 +223,12 @@ test("sign-out redirects to /sign-in (AC-ADL5)", async ({ browser, baseURL }) =>
   const ctx = await browser.newContext();
   await ctx.addCookies([
     {
-      name: "better-auth.session_token",
+      name: "__Secure-better-auth.session_token",
       value: cookieValue,
       domain: new URL(baseURL!).hostname,
       path: "/",
       httpOnly: false,
-      secure: false,
+      secure: true,
     },
   ]);
 
