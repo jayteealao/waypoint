@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as HealthRouteImport } from './routes/health'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
@@ -35,6 +36,11 @@ import { Route as AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRouteImport
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -157,6 +163,7 @@ const AuthenticatedJourneyJourneyIdWaypointWaypointIdQuizRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/about': typeof AboutRoute
+  '/health': typeof HealthRoute
   '/sign-in': typeof SignInRoute
   '/account': typeof AuthenticatedAccountRoute
   '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/about': typeof AboutRoute
+  '/health': typeof HealthRoute
   '/sign-in': typeof SignInRoute
   '/account': typeof AuthenticatedAccountRoute
   '/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
+  '/health': typeof HealthRoute
   '/sign-in': typeof SignInRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/quota-fixture': typeof AuthenticatedQuotaFixtureRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/health'
     | '/sign-in'
     | '/account'
     | '/quota-fixture'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
+    | '/health'
     | '/sign-in'
     | '/account'
     | '/quota-fixture'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/about'
+    | '/health'
     | '/sign-in'
     | '/_authenticated/account'
     | '/_authenticated/quota-fixture'
@@ -297,6 +309,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutRoute: typeof AboutRoute
+  HealthRoute: typeof HealthRoute
   SignInRoute: typeof SignInRoute
   ApiDemoStreamRoute: typeof ApiDemoStreamRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -546,6 +566,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutRoute: AboutRoute,
+  HealthRoute: HealthRoute,
   SignInRoute: SignInRoute,
   ApiDemoStreamRoute: ApiDemoStreamRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

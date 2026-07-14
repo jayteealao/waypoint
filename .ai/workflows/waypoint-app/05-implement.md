@@ -5,11 +5,11 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T15:36:52Z"
-slices-implemented: 17
-slices-total: 17
-metric-total-files-changed: 258
-metric-total-lines-added: 30883
+updated-at: "2026-07-14T16:55:44Z"
+slices-implemented: 18
+slices-total: 18
+metric-total-files-changed: 263
+metric-total-lines-added: 31185
 metric-total-lines-removed: 1622
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
@@ -326,9 +326,25 @@ next-invocation: "/wf verify waypoint-app tanstack-data-layer-unification"
   through `recordAttemptAndUpdateFsrs` (a coupled grading command), NOT optimistic collection inserts;
   those collections are read caches. Future optimistic-write wiring needs a client-id-honoring insert fn.
 
+- **Health-endpoint: `runHealthCheck` + `REQUIRED_SECRETS` are the deploy-gate source of truth** —
+  `src/lib/health.ts` exports `REQUIRED_SECRETS` (the single required-secret list, RIM-E4 anti-drift)
+  and a pure `runHealthCheck(env)` (one `SELECT 1` D1 probe + non-empty-string secret assertion,
+  logging failing component names to logs only). The public `GET /health` route
+  (`src/routes/health.ts`, outside `_authenticated`) maps it to an opaque `200 {"status":"ok"}` /
+  `503 {"status":"degraded"}` body with `Cache-Control: no-store`. Any future slice that adds a
+  required Worker secret MUST add it to `REQUIRED_SECRETS`; a future boot-time secret validator MUST
+  import this constant rather than re-list. The response body is a PO-ratified opaque contract — never
+  add a `checks`/inventory object to it (AC-HE4 regression). This is the endpoint the ship-plan v5
+  post-publish smoke targets; the CD smoke wiring is owned by the ship pipeline, not this slice.
+
 ## Recommended Next Stage
 
-- **(current) Option A (default):** `/wf verify waypoint-app tanstack-data-layer-unification` — DB-everywhere
+- **(current) Option A (default):** `/wf verify waypoint-app health-endpoint` — net-new public
+  `GET /health` deploy-gate endpoint. All five ACs verifiable this round with no deferral: AC-HE2/HE3/
+  HE4 via 14 Vitest cases (`tests/smoke/health.test.ts`), AC-HE1/HE4/HE5 via a passing Playwright spec
+  (`tests/e2e/health-endpoint.spec.ts`) against `vite dev`. Typecheck/lint clean.
+
+- **(prior) Option A (default):** `/wf verify waypoint-app tanstack-data-layer-unification` — DB-everywhere
   data-layer unification (F2+F3+F7+F8). Automated ACs green now (typecheck/lint clean; 211 Vitest pass;
   AC-DLU2/3/4/5 grep-verified); verify owns the interactive half (AC-DLU1 single-fetch, AC-DLU6 per-entity
   SSR/hydration at 3 breakpoints, AC-DLU7 two-identity isolation, AC-DLU8 optimistic UI) — `BETTER_AUTH_SECRET`

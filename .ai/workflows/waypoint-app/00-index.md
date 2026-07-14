@@ -7,8 +7,8 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T15:36:52Z"
-selected-slice: "tanstack-router-typed-context"
+updated-at: "2026-07-14T16:55:44Z"
+selected-slice: "tanstack-data-layer-unification"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -217,6 +217,9 @@ workflow-files:
   - 03-slice-cloudflare-ai-gateway.md
   - skip-slice-cloudflare-ai-gateway.md
   - 04-plan.md
+  - 04-plan-health-endpoint.md
+  - 04-plan-health-endpoint.yaml
+  - 04-plan-health-endpoint.html.fragment
   - 04-plan-foundation.md
   - 04-plan-foundation.yaml
   - 04-plan-foundation.html.fragment
@@ -239,6 +242,7 @@ workflow-files:
   - 05-implement-platform-proofs.md
   - 05-implement-accounts-data-layer.md
   - 05-implement-design-system-shell.md
+  - 05-implement-health-endpoint.md
   - 06-verify-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md
@@ -794,6 +798,36 @@ workflow-files:
   - 04-plan-tanstack-data-layer-unification.yaml
   - 04-plan-tanstack-data-layer-unification.html.fragment
   - 05-implement-tanstack-data-layer-unification.md
+  - 06-verify-tanstack-data-layer-unification.md
+  - 07-review-tanstack-data-layer-unification.md
+  - 07-review-tanstack-data-layer-unification.yaml
+  - 07-review-tanstack-data-layer-unification.html.fragment
+  - 07-review-tanstack-data-layer-unification-correctness.md
+  - 07-review-tanstack-data-layer-unification-correctness.yaml
+  - 07-review-tanstack-data-layer-unification-security.md
+  - 07-review-tanstack-data-layer-unification-security.yaml
+  - 07-review-tanstack-data-layer-unification-code-simplification.md
+  - 07-review-tanstack-data-layer-unification-code-simplification.yaml
+  - 07-review-tanstack-data-layer-unification-code-simplification.html.fragment
+  - 07-review-tanstack-data-layer-unification-intent-fidelity.md
+  - 07-review-tanstack-data-layer-unification-intent-fidelity.yaml
+  - 07-review-tanstack-data-layer-unification-intent-fidelity.html.fragment
+  - 07-review-tanstack-data-layer-unification-testing.md
+  - 07-review-tanstack-data-layer-unification-testing.yaml
+  - 07-review-tanstack-data-layer-unification-maintainability.md
+  - 07-review-tanstack-data-layer-unification-maintainability.yaml
+  - 07-review-tanstack-data-layer-unification-reliability.md
+  - 07-review-tanstack-data-layer-unification-reliability.yaml
+  - 07-review-tanstack-data-layer-unification-architecture.md
+  - 07-review-tanstack-data-layer-unification-architecture.yaml
+  - 07-review-tanstack-data-layer-unification-data-integrity.md
+  - 07-review-tanstack-data-layer-unification-data-integrity.yaml
+  - 07-review-tanstack-data-layer-unification-refactor-safety.md
+  - 07-review-tanstack-data-layer-unification-refactor-safety.yaml
+  - 07-review-tanstack-data-layer-unification-privacy.md
+  - 07-review-tanstack-data-layer-unification-privacy.yaml
+  - 07-review-tanstack-data-layer-unification-supply-chain.md
+  - 07-review-tanstack-data-layer-unification-supply-chain.yaml
 progress:
   intake: complete
   shape: complete
