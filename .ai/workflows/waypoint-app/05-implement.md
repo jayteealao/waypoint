@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T16:55:44Z"
-slices-implemented: 18
-slices-total: 18
-metric-total-files-changed: 263
-metric-total-lines-added: 31185
-metric-total-lines-removed: 1622
+updated-at: "2026-07-14T20:14:40Z"
+slices-implemented: 19
+slices-total: 19
+metric-total-files-changed: 267
+metric-total-lines-added: 31264
+metric-total-lines-removed: 1624
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tanstack-data-layer-unification"
+next-invocation: "/wf verify waypoint-app precommit-gitleaks-resilience"
 ---
 
 # Implement Index
@@ -337,9 +337,25 @@ next-invocation: "/wf verify waypoint-app tanstack-data-layer-unification"
   add a `checks`/inventory object to it (AC-HE4 regression). This is the endpoint the ship-plan v5
   post-publish smoke targets; the CD smoke wiring is owned by the ship pipeline, not this slice.
 
+- **Precommit-gitleaks-resilience: `scripts/secret-scan.mjs` is the local secret-scan entry point** —
+  the `lefthook.yml` `pre-commit.secret-scan` step runs `node scripts/secret-scan.mjs`, not the raw
+  `gitleaks` binary. The wrapper exports `secretScan(spawn = spawnSync, log = console.error)`: it degrades
+  to exit 0 + a stderr warning ONLY on launch failure (`result.error`/`ENOENT`), and otherwise propagates
+  the running scanner's `status ?? 1` verbatim (a real finding still fails the commit; a signal-killed
+  scanner is treated as failure). This is a LOCAL convenience only — CI's `gitleaks/gitleaks-action@v2`
+  in `.github/workflows/ci.yml` is untouched and stays authoritative. Any future external-binary hook
+  step should follow the same Node-wrapper + injectable-spawn pattern rather than a shell one-liner
+  (cross-platform: no sh-vs-cmd-vs-PowerShell branching). No ruleset / `.gitleaks.toml` change.
+
 ## Recommended Next Stage
 
-- **(current) Option A (default):** `/wf verify waypoint-app health-endpoint` — net-new public
+- **(current) Option A (default):** `/wf verify waypoint-app precommit-gitleaks-resilience` — local
+  secret-scan pre-commit resilience (round-5 devex tooling). All three ACs verifiable now, no deferral:
+  AC-GLR1 by real `node scripts/secret-scan.mjs` spawn in this gitleaks-absent env (exit 0 + warning),
+  AC-GLR2 by fault injection on the exported `secretScan` seam, AC-GLR3 by the atomic commit flowing
+  through the now-resilient hook without `--no-verify`. Wrapper suite 4/4, oxlint/oxfmt/tsc clean.
+
+- **(prior) Option A (default):** `/wf verify waypoint-app health-endpoint` — net-new public
   `GET /health` deploy-gate endpoint. All five ACs verifiable this round with no deferral: AC-HE2/HE3/
   HE4 via 14 Vitest cases (`tests/smoke/health.test.ts`), AC-HE1/HE4/HE5 via a passing Playwright spec
   (`tests/e2e/health-endpoint.spec.ts`) against `vite dev`. Typecheck/lint clean.

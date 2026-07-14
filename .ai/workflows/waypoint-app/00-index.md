@@ -7,7 +7,7 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T16:55:44Z"
+updated-at: "2026-07-14T20:14:40Z"
 selected-slice: "tanstack-data-layer-unification"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -243,6 +243,7 @@ workflow-files:
   - 05-implement-accounts-data-layer.md
   - 05-implement-design-system-shell.md
   - 05-implement-health-endpoint.md
+  - 06-verify-health-endpoint.md
   - 06-verify-platform-proofs.md
   - 06-verify.md
   - 06-verify-foundation.md
@@ -828,6 +829,37 @@ workflow-files:
   - 07-review-tanstack-data-layer-unification-privacy.yaml
   - 07-review-tanstack-data-layer-unification-supply-chain.md
   - 07-review-tanstack-data-layer-unification-supply-chain.yaml
+  - 07-review-health-endpoint.md
+  - 07-review-health-endpoint.yaml
+  - 07-review-health-endpoint.html.fragment
+  - 07-review-health-endpoint-correctness.md
+  - 07-review-health-endpoint-correctness.yaml
+  - 07-review-health-endpoint-security.md
+  - 07-review-health-endpoint-security.yaml
+  - 07-review-health-endpoint-code-simplification.md
+  - 07-review-health-endpoint-code-simplification.yaml
+  - 07-review-health-endpoint-intent-fidelity.md
+  - 07-review-health-endpoint-intent-fidelity.yaml
+  - 07-review-health-endpoint-testing.md
+  - 07-review-health-endpoint-testing.yaml
+  - 07-review-health-endpoint-maintainability.md
+  - 07-review-health-endpoint-maintainability.yaml
+  - 07-review-health-endpoint-reliability.md
+  - 07-review-health-endpoint-reliability.yaml
+  - 07-review-health-endpoint-reliability.html.fragment
+  - 07-review-health-endpoint-observability.md
+  - 07-review-health-endpoint-observability.yaml
+  - 07-review-health-endpoint-api-contracts.md
+  - 07-review-health-endpoint-api-contracts.yaml
+  - 07-review-health-endpoint-api-contracts.html.fragment
+  - 03-slice-precommit-gitleaks-resilience.md
+  - 03-slice-repo-format-baseline.md
+  - 03-slice-fsrs-scheduler-test-determinism.md
+  - 03-slice-e2e-session-cookie-prefix.md
+  - 04-plan-precommit-gitleaks-resilience.md
+  - 04-plan-precommit-gitleaks-resilience.yaml
+  - 04-plan-precommit-gitleaks-resilience.html.fragment
+  - 05-implement-precommit-gitleaks-resilience.md
 progress:
   intake: complete
   shape: complete

@@ -9,7 +9,7 @@ pnpm install
 
 That's it — `pnpm install` also wires the git hooks (lefthook is a pinned devDependency, allow-listed to run its install hook). Node 22 is pinned in `.nvmrc`; pnpm is pinned via `packageManager` in `package.json`.
 
-One extra system tool: **gitleaks** (secret scanning in the pre-commit hook) is not an npm package — install it with `winget install gitleaks` or `scoop install gitleaks`.
+One extra system tool: **gitleaks** (secret scanning in the pre-commit hook) is not an npm package — install it with `winget install gitleaks` or `scoop install gitleaks`. If gitleaks is absent the local pre-commit secret scan skips with a warning instead of blocking the commit; CI runs its own gitleaks gate regardless, so the scan is always enforced before merge.
 
 ## Running the gates locally
 
