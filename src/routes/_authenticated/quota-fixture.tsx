@@ -16,50 +16,42 @@
  * Not exposed in the Sidebar nav — for dev and E2E use only.
  */
 
-import { createFileRoute } from '@tanstack/react-router'
-import { getQuotaStatus } from '#/server/ai'
-import QuotaCard from '#/components/quota/QuotaCard'
-import type { QuotaStatus } from '#/lib/ai/quota'
+import { createFileRoute } from "@tanstack/react-router";
+import { getQuotaStatus } from "#/server/ai";
+import QuotaCard from "#/components/quota/QuotaCard";
+import type { QuotaStatus } from "#/lib/ai/quota";
 
-export const Route = createFileRoute('/_authenticated/quota-fixture')({
+export const Route = createFileRoute("/_authenticated/quota-fixture")({
   loader: async () => {
     // Call the server function; the middleware handles auth.
-    const raw = await getQuotaStatus()
+    const raw = await getQuotaStatus();
     // Deserialize resetAt string back to Date for the component.
     return {
       ...raw,
       resetAt: new Date(raw.resetAt),
-    } satisfies QuotaStatus
+    } satisfies QuotaStatus;
   },
   head: () => ({
-    meta: [{ title: 'Waypoint — Quota Fixture' }],
+    meta: [{ title: "Waypoint — Quota Fixture" }],
   }),
   component: QuotaFixturePage,
-})
+});
 
 function QuotaFixturePage() {
-  const status = Route.useLoaderData()
+  const status = Route.useLoaderData();
 
   if (!status.allowed) {
     return (
-      <div
-        data-testid="quota-fixture-page"
-        style={{ padding: '2rem' }}
-      >
+      <div data-testid="quota-fixture-page" style={{ padding: "2rem" }}>
         <QuotaCard status={status} />
       </div>
-    )
+    );
   }
 
-  const remaining = status.limit - status.used
+  const remaining = status.limit - status.used;
   return (
-    <div
-      data-testid="quota-fixture-page"
-      style={{ padding: '2rem' }}
-    >
-      <p data-testid="quota-ok">
-        Quota available: ${remaining.toFixed(4)} remaining
-      </p>
+    <div data-testid="quota-fixture-page" style={{ padding: "2rem" }}>
+      <p data-testid="quota-ok">Quota available: ${remaining.toFixed(4)} remaining</p>
     </div>
-  )
+  );
 }

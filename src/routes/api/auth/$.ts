@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { env } from 'cloudflare:workers'
-import { createAuth } from '#/lib/auth'
+import { createFileRoute } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
+import { createAuth } from "#/lib/auth";
 
 // Mounts better-auth on the /api/auth/* catch-all using the per-request
 // client creation pattern. `env` is fully typed via worker-configuration.d.ts
@@ -10,14 +10,14 @@ import { createAuth } from '#/lib/auth'
 // state leaks between Workers invocations (AC-PP4).
 
 const handleAuth = ({ request }: { request: Request }) => {
-  return createAuth(env).handler(request)
-}
+  return createAuth(env).handler(request);
+};
 
-export const Route = createFileRoute('/api/auth/$')({
+export const Route = createFileRoute("/api/auth/$")({
   server: {
     handlers: {
       GET: handleAuth,
       POST: handleAuth,
     },
   },
-})
+});

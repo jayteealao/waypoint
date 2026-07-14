@@ -1,13 +1,13 @@
-import { forwardRef } from 'react'
-import { Loader2 } from 'lucide-react'
+import { forwardRef } from "react";
+import { Loader2 } from "lucide-react";
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
-export type ButtonSize    = 'sm' | 'md' | 'lg'
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant
-  size?:    ButtonSize
-  loading?: boolean
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
 }
 
 /**
@@ -16,18 +16,18 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   {
-    variant  = 'secondary',
-    size     = 'md',
-    loading  = false,
+    variant = "secondary",
+    size = "md",
+    loading = false,
     disabled,
     children,
-    className = '',
+    className = "",
     ...rest
   },
   ref,
 ) {
-  const variantClass = `btn-${variant}` as const
-  const sizeClass    = `btn-${size}` as const
+  const variantClass = `btn-${variant}` as const;
+  const sizeClass = `btn-${size}` as const;
 
   return (
     <button
@@ -46,5 +46,5 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         children
       )}
     </button>
-  )
-})
+  );
+});

@@ -12,21 +12,21 @@
 
 /** Entities that get a client-read collection (usage_events is server-only). */
 export type CollectionEntity =
-  | 'journeys'
-  | 'waypoints'
-  | 'lessons'
-  | 'quiz-questions'
-  | 'quiz-attempts'
-  | 'concepts'
-  | 'fsrs-cards'
-  | 'adaptations'
+  | "journeys"
+  | "waypoints"
+  | "lessons"
+  | "quiz-questions"
+  | "quiz-attempts"
+  | "concepts"
+  | "fsrs-cards"
+  | "adaptations";
 
 /** Shared prefix for every Waypoint client-cache localStorage key. */
-export const CACHE_PREFIX = 'wp:'
+export const CACHE_PREFIX = "wp:";
 
 /** Build the namespaced storage key for a user's entity collection. */
 export function storageKey(userId: string, entity: CollectionEntity): string {
-  return `${CACHE_PREFIX}${userId}:${entity}`
+  return `${CACHE_PREFIX}${userId}:${entity}`;
 }
 
 /**
@@ -35,15 +35,15 @@ export function storageKey(userId: string, entity: CollectionEntity): string {
  * No-op when localStorage is unavailable (SSR / disabled storage).
  */
 export function purgeUserCache(): void {
-  if (typeof localStorage === 'undefined') return
-  const toRemove: string[] = []
+  if (typeof localStorage === "undefined") return;
+  const toRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
+    const key = localStorage.key(i);
     if (key !== null && key.startsWith(CACHE_PREFIX)) {
-      toRemove.push(key)
+      toRemove.push(key);
     }
   }
   for (const key of toRemove) {
-    localStorage.removeItem(key)
+    localStorage.removeItem(key);
   }
 }

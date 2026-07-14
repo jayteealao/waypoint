@@ -1,0 +1,15 @@
+# Read by oxfmt (and any prettier-compatible tool): exclude non-source trees.
+# Workflow artifacts, agent skills, generated assets, SQL migrations, screenshots.
+.ai/
+.claude/
+.scratch/
+migrations/
+tests/e2e/screenshots/
+*.md
+**/*.md
+# oxfmt 0.58.0's CSS parser cannot handle oklch() color syntax yet — re-include when fixed upstream.
+*.css
+**/*.css
+# Generated — reformatting churns them on regen (tsr generate / wrangler types)
+src/routeTree.gen.ts
+worker-configuration.d.ts

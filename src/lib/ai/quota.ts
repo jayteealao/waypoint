@@ -11,24 +11,24 @@
  * column stores ISO-8601 UTC strings — consistent by design.
  */
 
-import type { GenerationType } from './tiers'
+import type { GenerationType } from "./tiers";
 
 /** Return value of checkQuota — caller uses `allowed` to gate the LLM call. */
 export interface QuotaStatus {
   /** Whether the user is allowed to make a generation request. */
-  allowed: boolean
+  allowed: boolean;
   /** Cost consumed so far today (USD). */
-  used: number
+  used: number;
   /** Daily limit (USD). */
-  limit: number
+  limit: number;
   /** Exact moment at which the daily window resets (start of next UTC day). */
-  resetAt: Date
+  resetAt: Date;
 }
 
 /** Default daily cost limit per user (USD). Operator adjusts by editing + deploying. */
 // sdlc-debt: hard-coded constant; upgrade path: store in D1 operator_config table when
 // per-user or per-tier limits are needed.
-export const DAILY_LIMIT_USD = 0.5
+export const DAILY_LIMIT_USD = 0.5;
 
 /**
  * Check the authenticated user's daily quota.
@@ -48,38 +48,36 @@ export async function checkQuota(
   requestType?: GenerationType,
 ): Promise<QuotaStatus> {
   // Compute the UTC day boundary strings. Workers runtime is UTC; no TZ conversion needed.
-  const now = new Date()
-  const todayStart = now.toISOString().slice(0, 10) + 'T00:00:00Z'
-  const tomorrowStart = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-  )).toISOString()
+  const now = new Date();
+  const todayStart = now.toISOString().slice(0, 10) + "T00:00:00Z";
+  const tomorrowStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  ).toISOString();
 
   const row = await db
     .prepare(
-      'SELECT COALESCE(SUM(cost_usd), 0) AS used FROM usage_events WHERE user_id = ? AND at >= ?',
+      "SELECT COALESCE(SUM(cost_usd), 0) AS used FROM usage_events WHERE user_id = ? AND at >= ?",
     )
     .bind(userId, todayStart)
-    .first<{ used: number }>()
+    .first<{ used: number }>();
 
-  const used = row?.used ?? 0
-  const allowed = used < DAILY_LIMIT_USD
-  const resetAt = new Date(tomorrowStart)
+  const used = row?.used ?? 0;
+  const allowed = used < DAILY_LIMIT_USD;
+  const resetAt = new Date(tomorrowStart);
 
   if (!allowed) {
     // Emit structured rejection log — routed to Cloudflare Logpush via observability.
     console.log(
       JSON.stringify({
-        event: 'quota.rejected',
+        event: "quota.rejected",
         user_id: userId,
         quota_limit: DAILY_LIMIT_USD,
         quota_used: used,
-        request_type: requestType ?? 'unknown',
+        request_type: requestType ?? "unknown",
         reset_at: resetAt.toISOString(),
       }),
-    )
+    );
   }
 
-  return { allowed, used, limit: DAILY_LIMIT_USD, resetAt }
+  return { allowed, used, limit: DAILY_LIMIT_USD, resetAt };
 }

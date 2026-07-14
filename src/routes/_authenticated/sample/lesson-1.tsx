@@ -8,29 +8,29 @@
  * in the implementation plan).
  */
 
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useEffect } from 'react'
-import { SAMPLE_LESSON_1, LESSON_1_VISITED_KEY } from '#/fixtures/sample-journey'
-import { LessonView } from '#/components/lesson/LessonView'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { SAMPLE_LESSON_1, LESSON_1_VISITED_KEY } from "#/fixtures/sample-journey";
+import { LessonView } from "#/components/lesson/LessonView";
 
-export const Route = createFileRoute('/_authenticated/sample/lesson-1')({
+export const Route = createFileRoute("/_authenticated/sample/lesson-1")({
   head: () => ({
-    meta: [{ title: 'Waypoint — How Waypoint Teaches' }],
+    meta: [{ title: "Waypoint — How Waypoint Teaches" }],
   }),
   component: SampleLesson1Page,
-})
+});
 
 function SampleLesson1Page() {
   useEffect(() => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(LESSON_1_VISITED_KEY, 'true')
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(LESSON_1_VISITED_KEY, "true");
     }
     // Dispatch after current effect batch so the layout recompute sees fresh localStorage
     const id = setTimeout(() => {
-      window.dispatchEvent(new Event('wp:sample-progress'))
-    }, 0)
-    return () => clearTimeout(id)
-  }, [])
+      window.dispatchEvent(new Event("wp:sample-progress"));
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
 
   return (
     <div data-testid="sample-lesson-1">
@@ -41,19 +41,13 @@ function SampleLesson1Page() {
         className="max-w-[640px] mx-auto px-4 pb-8 flex items-center justify-between mt-4 gap-4"
         aria-label="Lesson navigation"
       >
-        <Link
-          to="/sample"
-          className="btn-base btn-outline btn-sm"
-        >
+        <Link to="/sample" className="btn-base btn-outline btn-sm">
           ← Overview
         </Link>
-        <Link
-          to="/sample/lesson-2"
-          className="btn-base btn-primary btn-sm"
-        >
+        <Link to="/sample/lesson-2" className="btn-base btn-primary btn-sm">
           Next: Spaced Repetition →
         </Link>
       </nav>
     </div>
-  )
+  );
 }

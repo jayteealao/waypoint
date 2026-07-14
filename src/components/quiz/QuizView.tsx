@@ -23,127 +23,126 @@
  *   data-testid="quiz-score"         — score display
  */
 
-import { useState, useEffect } from 'react'
-import { Link } from '@tanstack/react-router'
-import type { SampleQuizQuestion } from '#/fixtures/sample-journey'
-import { SAMPLE_QUIZ_ATTEMPT_KEY } from '#/fixtures/sample-journey'
-import type { QuizQuestion } from '#/db/schema'
-import { gradeAnswer, recordAttemptAndUpdateFsrs } from '#/server/quiz'
-import type { GradingOutput } from '#/lib/quiz/schema'
+import { useState, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
+import type { SampleQuizQuestion } from "#/fixtures/sample-journey";
+import { SAMPLE_QUIZ_ATTEMPT_KEY } from "#/fixtures/sample-journey";
+import type { QuizQuestion } from "#/db/schema";
+import { gradeAnswer, recordAttemptAndUpdateFsrs } from "#/server/quiz";
+import type { GradingOutput } from "#/lib/quiz/schema";
 
 // ─── Local attempt tracking for results screen ────────────────────────────────
 
 interface QuizAttempt {
-  score:       number      // 0–1 fraction
-  answers:     (number | null)[]
-  completedAt: string      // ISO-8601
+  score: number; // 0–1 fraction
+  answers: (number | null)[];
+  completedAt: string; // ISO-8601
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface SampleModeProps {
-  mode: 'sample'
-  questions:  SampleQuizQuestion[]
-  onComplete?: () => void
+  mode: "sample";
+  questions: SampleQuizQuestion[];
+  onComplete?: () => void;
 }
 
 interface JourneyModeProps {
-  mode: 'journey'
-  questions:  QuizQuestion[]
-  journeyId:  string
-  waypointId: string
+  mode: "journey";
+  questions: QuizQuestion[];
+  journeyId: string;
+  waypointId: string;
   /** Called with the number of correctly-answered questions and the total count. */
-  onComplete?: (score: number, total: number) => void
+  onComplete?: (score: number, total: number) => void;
 }
 
-export type QuizViewProps = SampleModeProps | JourneyModeProps
+export type QuizViewProps = SampleModeProps | JourneyModeProps;
 
 // ─── Journey question helpers ─────────────────────────────────────────────────
 
 function parseOptions(optionsJson: string): string[] {
   try {
-    const parsed = JSON.parse(optionsJson)
-    return Array.isArray(parsed) ? (parsed as string[]) : []
+    const parsed = JSON.parse(optionsJson);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
   } catch {
-    return []
+    return [];
   }
 }
 
 // ─── QuizView (sample mode) ───────────────────────────────────────────────────
 
 function QuizViewSample({ questions, onComplete }: SampleModeProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [answers,      setAnswers]      = useState<(number | null)[]>(
-    () => Array(questions.length).fill(null),
-  )
-  const [revealed,     setRevealed]     = useState<boolean[]>(
-    () => Array(questions.length).fill(false),
-  )
-  const [showResults, setShowResults]   = useState(false)
-  const [restoredAttempt, setRestoredAttempt] = useState<QuizAttempt | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<(number | null)[]>(() =>
+    Array(questions.length).fill(null),
+  );
+  const [revealed, setRevealed] = useState<boolean[]>(() => Array(questions.length).fill(false));
+  const [showResults, setShowResults] = useState(false);
+  const [restoredAttempt, setRestoredAttempt] = useState<QuizAttempt | null>(null);
 
   // On mount: restore completed attempt from localStorage if present
   useEffect(() => {
-    if (typeof localStorage === 'undefined') return
-    const raw = localStorage.getItem(SAMPLE_QUIZ_ATTEMPT_KEY)
-    if (!raw) return
+    if (typeof localStorage === "undefined") return;
+    const raw = localStorage.getItem(SAMPLE_QUIZ_ATTEMPT_KEY);
+    if (!raw) return;
     try {
-      const attempt = JSON.parse(raw) as QuizAttempt
+      const attempt = JSON.parse(raw) as QuizAttempt;
       if (
-        typeof attempt.score === 'number' &&
+        typeof attempt.score === "number" &&
         Array.isArray(attempt.answers) &&
-        typeof attempt.completedAt === 'string'
+        typeof attempt.completedAt === "string"
       ) {
-        setAnswers(attempt.answers)
-        setRestoredAttempt(attempt)
-        setShowResults(true)
+        setAnswers(attempt.answers);
+        setRestoredAttempt(attempt);
+        setShowResults(true);
       }
     } catch {
       // Malformed attempt — start fresh
     }
-  }, [])
+  }, []);
 
-  const question = questions[currentIndex]
-  const isLastQuestion = currentIndex === questions.length - 1
+  const question = questions[currentIndex];
+  const isLastQuestion = currentIndex === questions.length - 1;
 
   function handleOptionClick(optionIdx: number) {
-    if (revealed[currentIndex]) return
-    const next = answers.slice()
-    next[currentIndex] = optionIdx
-    setAnswers(next)
-    const nextRevealed = revealed.slice()
-    nextRevealed[currentIndex] = true
-    setRevealed(nextRevealed)
+    if (revealed[currentIndex]) return;
+    const next = answers.slice();
+    next[currentIndex] = optionIdx;
+    setAnswers(next);
+    const nextRevealed = revealed.slice();
+    nextRevealed[currentIndex] = true;
+    setRevealed(nextRevealed);
   }
 
   function handleAdvance() {
     if (isLastQuestion) {
-      const score = answers.reduce<number>((acc, ans, i) => {
-        return acc + (ans === questions[i]!.correct_index ? 1 : 0)
-      }, 0) / questions.length
+      const score =
+        answers.reduce<number>((acc, ans, i) => {
+          return acc + (ans === questions[i]!.correct_index ? 1 : 0);
+        }, 0) / questions.length;
 
       const attempt: QuizAttempt = {
         score,
         answers,
         completedAt: new Date().toISOString(),
+      };
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(SAMPLE_QUIZ_ATTEMPT_KEY, JSON.stringify(attempt));
       }
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(SAMPLE_QUIZ_ATTEMPT_KEY, JSON.stringify(attempt))
-      }
-      setRestoredAttempt(attempt)
-      setShowResults(true)
-      onComplete?.()
+      setRestoredAttempt(attempt);
+      setShowResults(true);
+      onComplete?.();
     } else {
-      setCurrentIndex((i) => i + 1)
+      setCurrentIndex((i) => i + 1);
     }
   }
 
   // ── Results screen ──────────────────────────────────────────────────────────
 
   if (showResults) {
-    const attempt = restoredAttempt
-    if (!attempt) return null
-    const correct = Math.round(attempt.score * questions.length)
+    const attempt = restoredAttempt;
+    if (!attempt) return null;
+    const correct = Math.round(attempt.score * questions.length);
 
     return (
       <div className="wp-quiz" data-testid="quiz-view">
@@ -153,27 +152,27 @@ function QuizViewSample({ questions, onComplete }: SampleModeProps) {
           </div>
           <p className="mt-2 text-sm text-[var(--ink-muted)]">
             {correct === questions.length
-              ? 'Perfect score — well done!'
+              ? "Perfect score — well done!"
               : correct >= questions.length / 2
-              ? 'Good effort — review the explanations below.'
-              : 'Keep going — each attempt builds your recall.'}
+                ? "Good effort — review the explanations below."
+                : "Keep going — each attempt builds your recall."}
           </p>
 
           <ol className="mt-6 text-left space-y-3">
             {questions.map((q, i) => {
-              const ans = attempt.answers[i]
-              const isCorrect = ans === q.correct_index
+              const ans = attempt.answers[i];
+              const isCorrect = ans === q.correct_index;
               return (
                 <li
                   key={q.id}
-                  className={`wp-quiz-result-item ${isCorrect ? 'wp-quiz-result-item--correct' : 'wp-quiz-result-item--incorrect'}`}
+                  className={`wp-quiz-result-item ${isCorrect ? "wp-quiz-result-item--correct" : "wp-quiz-result-item--incorrect"}`}
                 >
                   <span className="wp-quiz-result-icon" aria-hidden="true">
-                    {isCorrect ? '✓' : '✗'}
+                    {isCorrect ? "✓" : "✗"}
                   </span>
                   <span className="wp-quiz-result-text">{q.question}</span>
                 </li>
-              )
+              );
             })}
           </ol>
 
@@ -187,14 +186,14 @@ function QuizViewSample({ questions, onComplete }: SampleModeProps) {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // ── Active question ─────────────────────────────────────────────────────────
 
-  const answered   = revealed[currentIndex]!
-  const userAnswer = answers[currentIndex]
-  const isCorrect  = userAnswer === question!.correct_index
+  const answered = revealed[currentIndex]!;
+  const userAnswer = answers[currentIndex];
+  const isCorrect = userAnswer === question!.correct_index;
 
   return (
     <div className="wp-quiz" data-testid="quiz-view">
@@ -202,20 +201,17 @@ function QuizViewSample({ questions, onComplete }: SampleModeProps) {
         Question {currentIndex + 1} of {questions.length}
       </p>
 
-      <p
-        className="wp-quiz-question"
-        data-testid={`quiz-question-${question!.id}`}
-      >
+      <p className="wp-quiz-question" data-testid={`quiz-question-${question!.id}`}>
         {question!.question}
       </p>
 
       <div className="space-y-2" role="group" aria-label="Answer options">
         {question!.options.map((opt, idx) => {
-          let extraClass = ''
+          let extraClass = "";
           if (answered) {
-            if (idx === question!.correct_index) extraClass = ' wp-quiz-option--correct'
-            else if (idx === userAnswer) extraClass = ' wp-quiz-option--incorrect'
-            if (idx === userAnswer) extraClass += ' wp-quiz-option--selected'
+            if (idx === question!.correct_index) extraClass = " wp-quiz-option--correct";
+            else if (idx === userAnswer) extraClass = " wp-quiz-option--incorrect";
+            if (idx === userAnswer) extraClass += " wp-quiz-option--selected";
           }
           return (
             <button
@@ -231,80 +227,75 @@ function QuizViewSample({ questions, onComplete }: SampleModeProps) {
               </span>
               {opt}
             </button>
-          )
+          );
         })}
       </div>
 
       {answered && (
         <div
-          className={`wp-quiz-feedback ${isCorrect ? 'wp-quiz-feedback--correct' : ''}`}
+          className={`wp-quiz-feedback ${isCorrect ? "wp-quiz-feedback--correct" : ""}`}
           data-testid="quiz-feedback"
           role="status"
           aria-live="polite"
         >
-          <strong>{isCorrect ? 'Correct!' : 'Not quite.'}</strong>{' '}
-          {question!.explanation}
+          <strong>{isCorrect ? "Correct!" : "Not quite."}</strong> {question!.explanation}
         </div>
       )}
 
       {answered && (
         <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            className="btn-base btn-primary btn-md"
-            onClick={handleAdvance}
-          >
-            {isLastQuestion ? 'See Results' : 'Next Question →'}
+          <button type="button" className="btn-base btn-primary btn-md" onClick={handleAdvance}>
+            {isLastQuestion ? "See Results" : "Next Question →"}
           </button>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ─── QuizView (journey mode) ──────────────────────────────────────────────────
 
 type JourneyAnswer =
-  | { type: 'mc'; optionIdx: number; isCorrect: boolean }
-  | { type: 'frq'; grading: GradingOutput }
+  | { type: "mc"; optionIdx: number; isCorrect: boolean }
+  | { type: "frq"; grading: GradingOutput };
 
 function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: JourneyModeProps) {
-  const [currentIndex, setCurrentIndex]       = useState(0)
-  const [mcSelection,  setMcSelection]        = useState<number | null>(null)
-  const [frqText,      setFrqText]            = useState('')
-  const [frqGrading,   setFrqGrading]         = useState<GradingOutput | null>(null)
-  const [isGrading,    setIsGrading]          = useState(false)
-  const [answered,     setAnswered]           = useState(false)
-  const [answers,      setAnswers]            = useState<(JourneyAnswer | null)[]>(
-    () => Array(questions.length).fill(null),
-  )
-  const [showResults,  setShowResults]        = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [mcSelection, setMcSelection] = useState<number | null>(null);
+  const [frqText, setFrqText] = useState("");
+  const [frqGrading, setFrqGrading] = useState<GradingOutput | null>(null);
+  const [isGrading, setIsGrading] = useState(false);
+  const [answered, setAnswered] = useState(false);
+  const [answers, setAnswers] = useState<(JourneyAnswer | null)[]>(() =>
+    Array(questions.length).fill(null),
+  );
+  const [showResults, setShowResults] = useState(false);
 
   if (questions.length === 0) {
     return (
       <div className="wp-quiz" data-testid="quiz-view">
         <p className="text-[var(--ink-muted)]">No questions available for this waypoint yet.</p>
       </div>
-    )
+    );
   }
 
-  const question       = questions[currentIndex]!
-  const isLastQuestion = currentIndex === questions.length - 1
-  const options        = question.type === 'mc' ? parseOptions(question.options) : []
+  const question = questions[currentIndex]!;
+  const isLastQuestion = currentIndex === questions.length - 1;
+  const options = question.type === "mc" ? parseOptions(question.options) : [];
 
   // ── MC answer ───────────────────────────────────────────────────────────────
 
   async function handleMcOptionClick(optionIdx: number) {
-    if (answered) return
-    const selectedText = options[optionIdx]!
-    const isCorrect    = selectedText === question.correct_answer
-    setMcSelection(optionIdx)
-    setAnswered(true)
+    if (answered) return;
+    const selectedText = options[optionIdx]!;
+    const isCorrect = selectedText === question.correct_answer;
+    setMcSelection(optionIdx);
+    setAnswered(true);
 
-    const answer: JourneyAnswer = { type: 'mc', optionIdx, isCorrect }
-    const next = answers.slice()
-    next[currentIndex] = answer
-    setAnswers(next)
+    const answer: JourneyAnswer = { type: "mc", optionIdx, isCorrect };
+    const next = answers.slice();
+    next[currentIndex] = answer;
+    setAnswers(next);
 
     // Record attempt (score 2 if correct, 0 if not)
     try {
@@ -313,43 +304,43 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
           questionId: question.id,
           response: selectedText,
           score: isCorrect ? 2 : 0,
-          feedback: isCorrect ? 'Correct!' : 'Not quite.',
+          feedback: isCorrect ? "Correct!" : "Not quite.",
           journeyId,
         },
-      })
+      });
     } catch (err) {
-      console.error('[quiz] recordAttemptAndUpdateFsrs failed', err)
+      console.error("[quiz] recordAttemptAndUpdateFsrs failed", err);
     }
   }
 
   // ── FRQ answer ──────────────────────────────────────────────────────────────
 
   async function handleFrqSubmit() {
-    if (answered || isGrading) return
-    setIsGrading(true)
+    if (answered || isGrading) return;
+    setIsGrading(true);
 
-    let grading: GradingOutput
+    let grading: GradingOutput;
     try {
       grading = await gradeAnswer({
         data: { questionId: question.id, response: frqText, journeyId },
-      })
+      });
     } catch (err) {
-      console.error('[quiz] gradeAnswer failed', err)
+      console.error("[quiz] gradeAnswer failed", err);
       grading = {
-        verdict: 'incorrect',
+        verdict: "incorrect",
         score: 0,
-        feedback: 'Could not grade your answer right now — please try again.',
-      }
+        feedback: "Could not grade your answer right now — please try again.",
+      };
     }
 
-    setFrqGrading(grading)
-    setIsGrading(false)
-    setAnswered(true)
+    setFrqGrading(grading);
+    setIsGrading(false);
+    setAnswered(true);
 
-    const answer: JourneyAnswer = { type: 'frq', grading }
-    const next = answers.slice()
-    next[currentIndex] = answer
-    setAnswers(next)
+    const answer: JourneyAnswer = { type: "frq", grading };
+    const next = answers.slice();
+    next[currentIndex] = answer;
+    setAnswers(next);
 
     // Record attempt and update FSRS
     try {
@@ -361,9 +352,9 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
           feedback: grading.feedback,
           journeyId,
         },
-      })
+      });
     } catch (err) {
-      console.error('[quiz] recordAttemptAndUpdateFsrs failed', err)
+      console.error("[quiz] recordAttemptAndUpdateFsrs failed", err);
     }
   }
 
@@ -374,19 +365,19 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
       // Compute score from the completed answers array before showing results.
       // `answers` is fully committed at this point (separate click event).
       const correctCount = answers.filter((a) => {
-        if (!a) return false
-        if (a.type === 'mc') return a.isCorrect
-        return a.grading.score >= 1
-      }).length
-      setShowResults(true)
-      onComplete?.(correctCount, questions.length)
+        if (!a) return false;
+        if (a.type === "mc") return a.isCorrect;
+        return a.grading.score >= 1;
+      }).length;
+      setShowResults(true);
+      onComplete?.(correctCount, questions.length);
     } else {
-      setCurrentIndex((i) => i + 1)
-      setMcSelection(null)
-      setFrqText('')
-      setFrqGrading(null)
-      setAnswered(false)
-      setIsGrading(false)
+      setCurrentIndex((i) => i + 1);
+      setMcSelection(null);
+      setFrqText("");
+      setFrqGrading(null);
+      setAnswered(false);
+      setIsGrading(false);
     }
   }
 
@@ -394,10 +385,10 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
 
   if (showResults) {
     const correctCount = answers.filter((a) => {
-      if (!a) return false
-      if (a.type === 'mc') return a.isCorrect
-      return a.grading.score >= 1
-    }).length
+      if (!a) return false;
+      if (a.type === "mc") return a.isCorrect;
+      return a.grading.score >= 1;
+    }).length;
 
     return (
       <div className="wp-quiz" data-testid="quiz-view">
@@ -407,31 +398,31 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
           </div>
           <p className="mt-2 text-sm text-[var(--ink-muted)]">
             {correctCount === questions.length
-              ? 'Perfect score — well done!'
+              ? "Perfect score — well done!"
               : correctCount >= questions.length / 2
-              ? 'Good effort — spaced repetition will reinforce these concepts.'
-              : 'Keep going — each attempt strengthens your recall.'}
+                ? "Good effort — spaced repetition will reinforce these concepts."
+                : "Keep going — each attempt strengthens your recall."}
           </p>
 
           <ol className="mt-6 text-left space-y-3">
             {questions.map((q, i) => {
-              const ans = answers[i]
+              const ans = answers[i];
               const isOk = ans
-                ? ans.type === 'mc'
+                ? ans.type === "mc"
                   ? ans.isCorrect
                   : ans.grading.score >= 1
-                : false
+                : false;
               return (
                 <li
                   key={q.id}
-                  className={`wp-quiz-result-item ${isOk ? 'wp-quiz-result-item--correct' : 'wp-quiz-result-item--incorrect'}`}
+                  className={`wp-quiz-result-item ${isOk ? "wp-quiz-result-item--correct" : "wp-quiz-result-item--incorrect"}`}
                 >
                   <span className="wp-quiz-result-icon" aria-hidden="true">
-                    {isOk ? '✓' : '✗'}
+                    {isOk ? "✓" : "✗"}
                   </span>
                   <span className="wp-quiz-result-text">{q.question}</span>
                 </li>
-              )
+              );
             })}
           </ol>
 
@@ -446,15 +437,15 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // ── Active MC question ──────────────────────────────────────────────────────
 
-  if (question.type === 'mc') {
-    const answerRecord = answers[currentIndex]
-    const mcAnswer = answerRecord?.type === 'mc' ? answerRecord : null
-    const isCorrectMc = mcAnswer?.isCorrect ?? false
+  if (question.type === "mc") {
+    const answerRecord = answers[currentIndex];
+    const mcAnswer = answerRecord?.type === "mc" ? answerRecord : null;
+    const isCorrectMc = mcAnswer?.isCorrect ?? false;
 
     return (
       <div className="wp-quiz" data-testid="quiz-view">
@@ -468,11 +459,11 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
 
         <div className="space-y-2" role="group" aria-label="Answer options">
           {options.map((opt, idx) => {
-            let extraClass = ''
+            let extraClass = "";
             if (answered) {
-              if (opt === question.correct_answer) extraClass = ' wp-quiz-option--correct'
-              else if (idx === mcSelection) extraClass = ' wp-quiz-option--incorrect'
-              if (idx === mcSelection) extraClass += ' wp-quiz-option--selected'
+              if (opt === question.correct_answer) extraClass = " wp-quiz-option--correct";
+              else if (idx === mcSelection) extraClass = " wp-quiz-option--incorrect";
+              if (idx === mcSelection) extraClass += " wp-quiz-option--selected";
             }
             return (
               <button
@@ -488,50 +479,46 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
                 </span>
                 {opt}
               </button>
-            )
+            );
           })}
         </div>
 
         {answered && (
           <div
-            className={`wp-quiz-feedback ${isCorrectMc ? 'wp-quiz-feedback--correct' : ''}`}
+            className={`wp-quiz-feedback ${isCorrectMc ? "wp-quiz-feedback--correct" : ""}`}
             data-testid="quiz-feedback"
             role="status"
             aria-live="polite"
           >
-            <strong>{isCorrectMc ? 'Correct!' : 'Not quite.'}</strong>{' '}
+            <strong>{isCorrectMc ? "Correct!" : "Not quite."}</strong>{" "}
             {isCorrectMc
-              ? 'Great recall!'
+              ? "Great recall!"
               : question.correct_answer
                 ? `The correct answer is: ${question.correct_answer}`
-                : ''}
+                : ""}
           </div>
         )}
 
         {answered && (
           <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              className="btn-base btn-primary btn-md"
-              onClick={handleAdvance}
-            >
-              {isLastQuestion ? 'See Results' : 'Next Question →'}
+            <button type="button" className="btn-base btn-primary btn-md" onClick={handleAdvance}>
+              {isLastQuestion ? "See Results" : "Next Question →"}
             </button>
           </div>
         )}
       </div>
-    )
+    );
   }
 
   // ── Active FRQ question ─────────────────────────────────────────────────────
 
   const verdictClass = frqGrading
-    ? frqGrading.verdict === 'correct'
-      ? '--correct'
-      : frqGrading.verdict === 'partial'
-      ? '--partial'
-      : '--incorrect'
-    : ''
+    ? frqGrading.verdict === "correct"
+      ? "--correct"
+      : frqGrading.verdict === "partial"
+        ? "--partial"
+        : "--incorrect"
+    : "";
 
   return (
     <div className="wp-quiz" data-testid="quiz-view">
@@ -572,12 +559,12 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
           aria-live="polite"
         >
           <strong>
-            {frqGrading.verdict === 'correct'
-              ? 'Correct!'
-              : frqGrading.verdict === 'partial'
-              ? 'Partially correct'
-              : 'Not quite.'}
-          </strong>{' '}
+            {frqGrading.verdict === "correct"
+              ? "Correct!"
+              : frqGrading.verdict === "partial"
+                ? "Partially correct"
+                : "Not quite."}
+          </strong>{" "}
           {frqGrading.feedback}
         </div>
       )}
@@ -596,24 +583,20 @@ function QuizViewJourney({ questions, journeyId, waypointId, onComplete }: Journ
 
       {answered && (
         <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            className="btn-base btn-primary btn-md"
-            onClick={handleAdvance}
-          >
-            {isLastQuestion ? 'See Results' : 'Next Question →'}
+          <button type="button" className="btn-base btn-primary btn-md" onClick={handleAdvance}>
+            {isLastQuestion ? "See Results" : "Next Question →"}
           </button>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ─── Unified export ───────────────────────────────────────────────────────────
 
 export function QuizView(props: QuizViewProps) {
-  if (props.mode === 'sample') {
-    return <QuizViewSample {...props} />
+  if (props.mode === "sample") {
+    return <QuizViewSample {...props} />;
   }
-  return <QuizViewJourney {...props} />
+  return <QuizViewJourney {...props} />;
 }

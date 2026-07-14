@@ -32,7 +32,7 @@
  * rollback MECHANISM is proven at the factory level (tests/smoke/lww-reconcile
  * forced-flush-failure), which is what the plan's verification strategy names.
  */
-import { defineDomainCollection } from '#/lib/db/collection-factory'
+import { defineDomainCollection } from "#/lib/db/collection-factory";
 import {
   waypointSchema,
   lessonSchema,
@@ -41,72 +41,72 @@ import {
   adaptationSchema,
   quizAttemptSchema,
   conceptFsrsCardSchema,
-} from '#/lib/db/schemas'
+} from "#/lib/db/schemas";
 
 const waypointsHandle = defineDomainCollection({
-  entity: 'waypoints',
+  entity: "waypoints",
   schema: waypointSchema,
   getKey: (w) => w.id,
-})
+});
 
 const lessonsHandle = defineDomainCollection({
-  entity: 'lessons',
+  entity: "lessons",
   schema: lessonSchema,
   getKey: (l) => l.id,
-})
+});
 
 const quizQuestionsHandle = defineDomainCollection({
-  entity: 'quiz-questions',
+  entity: "quiz-questions",
   schema: quizQuestionSchema,
   getKey: (q) => q.id,
-})
+});
 
 const conceptsHandle = defineDomainCollection({
-  entity: 'concepts',
+  entity: "concepts",
   schema: conceptSchema,
   getKey: (c) => c.id,
-})
+});
 
 const adaptationsHandle = defineDomainCollection({
-  entity: 'adaptations',
+  entity: "adaptations",
   schema: adaptationSchema,
   getKey: (a) => a.id,
-})
+});
 
 const quizAttemptsHandle = defineDomainCollection({
-  entity: 'quiz-attempts',
+  entity: "quiz-attempts",
   schema: quizAttemptSchema,
   getKey: (a) => a.id,
-})
+});
 
 const fsrsCardsHandle = defineDomainCollection({
-  entity: 'fsrs-cards',
+  entity: "fsrs-cards",
   schema: conceptFsrsCardSchema,
   getKey: (f) => f.id,
-})
+});
 
 /** Get (or lazily create) the user's waypoints collection, seeding from D1. */
-export const getWaypointsCollection = waypointsHandle.get
+export const getWaypointsCollection = waypointsHandle.get;
 /** Get (or lazily create) the user's lessons collection, seeding from D1. */
-export const getLessonsCollection = lessonsHandle.get
+export const getLessonsCollection = lessonsHandle.get;
 /** Get (or lazily create) the user's quiz-questions collection, seeding from D1. */
-export const getQuizQuestionsCollection = quizQuestionsHandle.get
+export const getQuizQuestionsCollection = quizQuestionsHandle.get;
 /** Get (or lazily create) the user's concepts collection, seeding from D1. */
-export const getConceptsCollection = conceptsHandle.get
+export const getConceptsCollection = conceptsHandle.get;
 /** Get (or lazily create) the user's adaptations collection, seeding from D1. */
-export const getAdaptationsCollection = adaptationsHandle.get
+export const getAdaptationsCollection = adaptationsHandle.get;
 /** Get (or lazily create) the user's quiz-attempts cache collection. */
-export const getQuizAttemptsCollection = quizAttemptsHandle.get
+export const getQuizAttemptsCollection = quizAttemptsHandle.get;
 /** Get (or lazily create) the user's FSRS-cards cache collection. */
-export const getFsrsCardsCollection = fsrsCardsHandle.get
+export const getFsrsCardsCollection = fsrsCardsHandle.get;
 
 /** Test-only: reset every remaining-entity registry between specs. */
 export function _resetCollectionRegistries(): void {
-  waypointsHandle._resetRegistry()
-  lessonsHandle._resetRegistry()
-  quizQuestionsHandle._resetRegistry()
-  conceptsHandle._resetRegistry()
-  adaptationsHandle._resetRegistry()
-  quizAttemptsHandle._resetRegistry()
-  fsrsCardsHandle._resetRegistry()
+  waypointsHandle._resetRegistry();
+  lessonsHandle._resetRegistry();
+  quizQuestionsHandle._resetRegistry();
+  conceptsHandle._resetRegistry();
+  adaptationsHandle._resetRegistry();
+  quizAttemptsHandle._resetRegistry();
+  fsrsCardsHandle._resetRegistry();
 }

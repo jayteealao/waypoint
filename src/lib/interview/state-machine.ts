@@ -11,23 +11,23 @@
  * sentence reaches the client.
  */
 
-import type { InterviewStage, CapturedRecord } from '#/types/interview'
+import type { InterviewStage, CapturedRecord } from "#/types/interview";
 
 /** Stage ordering for transition validation. */
 const STAGE_ORDER: InterviewStage[] = [
-  'consent',
-  'mission',
-  'scope',
-  'prior_knowledge',
-  'sources',
-  'complete',
-]
+  "consent",
+  "mission",
+  "scope",
+  "prior_knowledge",
+  "sources",
+  "complete",
+];
 
 export class InterviewStateMachine {
-  stage: InterviewStage
+  stage: InterviewStage;
 
-  constructor(initialStage: InterviewStage = 'consent') {
-    this.stage = initialStage
+  constructor(initialStage: InterviewStage = "consent") {
+    this.stage = initialStage;
   }
 
   /**
@@ -46,13 +46,13 @@ export class InterviewStateMachine {
   extractFirstQuestion(text: string): string {
     // Strip off anything after the first question mark with trailing content
     // Match the shortest span ending in '?' — captures the first complete question.
-    const match = text.match(/[^!?]*\?/)
+    const match = text.match(/[^!?]*\?/);
     if (match) {
-      return match[0].trim()
+      return match[0].trim();
     }
     // Fallback: first non-empty line (model didn't ask a question)
-    const firstLine = text.split('\n').find((l) => l.trim().length > 0)
-    return firstLine?.trim() ?? text.trim()
+    const firstLine = text.split("\n").find((l) => l.trim().length > 0);
+    return firstLine?.trim() ?? text.trim();
   }
 
   /**
@@ -65,53 +65,53 @@ export class InterviewStateMachine {
    * Returns the new stage after the transition.
    */
   transition(userInput: string): InterviewStage {
-    const lower = userInput.toLowerCase().trim()
+    const lower = userInput.toLowerCase().trim();
 
     switch (this.stage) {
-      case 'consent': {
+      case "consent": {
         // Decline variants: explicit refusal chip or negative phrasing
         const isDecline =
-          lower.includes('just use my stated goal') ||
-          lower.includes('just use') ||
-          lower.includes('skip') ||
-          lower === 'no' ||
-          lower.startsWith('no,') ||
-          lower.startsWith('no ')
-        this.stage = isDecline ? 'declined' : 'mission'
-        break
+          lower.includes("just use my stated goal") ||
+          lower.includes("just use") ||
+          lower.includes("skip") ||
+          lower === "no" ||
+          lower.startsWith("no,") ||
+          lower.startsWith("no ");
+        this.stage = isDecline ? "declined" : "mission";
+        break;
       }
 
-      case 'mission': {
+      case "mission": {
         // Stay at mission if the answer is vague; advance if concrete enough
         if (!this.detectVagueness(userInput)) {
-          this.stage = 'scope'
+          this.stage = "scope";
         }
         // If vague: stage remains 'mission'; the prompt will push back
-        break
+        break;
       }
 
-      case 'scope':
-        this.stage = 'prior_knowledge'
-        break
+      case "scope":
+        this.stage = "prior_knowledge";
+        break;
 
-      case 'prior_knowledge':
-        this.stage = 'sources'
-        break
+      case "prior_knowledge":
+        this.stage = "sources";
+        break;
 
-      case 'sources':
-        this.stage = 'complete'
-        break
+      case "sources":
+        this.stage = "complete";
+        break;
 
-      case 'complete':
-      case 'declined':
+      case "complete":
+      case "declined":
         // Terminal states — no further transition
-        break
+        break;
 
       default:
-        break
+        break;
     }
 
-    return this.stage
+    return this.stage;
   }
 
   /**
@@ -123,14 +123,13 @@ export class InterviewStateMachine {
    *    ("so that", "so I can", "in order to", "by", "when").
    */
   detectVagueness(missionText: string): boolean {
-    const trimmed = missionText.trim()
-    if (trimmed.length < 20) return true
+    const trimmed = missionText.trim();
+    if (trimmed.length < 20) return true;
 
     // Mission-format markers signal a concrete goal — not vague
-    const hasMissionFormat = /\b(so\s+(that|i\s+can)|in\s+order\s+to|in\s+order\s+that|by\s+\w|when\s+i)\b/i.test(
-      trimmed,
-    )
-    if (hasMissionFormat) return false
+    const hasMissionFormat =
+      /\b(so\s+(that|i\s+can)|in\s+order\s+to|in\s+order\s+that|by\s+\w|when\s+i)\b/i.test(trimmed);
+    if (hasMissionFormat) return false;
 
     // Vague-phrase patterns that indicate a generic learning desire
     const vaguePhrases = [
@@ -142,9 +141,9 @@ export class InterviewStateMachine {
       /^understand\s+(more\s+about\s+|better\s+)?(\w+)/i,
       /^study\s+\w+/i,
       /^explore\s+\w+/i,
-    ]
+    ];
 
-    return vaguePhrases.some((p) => p.test(trimmed))
+    return vaguePhrases.some((p) => p.test(trimmed));
   }
 
   /**
@@ -156,16 +155,16 @@ export class InterviewStateMachine {
   captureField(
     stage: InterviewStage,
     value: string,
-  ): Partial<Pick<CapturedRecord, 'mission' | 'scope' | 'priorKnowledge'>> {
+  ): Partial<Pick<CapturedRecord, "mission" | "scope" | "priorKnowledge">> {
     switch (stage) {
-      case 'mission':
-        return { mission: value }
-      case 'scope':
-        return { scope: value }
-      case 'prior_knowledge':
-        return { priorKnowledge: value }
+      case "mission":
+        return { mission: value };
+      case "scope":
+        return { scope: value };
+      case "prior_knowledge":
+        return { priorKnowledge: value };
       default:
-        return {}
+        return {};
     }
   }
 
@@ -180,12 +179,12 @@ export class InterviewStateMachine {
       priorKnowledge: null,
       sourceUrls: [],
       bestEffort: true,
-    }
+    };
   }
 
   /** Returns the index of the current stage in the linear sequence. */
   stageIndex(): number {
-    const idx = STAGE_ORDER.indexOf(this.stage)
-    return idx === -1 ? 0 : idx
+    const idx = STAGE_ORDER.indexOf(this.stage);
+    return idx === -1 ? 0 : idx;
   }
 }

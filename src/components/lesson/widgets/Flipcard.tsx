@@ -9,24 +9,24 @@
  * keyboard trigger on Enter/Space.
  */
 
-import { useState } from 'react'
-import type { FlipCardProps } from '#/types/lesson-document'
+import { useState } from "react";
+import type { FlipCardProps } from "#/types/lesson-document";
 
 interface FlipcardProps extends FlipCardProps {
-  id: string
+  id: string;
 }
 
 export function Flipcard({ id: _id, front, back }: FlipcardProps) {
-  const [flipped, setFlipped] = useState(false)
+  const [flipped, setFlipped] = useState(false);
 
   function toggle() {
-    setFlipped((f) => !f)
+    setFlipped((f) => !f);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      toggle()
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle();
     }
   }
 
@@ -39,12 +39,13 @@ export function Flipcard({ id: _id, front, back }: FlipcardProps) {
       tabIndex={0}
       onClick={toggle}
       onKeyDown={handleKeyDown}
-      aria-label={flipped ? 'Card showing answer — click to see question' : 'Card showing question — click to reveal answer'}
+      aria-label={
+        flipped
+          ? "Card showing answer — click to see question"
+          : "Card showing question — click to reveal answer"
+      }
     >
-      <div
-        className={`wp-flipcard-inner${flipped ? ' flipped' : ''}`}
-        data-testid="flipcard-inner"
-      >
+      <div className={`wp-flipcard-inner${flipped ? " flipped" : ""}`} data-testid="flipcard-inner">
         <div className="wp-flipcard-front" aria-hidden={flipped}>
           <div>
             <div className="wp-flipcard-label">Question</div>
@@ -59,8 +60,8 @@ export function Flipcard({ id: _id, front, back }: FlipcardProps) {
         </div>
       </div>
       <p className="wp-flipcard-hint" aria-hidden="true">
-        {flipped ? 'Click to see question' : 'Click to reveal answer'}
+        {flipped ? "Click to see question" : "Click to reveal answer"}
       </p>
     </div>
-  )
+  );
 }

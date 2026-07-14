@@ -21,17 +21,17 @@
  * place. (RIM-E4 anti-drift mandate.)
  */
 export const REQUIRED_SECRETS = [
-  'BETTER_AUTH_SECRET',
-  'BETTER_AUTH_API_KEY',
-  'OPENROUTER_API_KEY',
-  'BETTER_AUTH_BASE_URL',
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
-  'GITHUB_CLIENT_ID',
-  'GITHUB_CLIENT_SECRET',
-] as const
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_API_KEY",
+  "OPENROUTER_API_KEY",
+  "BETTER_AUTH_BASE_URL",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "GITHUB_CLIENT_ID",
+  "GITHUB_CLIENT_SECRET",
+] as const;
 
-type SecretKey = (typeof REQUIRED_SECRETS)[number]
+type SecretKey = (typeof REQUIRED_SECRETS)[number];
 
 /**
  * Compile-time anti-drift backstop: every entry in REQUIRED_SECRETS must be a
@@ -39,8 +39,8 @@ type SecretKey = (typeof REQUIRED_SECRETS)[number]
  * typing (src/cloudflare-workers.d.ts / worker-configuration.d.ts) without
  * updating REQUIRED_SECRETS, this line fails `tsc`.
  */
-const _secretsAreEnvKeys: readonly (keyof Env)[] = REQUIRED_SECRETS
-void _secretsAreEnvKeys
+const _secretsAreEnvKeys: readonly (keyof Env)[] = REQUIRED_SECRETS;
+void _secretsAreEnvKeys;
 
 /**
  * Structural subset of the Worker env the health check reads. Kept lean (rather
@@ -49,25 +49,25 @@ void _secretsAreEnvKeys
  * entire binding surface.
  */
 export type HealthEnv = {
-  DB: Pick<D1Database, 'prepare'> | undefined | null
-} & Partial<Record<SecretKey, string | undefined>>
+  DB: Pick<D1Database, "prepare"> | undefined | null;
+} & Partial<Record<SecretKey, string | undefined>>;
 
 export interface HealthResult {
   /** True only when the D1 probe AND every required secret pass. */
-  ok: boolean
+  ok: boolean;
   /**
    * Internal failure identifiers (`'db'`, `'secret:<NAME>'`). Diagnostic only —
    * callers MUST NOT place this in a response body (AC-HE4).
    */
-  failures: string[]
+  failures: string[];
 }
 
 /** Names of required secrets whose value is not a non-empty string. */
 export function checkSecrets(env: HealthEnv): string[] {
   return REQUIRED_SECRETS.filter((name) => {
-    const value = env[name]
-    return typeof value !== 'string' || value.length === 0
-  })
+    const value = env[name];
+    return typeof value !== "string" || value.length === 0;
+  });
 }
 
 /**
@@ -77,15 +77,15 @@ export function checkSecrets(env: HealthEnv): string[] {
  * binding is caught.
  */
 export async function checkDb(env: HealthEnv): Promise<{ ok: boolean; error?: unknown }> {
-  const db = env.DB
-  if (!db || typeof db.prepare !== 'function') {
-    return { ok: false, error: 'DB binding is not available' }
+  const db = env.DB;
+  if (!db || typeof db.prepare !== "function") {
+    return { ok: false, error: "DB binding is not available" };
   }
   try {
-    await db.prepare('SELECT 1').first()
-    return { ok: true }
+    await db.prepare("SELECT 1").first();
+    return { ok: true };
   } catch (error) {
-    return { ok: false, error }
+    return { ok: false, error };
   }
 }
 
@@ -95,22 +95,22 @@ export async function checkDb(env: HealthEnv): Promise<{ ok: boolean; error?: un
  * internal failure list.
  */
 export async function runHealthCheck(env: HealthEnv): Promise<HealthResult> {
-  const failures: string[] = []
+  const failures: string[] = [];
 
-  const db = await checkDb(env)
+  const db = await checkDb(env);
   if (!db.ok) {
-    failures.push('db')
+    failures.push("db");
     // Names/details to logs only, never the response body (AC-HE2/HE4).
     console.error(
-      JSON.stringify({ event: 'health.degraded', component: 'db', error: String(db.error) }),
-    )
+      JSON.stringify({ event: "health.degraded", component: "db", error: String(db.error) }),
+    );
   }
 
   for (const name of checkSecrets(env)) {
-    failures.push(`secret:${name}`)
+    failures.push(`secret:${name}`);
     // Secret NAME to logs only — never the value, never the body (AC-HE3/HE4).
-    console.log(JSON.stringify({ event: 'health.degraded', component: 'secret', name }))
+    console.log(JSON.stringify({ event: "health.degraded", component: "secret", name }));
   }
 
-  return { ok: failures.length === 0, failures }
+  return { ok: failures.length === 0, failures };
 }

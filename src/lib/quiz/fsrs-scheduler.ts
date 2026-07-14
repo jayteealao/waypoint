@@ -21,29 +21,29 @@
  *   New=0, Learning=1, Review=2, Relearning=3
  */
 
-import { FSRS, Rating, State, createEmptyCard } from 'ts-fsrs'
-import type { Card } from 'ts-fsrs'
-import type { ConceptFsrsCard } from '#/db/schema'
+import { FSRS, Rating, State, createEmptyCard } from "ts-fsrs";
+import type { Card } from "ts-fsrs";
+import type { ConceptFsrsCard } from "#/db/schema";
 
 // ─── FSRS singleton (module-scope) ────────────────────────────────────────────
 
-const fsrsInstance = new FSRS({ request_retention: 0.85, enable_fuzz: true })
+const fsrsInstance = new FSRS({ request_retention: 0.85, enable_fuzz: true });
 
 // ─── State string → enum mapping ─────────────────────────────────────────────
 
-const STATE_MAP: Record<ConceptFsrsCard['state'], State> = {
+const STATE_MAP: Record<ConceptFsrsCard["state"], State> = {
   New: State.New,
   Learning: State.Learning,
   Review: State.Review,
   Relearning: State.Relearning,
-}
+};
 
-const STATE_REVERSE: Record<State, ConceptFsrsCard['state']> = {
-  [State.New]: 'New',
-  [State.Learning]: 'Learning',
-  [State.Review]: 'Review',
-  [State.Relearning]: 'Relearning',
-}
+const STATE_REVERSE: Record<State, ConceptFsrsCard["state"]> = {
+  [State.New]: "New",
+  [State.Learning]: "Learning",
+  [State.Review]: "Review",
+  [State.Relearning]: "Relearning",
+};
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ export function mapDbCardToFsrs(row: ConceptFsrsCard): Card {
     lapses: row.lapses,
     state: STATE_MAP[row.state] ?? State.New,
     last_review: row.last_review !== null ? new Date(row.last_review) : undefined,
-  }
+  };
 }
 
 /**
@@ -74,16 +74,16 @@ export function mapDbCardToFsrs(row: ConceptFsrsCard): Card {
  *
  * Omits id, user_id, concept_id — the caller supplies those for the WHERE clause.
  */
-export function mapFsrsToDb(card: Card): Omit<ConceptFsrsCard, 'id' | 'user_id' | 'concept_id'> {
+export function mapFsrsToDb(card: Card): Omit<ConceptFsrsCard, "id" | "user_id" | "concept_id"> {
   return {
     due: card.due.getTime(),
     stability: card.stability,
     difficulty: card.difficulty,
     reps: card.reps,
     lapses: card.lapses,
-    state: STATE_REVERSE[card.state] ?? 'New',
+    state: STATE_REVERSE[card.state] ?? "New",
     last_review: card.last_review?.getTime() ?? null,
-  }
+  };
 }
 
 // ─── Core scheduling operation ────────────────────────────────────────────────
@@ -109,16 +109,14 @@ export async function applyGradeToCard(
   if (rating === Rating.Manual) {
     // Sentinel: initialise only if no card exists yet
     const existing = await db
-      .prepare(
-        `SELECT id FROM concept_fsrs_cards WHERE user_id = ? AND concept_id = ? LIMIT 1`,
-      )
+      .prepare(`SELECT id FROM concept_fsrs_cards WHERE user_id = ? AND concept_id = ? LIMIT 1`)
       .bind(userId, conceptId)
-      .first<{ id: string }>()
+      .first<{ id: string }>();
 
     if (!existing) {
-      const emptyCard = createEmptyCard(serverNow)
-      const fields = mapFsrsToDb(emptyCard)
-      const id = crypto.randomUUID()
+      const emptyCard = createEmptyCard(serverNow);
+      const fields = mapFsrsToDb(emptyCard);
+      const id = crypto.randomUUID();
       await db
         .prepare(
           `INSERT INTO concept_fsrs_cards (id, user_id, concept_id, due, stability, difficulty, reps, lapses, state, last_review)
@@ -136,31 +134,27 @@ export async function applyGradeToCard(
           fields.state,
           fields.last_review,
         )
-        .run()
+        .run();
     }
-    return
+    return;
   }
 
   // Grade is a real rating — read existing card (or create empty base)
   const existing = await db
-    .prepare(
-      `SELECT * FROM concept_fsrs_cards WHERE user_id = ? AND concept_id = ? LIMIT 1`,
-    )
+    .prepare(`SELECT * FROM concept_fsrs_cards WHERE user_id = ? AND concept_id = ? LIMIT 1`)
     .bind(userId, conceptId)
-    .first<ConceptFsrsCard>()
+    .first<ConceptFsrsCard>();
 
-  const baseCard: Card = existing
-    ? mapDbCardToFsrs(existing)
-    : createEmptyCard(serverNow)
+  const baseCard: Card = existing ? mapDbCardToFsrs(existing) : createEmptyCard(serverNow);
 
   // ts-fsrs repeat() returns a RecordLog keyed by Grade (Again=1..Easy=4)
-  const recordLog = fsrsInstance.repeat(baseCard, serverNow)
-  const result = recordLog[rating as unknown as keyof typeof recordLog]
+  const recordLog = fsrsInstance.repeat(baseCard, serverNow);
+  const result = recordLog[rating as unknown as keyof typeof recordLog];
   if (!result) {
-    throw new Error(`fsrs.repeat() returned no result for rating ${rating}`)
+    throw new Error(`fsrs.repeat() returned no result for rating ${rating}`);
   }
-  const updatedCard = (result as { card: Card }).card
-  const fields = mapFsrsToDb(updatedCard)
+  const updatedCard = (result as { card: Card }).card;
+  const fields = mapFsrsToDb(updatedCard);
 
   if (existing) {
     await db
@@ -179,9 +173,9 @@ export async function applyGradeToCard(
         fields.last_review,
         existing.id,
       )
-      .run()
+      .run();
   } else {
-    const id = crypto.randomUUID()
+    const id = crypto.randomUUID();
     await db
       .prepare(
         `INSERT INTO concept_fsrs_cards (id, user_id, concept_id, due, stability, difficulty, reps, lapses, state, last_review)
@@ -199,7 +193,7 @@ export async function applyGradeToCard(
         fields.state,
         fields.last_review,
       )
-      .run()
+      .run();
   }
 }
 
@@ -222,7 +216,7 @@ export async function getDueConceptIds(
   currentWaypointId: string,
   limit = 2,
 ): Promise<string[]> {
-  const nowMs = Date.now()
+  const nowMs = Date.now();
   const result = await db
     .prepare(
       `SELECT c.id
@@ -239,8 +233,8 @@ export async function getDueConceptIds(
        LIMIT ?`,
     )
     .bind(journeyId, userId, nowMs, currentWaypointId, limit)
-    .all<{ id: string }>()
-  return result.results.map((r) => r.id)
+    .all<{ id: string }>();
+  return result.results.map((r) => r.id);
 }
 
 // ─── Retrievability ───────────────────────────────────────────────────────────
@@ -255,10 +249,10 @@ export async function getDueConceptIds(
  * @param now   Current timestamp in milliseconds.
  */
 export function computeRetrievability(card: ConceptFsrsCard, now: number): number {
-  if (card.state === 'New' || card.last_review === null) {
-    return 1.0
+  if (card.state === "New" || card.last_review === null) {
+    return 1.0;
   }
-  const fsrsCard = mapDbCardToFsrs(card)
-  const r = fsrsInstance.get_retrievability(fsrsCard, new Date(now), false)
-  return typeof r === 'number' ? r : 0
+  const fsrsCard = mapDbCardToFsrs(card);
+  const r = fsrsInstance.get_retrievability(fsrsCard, new Date(now), false);
+  return typeof r === "number" ? r : 0;
 }

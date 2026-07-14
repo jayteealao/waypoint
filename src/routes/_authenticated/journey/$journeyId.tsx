@@ -11,25 +11,25 @@
  * Documented as autonomous decision AD-1 in 05-implement-roadmap-lesson-generation.md.
  */
 
-import { useEffect } from 'react'
-import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { getJourneyWithWaypoints } from '#/server/journeys'
-import { useShell } from '#/components/shell/AppShell'
-import { getWaypointsCollection } from '#/lib/store/collections'
+import { useEffect } from "react";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { getJourneyWithWaypoints } from "#/server/journeys";
+import { useShell } from "#/components/shell/AppShell";
+import { getWaypointsCollection } from "#/lib/store/collections";
 
-export const Route = createFileRoute('/_authenticated/journey/$journeyId')({
+export const Route = createFileRoute("/_authenticated/journey/$journeyId")({
   loader: async ({ params, context }) => {
-    const result = await getJourneyWithWaypoints({ data: params.journeyId })
+    const result = await getJourneyWithWaypoints({ data: params.journeyId });
     // userId namespaces the client waypoints collection (AC-DLU7).
-    return { journeyData: result, userId: context.auth?.user.id ?? '' }
+    return { journeyData: result, userId: context.auth?.user.id ?? "" };
   },
   component: JourneyLayout,
-})
+});
 
 function JourneyLayout() {
-  const { journeyId } = Route.useParams()
-  const { journeyData, userId } = Route.useLoaderData()
-  const { setWaypoints } = useShell()
+  const { journeyId } = Route.useParams();
+  const { journeyData, userId } = Route.useLoaderData();
+  const { setWaypoints } = useShell();
 
   // Seed the waypoints collection from the loader's D1 payload (shape D5 loader-
   // seed pattern, second read exemplar after journeys). Additive: the shell nav
@@ -37,14 +37,14 @@ function JourneyLayout() {
   // collection is warmed for client-side navigation reads.
   useEffect(() => {
     if (journeyData && userId) {
-      getWaypointsCollection(userId, journeyData.waypoints)
+      getWaypointsCollection(userId, journeyData.waypoints);
     }
-  }, [journeyData, userId])
+  }, [journeyData, userId]);
 
   useEffect(() => {
     if (!journeyData) {
-      setWaypoints([])
-      return
+      setWaypoints([]);
+      return;
     }
 
     const mapped = journeyData.waypoints.map((wp) => ({
@@ -52,13 +52,13 @@ function JourneyLayout() {
       label: wp.title,
       href: `/_authenticated/journey/${journeyId}/waypoint/${wp.id}`,
       completed: false, // completion tracking is a future slice (quiz-fsrs)
-    }))
+    }));
 
-    setWaypoints(mapped)
+    setWaypoints(mapped);
 
     // Clear waypoints when leaving the journey context
-    return () => setWaypoints([])
-  }, [journeyId, journeyData, setWaypoints])
+    return () => setWaypoints([]);
+  }, [journeyId, journeyData, setWaypoints]);
 
-  return <Outlet />
+  return <Outlet />;
 }

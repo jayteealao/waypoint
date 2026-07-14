@@ -18,12 +18,12 @@
  */
 
 const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'a', 'span', 'br', 'u'],
+  ALLOWED_TAGS: ["b", "i", "em", "strong", "code", "a", "span", "br", "u"],
   // 'class' intentionally omitted: AI-generated inline HTML does not need author-controlled
   // CSS class names; allowing it would permit arbitrary class injection from model output.
-  ALLOWED_ATTR: ['href'],
+  ALLOWED_ATTR: ["href"],
   FORCE_BODY: true,
-} as const
+} as const;
 
 /**
  * Strip all HTML tags — used as SSR-safe fallback when DOMPurify is not
@@ -34,13 +34,13 @@ const SANITIZE_CONFIG = {
  * matches what the SSR render produces (avoiding React 19 hydration mismatches).
  */
 export function escapeHtml(s: string): string {
-  return s.replace(/<[^>]*>/g, '')
+  return s.replace(/<[^>]*>/g, "");
 }
 
 // ─── Lazy DOMPurify singleton ─────────────────────────────────────────────────
 
-type PurifyLike = { sanitize(html: string, cfg: object): string }
-let _purify: PurifyLike | null = null
+type PurifyLike = { sanitize(html: string, cfg: object): string };
+let _purify: PurifyLike | null = null;
 
 /**
  * Resolves when DOMPurify has been loaded into `_purify`.
@@ -48,11 +48,11 @@ let _purify: PurifyLike | null = null
  * In browser/jsdom contexts the dynamic import is kicked off immediately.
  */
 export const sanitizerReady: Promise<void> =
-  typeof document !== 'undefined'
-    ? import('dompurify').then((m) => {
-        _purify = (m.default ?? m) as PurifyLike
+  typeof document !== "undefined"
+    ? import("dompurify").then((m) => {
+        _purify = (m.default ?? m) as PurifyLike;
       })
-    : Promise.resolve()
+    : Promise.resolve();
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -68,8 +68,8 @@ export const sanitizerReady: Promise<void> =
  * loaded before calling this function.
  */
 export function sanitizeHtml(html: string): string {
-  if (typeof document === 'undefined' || _purify === null) {
-    return escapeHtml(html)
+  if (typeof document === "undefined" || _purify === null) {
+    return escapeHtml(html);
   }
-  return _purify.sanitize(html, SANITIZE_CONFIG)
+  return _purify.sanitize(html, SANITIZE_CONFIG);
 }

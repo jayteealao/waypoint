@@ -22,14 +22,14 @@
  * the persisted row and orphan on the next seed. Recorded in the implement
  * artifact as a deliberate deviation from the plan's "onInsert→createJourney".
  */
-import { useLiveQuery } from '@tanstack/react-db'
-import { updateJourney } from '#/server/journeys'
-import { journeySchema } from '#/lib/db/schemas'
-import { defineDomainCollection } from '#/lib/db/collection-factory'
-import type { Journey } from '#/db/schema'
+import { useLiveQuery } from "@tanstack/react-db";
+import { updateJourney } from "#/server/journeys";
+import { journeySchema } from "#/lib/db/schemas";
+import { defineDomainCollection } from "#/lib/db/collection-factory";
+import type { Journey } from "#/db/schema";
 
 const journeysHandle = defineDomainCollection({
-  entity: 'journeys',
+  entity: "journeys",
   schema: journeySchema,
   getKey: (j) => j.id,
   versionOf: (j) => j.updated_at,
@@ -37,10 +37,10 @@ const journeysHandle = defineDomainCollection({
     onUpdate: async (j) => {
       await updateJourney({
         data: { id: j.id, patch: { title: j.title, goal: j.goal, status: j.status } },
-      })
+      });
     },
   },
-})
+});
 
 /**
  * Get (or lazily create) the current user's journeys collection, LWW-seeding it
@@ -48,11 +48,11 @@ const journeysHandle = defineDomainCollection({
  * this returns a throwaway empty collection (SSR renders from loader data).
  */
 export function getJourneysCollection(userId: string, seed?: Journey[]) {
-  return journeysHandle.get(userId, seed)
+  return journeysHandle.get(userId, seed);
 }
 
 /** Test-only: reset the per-user registry between specs. */
-export const _resetJourneysRegistry = journeysHandle._resetRegistry
+export const _resetJourneysRegistry = journeysHandle._resetRegistry;
 
 /**
  * Reactive live query over a journeys collection. Returns rows newest-first to
@@ -60,5 +60,5 @@ export const _resetJourneysRegistry = journeysHandle._resetRegistry
  * schema-typed, so `data` is `Journey[]` with no `as any` (AC-DLU2).
  */
 export function useJourneys(collection: ReturnType<typeof getJourneysCollection>) {
-  return useLiveQuery((q) => q.from({ journey: collection }))
+  return useLiveQuery((q) => q.from({ journey: collection }));
 }

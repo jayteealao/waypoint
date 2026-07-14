@@ -1,5 +1,5 @@
-import { createAuthClient } from 'better-auth/react'
-import { purgeUserCache } from '#/lib/db/storage-keys'
+import { createAuthClient } from "better-auth/react";
+import { purgeUserCache } from "#/lib/db/storage-keys";
 
 /**
  * Client-side better-auth instance.
@@ -16,16 +16,16 @@ import { purgeUserCache } from '#/lib/db/storage-keys'
  * better-auth plugins are introduced.
  */
 const baseURL =
-  typeof window !== 'undefined'
+  typeof window !== "undefined"
     ? `${window.location.origin}/api/auth`
-    : `${process.env['VITE_APP_URL'] ?? 'http://localhost:3000'}/api/auth`
+    : `${process.env["VITE_APP_URL"] ?? "http://localhost:3000"}/api/auth`;
 
 export const authClient = createAuthClient({
   baseURL,
-})
+});
 
 // Named re-exports for ergonomic imports in route components.
-export const { useSession, signIn } = authClient
+export const { useSession, signIn } = authClient;
 
 /**
  * Sign out, purging every per-user client cache (`wp:*`) first (AC-DLU7).
@@ -37,6 +37,6 @@ export const { useSession, signIn } = authClient
  * sites are unchanged.
  */
 export const signOut: typeof authClient.signOut = (...args) => {
-  purgeUserCache()
-  return authClient.signOut(...args)
-}
+  purgeUserCache();
+  return authClient.signOut(...args);
+};

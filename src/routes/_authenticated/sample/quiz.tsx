@@ -6,24 +6,24 @@
  * so the parent layout route updates the sidebar's quiz completion indicator.
  */
 
-import { createFileRoute } from '@tanstack/react-router'
-import { useCallback } from 'react'
-import { SAMPLE_QUIZ } from '#/fixtures/sample-journey'
-import { QuizView } from '#/components/quiz/QuizView'
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback } from "react";
+import { SAMPLE_QUIZ } from "#/fixtures/sample-journey";
+import { QuizView } from "#/components/quiz/QuizView";
 
-export const Route = createFileRoute('/_authenticated/sample/quiz')({
+export const Route = createFileRoute("/_authenticated/sample/quiz")({
   head: () => ({
-    meta: [{ title: 'Waypoint — Check Your Understanding' }],
+    meta: [{ title: "Waypoint — Check Your Understanding" }],
   }),
   component: SampleQuizPage,
-})
+});
 
 function SampleQuizPage() {
   const handleComplete = useCallback(() => {
     // Dispatch after the quiz attempt has been written to localStorage
     // (QuizView writes it synchronously before calling onComplete)
-    window.dispatchEvent(new Event('wp:sample-progress'))
-  }, [])
+    window.dispatchEvent(new Event("wp:sample-progress"));
+  }, []);
 
   return (
     <div data-testid="sample-quiz">
@@ -34,5 +34,5 @@ function SampleQuizPage() {
       </div>
       <QuizView mode="sample" questions={SAMPLE_QUIZ} onComplete={handleComplete} />
     </div>
-  )
+  );
 }

@@ -14,32 +14,30 @@
  *   data-testid="adapt-decline"  — decline button
  */
 
-import type { Adaptation } from '#/db/schema'
-import { Button } from '#/components/ui/Button'
+import type { Adaptation } from "#/db/schema";
+import { Button } from "#/components/ui/Button";
 
 export interface AdaptationCardProps {
-  adaptation: Adaptation | null
-  onAccept:   () => Promise<void>
-  onDecline:  () => Promise<void>
-  loading:    boolean
+  adaptation: Adaptation | null;
+  onAccept: () => Promise<void>;
+  onDecline: () => Promise<void>;
+  loading: boolean;
 }
 
-export function AdaptationCard({
-  adaptation,
-  onAccept,
-  onDecline,
-  loading,
-}: AdaptationCardProps) {
-  if (!adaptation) return null
+export function AdaptationCard({ adaptation, onAccept, onDecline, loading }: AdaptationCardProps) {
+  if (!adaptation) return null;
 
   return (
-    <div className="wp-adapt-card" data-testid="adapt-card" role="region" aria-label="Learning suggestion">
-      <p className="font-semibold text-[var(--ink)] mb-1">
-        {adaptation.proposed_title}
-      </p>
+    <div
+      className="wp-adapt-card"
+      data-testid="adapt-card"
+      role="region"
+      aria-label="Learning suggestion"
+    >
+      <p className="font-semibold text-[var(--ink)] mb-1">{adaptation.proposed_title}</p>
       <p className="text-sm text-[var(--ink-muted)] mb-4">
-        I noticed you found some of this waypoint challenging. Would you like
-        me to add a short review before we move on?
+        I noticed you found some of this waypoint challenging. Would you like me to add a short
+        review before we move on?
       </p>
       <div className="wp-adapt-actions">
         <Button
@@ -47,7 +45,9 @@ export function AdaptationCard({
           size="sm"
           data-testid="adapt-accept"
           disabled={loading}
-          onClick={() => { void onAccept() }}
+          onClick={() => {
+            void onAccept();
+          }}
         >
           Add review
         </Button>
@@ -56,11 +56,13 @@ export function AdaptationCard({
           size="sm"
           data-testid="adapt-decline"
           disabled={loading}
-          onClick={() => { void onDecline() }}
+          onClick={() => {
+            void onDecline();
+          }}
         >
           No thanks
         </Button>
       </div>
     </div>
-  )
+  );
 }

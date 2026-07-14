@@ -8,31 +8,28 @@
  */
 
 export interface ChatBubbleProps {
-  role: 'user' | 'assistant'
-  content: string
+  role: "user" | "assistant";
+  content: string;
   /** Identifies this bubble to Playwright tests. */
-  testId?: string
+  testId?: string;
 }
 
 export function ChatBubble({ role, content, testId }: ChatBubbleProps) {
-  if (role === 'user') {
+  if (role === "user") {
     return (
       <div
         className="wp-chat-bubble-user"
-        data-testid={testId ?? 'chat-bubble-user'}
+        data-testid={testId ?? "chat-bubble-user"}
         aria-label="Your message"
       >
         {content}
       </div>
-    )
+    );
   }
 
   return (
-    <div
-      className="wp-chat-bubble-assistant"
-      data-testid={testId ?? 'chat-bubble-assistant'}
-    >
+    <div className="wp-chat-bubble-assistant" data-testid={testId ?? "chat-bubble-assistant"}>
       {content}
     </div>
-  )
+  );
 }

@@ -4,7 +4,7 @@
  * aria-hidden — purely decorative; the real section replaces it.
  */
 
-import { Skeleton } from '#/components/ui/Skeleton'
+import { Skeleton } from "#/components/ui/Skeleton";
 
 export function LessonSkeleton() {
   return (
@@ -17,5 +17,5 @@ export function LessonSkeleton() {
       <Skeleton width="90%" height="1.1rem" />
       <Skeleton width="75%" height="1.1rem" />
     </div>
-  )
+  );
 }

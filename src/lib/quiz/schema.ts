@@ -10,37 +10,37 @@
  * All exports are pure (no side effects, no DB, no gateway calls).
  */
 
-import type { QuizQuestion } from '#/db/schema'
+import type { QuizQuestion } from "#/db/schema";
 
 // ─── TypeScript interfaces for model responses ────────────────────────────────
 
 /** The model's response shape for one quiz question. */
 export interface QuizQuestionOutput {
-  type: 'mc' | 'frq'
-  question: string
+  type: "mc" | "frq";
+  question: string;
   /** 4 options for MC; empty array for FRQ. */
-  options: string[]
+  options: string[];
   /** Verbatim correct option text for MC; null for FRQ. */
-  correct_answer: string | null
-  concept_tag: string
+  correct_answer: string | null;
+  concept_tag: string;
   /** Per-option explanations keyed by option index (string) for MC; empty for FRQ. */
-  explanations: Record<string, string>
+  explanations: Record<string, string>;
   /** Rubric string for FRQ; undefined or null for MC. */
-  rubric?: string | null
+  rubric?: string | null;
 }
 
 /** The model's grading response shape for one free-response answer. */
 export interface GradingOutput {
-  verdict: 'correct' | 'incorrect' | 'partial'
-  score: 0 | 1 | 2
-  feedback: string
+  verdict: "correct" | "incorrect" | "partial";
+  score: 0 | 1 | 2;
+  feedback: string;
 }
 
 // ─── MC equal-length lint ─────────────────────────────────────────────────────
 
 /** Count words in a string using whitespace splitting. */
 function wordCount(s: string): number {
-  return s.trim().split(/\s+/).filter(Boolean).length
+  return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
 /**
@@ -50,20 +50,20 @@ function wordCount(s: string): number {
  */
 export function lintMcOptionLengths(options: string[]): string | null {
   if (options.length !== 4) {
-    return `MC question must have exactly 4 options; got ${options.length}`
+    return `MC question must have exactly 4 options; got ${options.length}`;
   }
-  const counts = options.map(wordCount)
-  const shortest = Math.min(...counts)
-  const threshold = Math.ceil(shortest * 1.1)
+  const counts = options.map(wordCount);
+  const shortest = Math.min(...counts);
+  const threshold = Math.ceil(shortest * 1.1);
   for (let i = 0; i < counts.length; i++) {
     if (counts[i]! > threshold) {
       return (
         `Option ${i} word count ${counts[i]} exceeds 10% of shortest (${shortest}); ` +
-        `threshold is ${threshold}. Lengths: [${counts.join(', ')}]`
-      )
+        `threshold is ${threshold}. Lengths: [${counts.join(", ")}]`
+      );
     }
   }
-  return null
+  return null;
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
@@ -71,8 +71,8 @@ export function lintMcOptionLengths(options: string[]): string | null {
 /** Thrown when quiz question validation fails. */
 export class QuizValidationError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = 'QuizValidationError'
+    super(message);
+    this.name = "QuizValidationError";
   }
 }
 
@@ -87,64 +87,72 @@ export class QuizValidationError extends Error {
  * @throws {QuizValidationError} on any violation.
  */
 export function validateQuizQuestion(value: unknown): QuizQuestionOutput {
-  if (typeof value !== 'object' || value === null) {
-    throw new QuizValidationError('Quiz question must be a JSON object')
+  if (typeof value !== "object" || value === null) {
+    throw new QuizValidationError("Quiz question must be a JSON object");
   }
-  const obj = value as Record<string, unknown>
+  const obj = value as Record<string, unknown>;
 
   // Required fields
-  if (typeof obj['question'] !== 'string' || !obj['question']) {
-    throw new QuizValidationError('Missing or empty "question" field')
+  if (typeof obj["question"] !== "string" || !obj["question"]) {
+    throw new QuizValidationError('Missing or empty "question" field');
   }
-  if (obj['type'] !== 'mc' && obj['type'] !== 'frq') {
-    throw new QuizValidationError(`Invalid "type"; must be "mc" or "frq", got ${String(obj['type'])}`)
+  if (obj["type"] !== "mc" && obj["type"] !== "frq") {
+    throw new QuizValidationError(
+      `Invalid "type"; must be "mc" or "frq", got ${String(obj["type"])}`,
+    );
   }
-  if (!Array.isArray(obj['options'])) {
-    throw new QuizValidationError('"options" must be an array')
+  if (!Array.isArray(obj["options"])) {
+    throw new QuizValidationError('"options" must be an array');
   }
-  if (typeof obj['concept_tag'] !== 'string' || !obj['concept_tag']) {
-    throw new QuizValidationError('Missing or empty "concept_tag" field')
+  if (typeof obj["concept_tag"] !== "string" || !obj["concept_tag"]) {
+    throw new QuizValidationError('Missing or empty "concept_tag" field');
   }
-  if (typeof obj['explanations'] !== 'object' || obj['explanations'] === null || Array.isArray(obj['explanations'])) {
-    throw new QuizValidationError('"explanations" must be a non-array object')
+  if (
+    typeof obj["explanations"] !== "object" ||
+    obj["explanations"] === null ||
+    Array.isArray(obj["explanations"])
+  ) {
+    throw new QuizValidationError('"explanations" must be a non-array object');
   }
 
-  const options = obj['options'] as unknown[]
+  const options = obj["options"] as unknown[];
 
-  if (obj['type'] === 'mc') {
+  if (obj["type"] === "mc") {
     // MC-specific validation
     if (options.length !== 4) {
-      throw new QuizValidationError(`MC question must have exactly 4 options; got ${options.length}`)
+      throw new QuizValidationError(
+        `MC question must have exactly 4 options; got ${options.length}`,
+      );
     }
     for (let i = 0; i < options.length; i++) {
-      if (typeof options[i] !== 'string') {
-        throw new QuizValidationError(`Option ${i} must be a string`)
+      if (typeof options[i] !== "string") {
+        throw new QuizValidationError(`Option ${i} must be a string`);
       }
     }
-    if (typeof obj['correct_answer'] !== 'string' || !obj['correct_answer']) {
-      throw new QuizValidationError('MC question must have a non-empty "correct_answer" string')
+    if (typeof obj["correct_answer"] !== "string" || !obj["correct_answer"]) {
+      throw new QuizValidationError('MC question must have a non-empty "correct_answer" string');
     }
     // MC equal-length lint
-    const lintError = lintMcOptionLengths(options as string[])
+    const lintError = lintMcOptionLengths(options as string[]);
     if (lintError) {
-      throw new QuizValidationError(lintError)
+      throw new QuizValidationError(lintError);
     }
   } else {
     // FRQ-specific validation
-    if (typeof obj['rubric'] !== 'string' || !obj['rubric']) {
-      throw new QuizValidationError('FRQ question must have a non-empty "rubric" field')
+    if (typeof obj["rubric"] !== "string" || !obj["rubric"]) {
+      throw new QuizValidationError('FRQ question must have a non-empty "rubric" field');
     }
   }
 
   return {
-    type: obj['type'] as 'mc' | 'frq',
-    question: obj['question'] as string,
+    type: obj["type"] as "mc" | "frq",
+    question: obj["question"] as string,
     options: options as string[],
-    correct_answer: (obj['correct_answer'] as string | null) ?? null,
-    concept_tag: obj['concept_tag'] as string,
-    explanations: obj['explanations'] as Record<string, string>,
-    rubric: (obj['rubric'] as string | undefined | null) ?? null,
-  }
+    correct_answer: (obj["correct_answer"] as string | null) ?? null,
+    concept_tag: obj["concept_tag"] as string,
+    explanations: obj["explanations"] as Record<string, string>,
+    rubric: (obj["rubric"] as string | undefined | null) ?? null,
+  };
 }
 
 /**
@@ -152,28 +160,34 @@ export function validateQuizQuestion(value: unknown): QuizQuestionOutput {
  * @throws {QuizValidationError} on any violation.
  */
 export function validateGrading(value: unknown): GradingOutput {
-  if (typeof value !== 'object' || value === null) {
-    throw new QuizValidationError('Grading response must be a JSON object')
+  if (typeof value !== "object" || value === null) {
+    throw new QuizValidationError("Grading response must be a JSON object");
   }
-  const obj = value as Record<string, unknown>
+  const obj = value as Record<string, unknown>;
 
-  if (obj['verdict'] !== 'correct' && obj['verdict'] !== 'incorrect' && obj['verdict'] !== 'partial') {
+  if (
+    obj["verdict"] !== "correct" &&
+    obj["verdict"] !== "incorrect" &&
+    obj["verdict"] !== "partial"
+  ) {
     throw new QuizValidationError(
-      `Invalid "verdict"; must be "correct", "incorrect", or "partial"; got ${String(obj['verdict'])}`,
-    )
+      `Invalid "verdict"; must be "correct", "incorrect", or "partial"; got ${String(obj["verdict"])}`,
+    );
   }
-  if (obj['score'] !== 0 && obj['score'] !== 1 && obj['score'] !== 2) {
-    throw new QuizValidationError(`Invalid "score"; must be 0, 1, or 2; got ${String(obj['score'])}`)
+  if (obj["score"] !== 0 && obj["score"] !== 1 && obj["score"] !== 2) {
+    throw new QuizValidationError(
+      `Invalid "score"; must be 0, 1, or 2; got ${String(obj["score"])}`,
+    );
   }
-  if (typeof obj['feedback'] !== 'string' || !obj['feedback']) {
-    throw new QuizValidationError('Missing or empty "feedback" field')
+  if (typeof obj["feedback"] !== "string" || !obj["feedback"]) {
+    throw new QuizValidationError('Missing or empty "feedback" field');
   }
 
   return {
-    verdict: obj['verdict'] as 'correct' | 'incorrect' | 'partial',
-    score: obj['score'] as 0 | 1 | 2,
-    feedback: obj['feedback'] as string,
-  }
+    verdict: obj["verdict"] as "correct" | "incorrect" | "partial",
+    score: obj["score"] as 0 | 1 | 2,
+    feedback: obj["feedback"] as string,
+  };
 }
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
@@ -188,15 +202,15 @@ export function validateGrading(value: unknown): GradingOutput {
 export function buildQuizPrompt(
   conceptName: string,
   waypointContext: string,
-  questionType: 'mc' | 'frq' = 'mc',
+  questionType: "mc" | "frq" = "mc",
 ): string {
   return [
     `Concept to test: ${conceptName}`,
     `Waypoint context: ${waypointContext}`,
     `Question type: ${questionType}`,
-    '',
-    'Generate one quiz question for this concept. Follow the output JSON schema exactly.',
-  ].join('\n')
+    "",
+    "Generate one quiz question for this concept. Follow the output JSON schema exactly.",
+  ].join("\n");
 }
 
 /**
@@ -208,10 +222,10 @@ export function buildQuizPrompt(
 export function buildGradingPrompt(question: QuizQuestion, response: string): string {
   return [
     `Question: ${question.question}`,
-    `Rubric: ${question.rubric ?? 'Score 0 if incorrect, 1 if partial, 2 if fully correct.'}`,
-    '',
-    `Learner answer: ${response || '(empty)'}`,
-    '',
-    'Grade this answer. Follow the output JSON schema exactly.',
-  ].join('\n')
+    `Rubric: ${question.rubric ?? "Score 0 if incorrect, 1 if partial, 2 if fully correct."}`,
+    "",
+    `Learner answer: ${response || "(empty)"}`,
+    "",
+    "Grade this answer. Follow the output JSON schema exactly.",
+  ].join("\n");
 }

@@ -12,34 +12,28 @@
  *   data-testid="progress-page"  — page wrapper (always present)
  */
 
-import { createFileRoute } from '@tanstack/react-router'
-import { getJourneyProgress } from '#/server/progress'
-import { ProgressPanel } from '#/components/progress/ProgressPanel'
+import { createFileRoute } from "@tanstack/react-router";
+import { getJourneyProgress } from "#/server/progress";
+import { ProgressPanel } from "#/components/progress/ProgressPanel";
 
-export const Route = createFileRoute(
-  '/_authenticated/journey/$journeyId/progress',
-)({
-  head: () => ({ meta: [{ title: 'Waypoint — Progress' }] }),
+export const Route = createFileRoute("/_authenticated/journey/$journeyId/progress")({
+  head: () => ({ meta: [{ title: "Waypoint — Progress" }] }),
   loader: async ({ params }) => {
-    return getJourneyProgress({ data: params.journeyId })
+    return getJourneyProgress({ data: params.journeyId });
   },
   component: ProgressPage,
-})
+});
 
 function ProgressPage() {
-  const loaderData = Route.useLoaderData()
+  const loaderData = Route.useLoaderData();
 
   return (
     <div
       data-testid="progress-page"
-      style={{ padding: '1.5rem 1rem', maxWidth: '56rem', margin: '0 auto' }}
+      style={{ padding: "1.5rem 1rem", maxWidth: "56rem", margin: "0 auto" }}
     >
-      <header style={{ marginBottom: '1.5rem' }}>
-        <h1
-          className="display-title m-0 text-2xl font-bold text-[var(--ink)]"
-        >
-          Progress
-        </h1>
+      <header style={{ marginBottom: "1.5rem" }}>
+        <h1 className="display-title m-0 text-2xl font-bold text-[var(--ink)]">Progress</h1>
         <p className="mt-1 m-0 text-sm text-[var(--ink-muted)]">
           Your mastery map — waypoints, streaks, and review-due concepts.
         </p>
@@ -54,5 +48,5 @@ function ProgressPage() {
         dueCount={loaderData.dueCount}
       />
     </div>
-  )
+  );
 }

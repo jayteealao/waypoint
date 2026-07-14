@@ -1,7 +1,7 @@
-import { createServerFn } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
-import { env } from 'cloudflare:workers'
-import { createAuth } from '#/lib/auth'
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { env } from "cloudflare:workers";
+import { createAuth } from "#/lib/auth";
 
 /**
  * Reads the better-auth session from the incoming request cookies.
@@ -13,7 +13,7 @@ import { createAuth } from '#/lib/auth'
  * every signed-in user is bounced back to /sign-in.
  */
 export const getSession = createServerFn().handler(async () => {
-  const auth = createAuth(env)
-  const result = await auth.api.getSession({ headers: getRequest().headers })
-  return result ?? null
-})
+  const auth = createAuth(env);
+  const result = await auth.api.getSession({ headers: getRequest().headers });
+  return result ?? null;
+});

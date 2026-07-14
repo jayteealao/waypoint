@@ -1,5 +1,5 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { AppShell } from '#/components/shell/AppShell'
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { AppShell } from "#/components/shell/AppShell";
 
 /**
  * Pathless layout route — wraps all signed-in surfaces.
@@ -8,20 +8,20 @@ import { AppShell } from '#/components/shell/AppShell'
  * If the session is absent, redirects to /sign-in before the child component mounts.
  * This replaces per-route auth guards on the individual child routes.
  */
-export const Route = createFileRoute('/_authenticated')({
+export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ context }) => {
-    const { auth } = context
+    const { auth } = context;
     if (!auth?.session) {
-      throw redirect({ to: '/sign-in' })
+      throw redirect({ to: "/sign-in" });
     }
   },
   component: AuthenticatedLayout,
-})
+});
 
 function AuthenticatedLayout() {
   return (
     <AppShell>
       <Outlet />
     </AppShell>
-  )
+  );
 }

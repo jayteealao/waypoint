@@ -12,29 +12,29 @@
  */
 
 /** Generation types produced by AI calls in Waypoint. */
-export type GenerationType = 'interview' | 'lesson' | 'quiz' | 'roadmap'
+export type GenerationType = "interview" | "lesson" | "quiz" | "roadmap";
 
 /** Per-tier model config with fallback chain and pricing. */
 export interface TierConfig {
   /** Primary model identifier (OpenRouter format: provider/model). */
-  primaryModel: string
+  primaryModel: string;
   /**
    * Ordered fallback chain. On primary failure the gateway tries each in order.
    * Empty means no fallback — the error propagates immediately.
    */
-  fallbackChain: string[]
+  fallbackChain: string[];
   /** Per-1M-token pricing in USD. Used as fallback when total_cost absent. */
   pricingPer1MTokens: {
-    input: number
-    output: number
-  }
+    input: number;
+    output: number;
+  };
   /**
    * Reasoning effort for reasoning-capable primaries. Forwarded to OpenRouter as
    * `reasoning.effort` on every call for this tier. Leave unset to use the model's
    * own default (e.g. grok-4.5's mandatory `high`). Additive/optional — omitting it
    * sends no reasoning field at all.
    */
-  reasoningEffort?: 'low' | 'medium' | 'high'
+  reasoningEffort?: "low" | "medium" | "high";
 }
 
 /**
@@ -53,10 +53,10 @@ export const TIERS: Record<GenerationType, TierConfig> = {
    * latency budget on the reasoning-capable primary.
    */
   interview: {
-    primaryModel: 'z-ai/glm-5.2',
-    fallbackChain: ['openai/gpt-5.6-luna'],
+    primaryModel: "z-ai/glm-5.2",
+    fallbackChain: ["openai/gpt-5.6-luna"],
     pricingPer1MTokens: { input: 0.42, output: 1.32 },
-    reasoningEffort: 'low',
+    reasoningEffort: "low",
   },
 
   /**
@@ -64,10 +64,10 @@ export const TIERS: Record<GenerationType, TierConfig> = {
    * Target latency: < 5 s for first meaningful token (NFR from shape).
    */
   lesson: {
-    primaryModel: 'z-ai/glm-5.2',
-    fallbackChain: ['google/gemini-3.5-flash'],
+    primaryModel: "z-ai/glm-5.2",
+    fallbackChain: ["google/gemini-3.5-flash"],
     pricingPer1MTokens: { input: 0.42, output: 1.32 },
-    reasoningEffort: 'low',
+    reasoningEffort: "low",
   },
 
   /**
@@ -76,18 +76,18 @@ export const TIERS: Record<GenerationType, TierConfig> = {
    * (`high`) is desired here, so `reasoningEffort` is intentionally left unset.
    */
   roadmap: {
-    primaryModel: 'x-ai/grok-4.5',
-    fallbackChain: ['openai/gpt-5.6-luna'],
-    pricingPer1MTokens: { input: 2.00, output: 6.00 },
+    primaryModel: "x-ai/grok-4.5",
+    fallbackChain: ["openai/gpt-5.6-luna"],
+    pricingPer1MTokens: { input: 2.0, output: 6.0 },
   },
 
   /**
    * Quiz tier: JSON question generation + grading (shape mandated by the system prompt).
    */
   quiz: {
-    primaryModel: 'z-ai/glm-5.2',
-    fallbackChain: ['deepseek/deepseek-v4-pro'],
+    primaryModel: "z-ai/glm-5.2",
+    fallbackChain: ["deepseek/deepseek-v4-pro"],
     pricingPer1MTokens: { input: 0.42, output: 1.32 },
-    reasoningEffort: 'low',
+    reasoningEffort: "low",
   },
-}
+};

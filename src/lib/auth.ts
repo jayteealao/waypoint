@@ -1,5 +1,5 @@
-import { betterAuth } from 'better-auth'
-import { dash } from '@better-auth/infra'
+import { betterAuth } from "better-auth";
+import { dash } from "@better-auth/infra";
 
 /**
  * Per-request better-auth factory.
@@ -18,13 +18,13 @@ export function createAuth(env: Env) {
     database: env.DB,
 
     secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_BASE_URL ?? 'http://localhost:3000',
+    baseURL: env.BETTER_AUTH_BASE_URL ?? "http://localhost:3000",
 
     // Restrict callbacks to same-origin and explicit trusted origins.
     // localhost variants cover local dev; production origins are set via the env var.
     trustedOrigins: [
-      'http://localhost:3000',
-      'http://localhost:8787',
+      "http://localhost:3000",
+      "http://localhost:8787",
       ...(env.BETTER_AUTH_BASE_URL ? [env.BETTER_AUTH_BASE_URL] : []),
     ],
 
@@ -47,8 +47,8 @@ export function createAuth(env: Env) {
         apiKey: env.BETTER_AUTH_API_KEY,
       }),
     ],
-  })
+  });
 }
 
 /** Type of the per-request auth instance — used by auth-guard.ts for session typing. */
-export type AuthInstance = ReturnType<typeof createAuth>
+export type AuthInstance = ReturnType<typeof createAuth>;

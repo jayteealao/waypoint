@@ -8,22 +8,32 @@
  * The article uses .wp-lesson for the 72ch reading measure with Fraunces serif.
  */
 
-import type { LessonDocumentV1, PartialLessonDocument } from '#/types/lesson-document'
-import { LessonSection } from './LessonSection'
-import { LessonSkeleton } from './LessonSkeleton'
+import type { LessonDocumentV1, PartialLessonDocument } from "#/types/lesson-document";
+import { LessonSection } from "./LessonSection";
+import { LessonSkeleton } from "./LessonSkeleton";
 
 interface LessonViewProps {
-  doc: LessonDocumentV1 | PartialLessonDocument
+  doc: LessonDocumentV1 | PartialLessonDocument;
 }
 
 export function LessonView({ doc }: LessonViewProps) {
   return (
     <article className="wp-lesson" data-testid="lesson-view">
-      <h1 className="display-title" style={{ marginBottom: '0.25rem', fontSize: '2rem', fontWeight: 700, lineHeight: 1.2 }}>
+      <h1
+        className="display-title"
+        style={{ marginBottom: "0.25rem", fontSize: "2rem", fontWeight: 700, lineHeight: 1.2 }}
+      >
         {doc.title}
       </h1>
       {doc.summary && (
-        <p style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-sans)', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+        <p
+          style={{
+            color: "var(--ink-muted)",
+            fontFamily: "var(--font-sans)",
+            marginTop: "0.5rem",
+            marginBottom: "1.5rem",
+          }}
+        >
           {doc.summary}
         </p>
       )}
@@ -51,7 +61,9 @@ export function LessonView({ doc }: LessonViewProps) {
                 ) : (
                   source.title
                 )}
-                {source.author && <span style={{ color: 'var(--ink-faint)' }}> — {source.author}</span>}
+                {source.author && (
+                  <span style={{ color: "var(--ink-faint)" }}> — {source.author}</span>
+                )}
               </li>
             ))}
           </ul>
@@ -77,13 +89,20 @@ export function LessonView({ doc }: LessonViewProps) {
               </span>
             )}
             {doc.recommended_primary_source.author && (
-              <span style={{ color: 'var(--ink-muted)', fontFamily: 'var(--font-sans)', fontSize: '0.875rem' }}>
-                {' '}— {doc.recommended_primary_source.author}
+              <span
+                style={{
+                  color: "var(--ink-muted)",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "0.875rem",
+                }}
+              >
+                {" "}
+                — {doc.recommended_primary_source.author}
               </span>
             )}
           </p>
         </div>
       )}
     </article>
-  )
+  );
 }

@@ -9,18 +9,16 @@
  * or empty state while generation is pending.
  */
 
-import { createServerFn, createMiddleware } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
-import { env } from 'cloudflare:workers'
-import { requireAuth } from '#/lib/auth-guard'
-import type { Lesson } from '#/db/schema'
+import { createServerFn, createMiddleware } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { env } from "cloudflare:workers";
+import { requireAuth } from "#/lib/auth-guard";
+import type { Lesson } from "#/db/schema";
 
-const withSession = createMiddleware({ type: 'function' }).server(
-  async ({ next }) => {
-    const sessionData = await requireAuth(env, getRequest())
-    return next({ context: { session: sessionData } })
-  },
-)
+const withSession = createMiddleware({ type: "function" }).server(async ({ next }) => {
+  const sessionData = await requireAuth(env, getRequest());
+  return next({ context: { session: sessionData } });
+});
 
 /**
  * Fetch a single lesson row by id, scoped to the owning waypoint.
@@ -44,18 +42,16 @@ export const getLesson = createServerFn()
   .validator((input: { lessonId: string; waypointId: string }) => input)
   .handler(async ({ data: { lessonId, waypointId } }): Promise<Lesson | null> => {
     try {
-      const row = await env.DB.prepare(
-        'SELECT * FROM lessons WHERE id = ? AND waypoint_id = ?',
-      )
+      const row = await env.DB.prepare("SELECT * FROM lessons WHERE id = ? AND waypoint_id = ?")
         .bind(lessonId, waypointId)
-        .first<Lesson>()
-      if (!row) return null
-      return row
+        .first<Lesson>();
+      if (!row) return null;
+      return row;
     } catch (err) {
-      console.error('[lessons] D1 error fetching lesson:', lessonId, err)
-      return null
+      console.error("[lessons] D1 error fetching lesson:", lessonId, err);
+      return null;
     }
-  })
+  });
 
 /**
  * Fetch the lesson row for a waypoint (by waypoint_id, not lesson id).
@@ -67,15 +63,15 @@ export const getLessonByWaypointId = createServerFn()
   .validator((waypointId: string) => waypointId)
   .handler(async ({ data: waypointId }): Promise<Lesson | null> => {
     try {
-      const row = await env.DB.prepare('SELECT * FROM lessons WHERE waypoint_id = ?')
+      const row = await env.DB.prepare("SELECT * FROM lessons WHERE waypoint_id = ?")
         .bind(waypointId)
-        .first<Lesson>()
-      return row ?? null
+        .first<Lesson>();
+      return row ?? null;
     } catch (err) {
-      console.error('[lessons] D1 error fetching lesson by waypointId:', waypointId, err)
-      return null
+      console.error("[lessons] D1 error fetching lesson by waypointId:", waypointId, err);
+      return null;
     }
-  })
+  });
 
 /**
  * Upsert a lesson row for a waypoint (INSERT OR REPLACE).
@@ -89,10 +85,10 @@ export async function upsertLesson(
   db: D1Database,
   waypointId: string,
   lessonId: string,
-  content: string,    // JSON.stringify(sections[])
-  sources: string,    // JSON.stringify(LessonSource[])
+  content: string, // JSON.stringify(sections[])
+  sources: string, // JSON.stringify(LessonSource[])
 ): Promise<void> {
-  const now = Date.now()
+  const now = Date.now();
   await db
     .prepare(
       `INSERT INTO lessons (id, waypoint_id, content, sources, created_at)
@@ -102,5 +98,5 @@ export async function upsertLesson(
          sources = excluded.sources`,
     )
     .bind(lessonId, waypointId, content, sources, now)
-    .run()
+    .run();
 }

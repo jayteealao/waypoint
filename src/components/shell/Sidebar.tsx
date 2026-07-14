@@ -1,12 +1,12 @@
-import { Link, useRouterState } from '@tanstack/react-router'
-import type { Journey } from '#/db/schema'
-import { useShell } from './AppShell'
-import { Meter } from '../ui/Meter'
-import ThemeToggle from '../ThemeToggle'
-import { Compass } from 'lucide-react'
+import { Link, useRouterState } from "@tanstack/react-router";
+import type { Journey } from "#/db/schema";
+import { useShell } from "./AppShell";
+import { Meter } from "../ui/Meter";
+import ThemeToggle from "../ThemeToggle";
+import { Compass } from "lucide-react";
 
 export interface SidebarProps {
-  currentJourney?: Journey | null
+  currentJourney?: Journey | null;
 }
 
 /**
@@ -15,16 +15,12 @@ export interface SidebarProps {
  * and an overall progress meter at the bottom.
  */
 export function Sidebar({ currentJourney = null }: SidebarProps) {
-  const routerState      = useRouterState()
-  const pathname         = routerState.location.pathname
-  const { waypoints }    = useShell()
+  const routerState = useRouterState();
+  const pathname = routerState.location.pathname;
+  const { waypoints } = useShell();
 
   return (
-    <aside
-      className="wp-sidebar"
-      data-testid="sidebar"
-      aria-label="Application navigation"
-    >
+    <aside className="wp-sidebar" data-testid="sidebar" aria-label="Application navigation">
       {/* Brand / header */}
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <Link
@@ -42,13 +38,13 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto p-3" aria-label="Main navigation">
         <Link
           to="/"
-          className={`wp-sidebar-nav-item${pathname === '/' ? ' wp-sidebar-nav-item--active' : ''}`}
+          className={`wp-sidebar-nav-item${pathname === "/" ? " wp-sidebar-nav-item--active" : ""}`}
         >
           Journeys
         </Link>
         <Link
           to="/account"
-          className={`wp-sidebar-nav-item${pathname === '/account' ? ' wp-sidebar-nav-item--active' : ''}`}
+          className={`wp-sidebar-nav-item${pathname === "/account" ? " wp-sidebar-nav-item--active" : ""}`}
         >
           Account
         </Link>
@@ -67,25 +63,19 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
               </>
             )}
             {waypoints.length > 0 && (
-              <nav
-                className="mt-3 space-y-0.5"
-                aria-label="Journey waypoints"
-              >
+              <nav className="mt-3 space-y-0.5" aria-label="Journey waypoints">
                 {waypoints.map((wp) => (
                   <Link
                     key={wp.id}
                     to={wp.href}
                     data-waypoint={wp.id}
                     data-testid="waypoint-link"
-                    data-completed={wp.completed ? 'true' : 'false'}
-                    className={`wp-sidebar-nav-item${pathname === wp.href ? ' wp-sidebar-nav-item--active' : ''}`}
+                    data-completed={wp.completed ? "true" : "false"}
+                    className={`wp-sidebar-nav-item${pathname === wp.href ? " wp-sidebar-nav-item--active" : ""}`}
                   >
                     <span className="flex-1 truncate">{wp.label}</span>
                     {wp.completed && (
-                      <span
-                        className="ml-1 text-[var(--success)]"
-                        aria-label="Completed"
-                      >
+                      <span className="ml-1 text-[var(--success)]" aria-label="Completed">
                         ✓
                       </span>
                     )}
@@ -100,7 +90,7 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
                 to="/journey/$journeyId/progress"
                 params={{ journeyId: currentJourney.id }}
                 data-testid="sidebar-progress-link"
-                className={`wp-sidebar-nav-item mt-1${pathname.endsWith('/progress') ? ' wp-sidebar-nav-item--active' : ''}`}
+                className={`wp-sidebar-nav-item mt-1${pathname.endsWith("/progress") ? " wp-sidebar-nav-item--active" : ""}`}
               >
                 Progress
               </Link>
@@ -111,13 +101,8 @@ export function Sidebar({ currentJourney = null }: SidebarProps) {
 
       {/* Progress meter — bottom of sidebar */}
       <div className="border-t border-[var(--border)] p-4">
-        <Meter
-          value={0}
-          label="Overall progress"
-          showValue
-          className="text-xs"
-        />
+        <Meter value={0} label="Overall progress" showValue className="text-xs" />
       </div>
     </aside>
-  )
+  );
 }

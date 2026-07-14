@@ -37,30 +37,30 @@
  * refresh; upgrade path is a public collection re-sync hook if @tanstack/db adds
  * one, or a manual `utils.manualTrigger` if it is promoted to the public utils.
  */
-import { createCollection, localStorageCollectionOptions } from '@tanstack/db'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { storageKey, type CollectionEntity } from './storage-keys'
+import { createCollection, localStorageCollectionOptions } from "@tanstack/db";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { storageKey, type CollectionEntity } from "./storage-keys";
 
 /** The library's on-disk item envelope (see local-storage.js loadFromStorage). */
 interface StoredItem {
-  versionKey: string
-  data: unknown
+  versionKey: string;
+  data: unknown;
 }
 
 /** Encode a collection key the same way the library does (local-storage.js). */
 function encodeStorageKey(key: string | number): string {
-  return typeof key === 'number' ? `n:${key}` : `s:${key}`
+  return typeof key === "number" ? `n:${key}` : `s:${key}`;
 }
 
 function readBlob(key: string): Record<string, StoredItem> {
-  if (typeof localStorage === 'undefined') return {}
-  const raw = localStorage.getItem(key)
-  if (!raw) return {}
+  if (typeof localStorage === "undefined") return {};
+  const raw = localStorage.getItem(key);
+  if (!raw) return {};
   try {
-    const parsed = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, StoredItem>) : {}
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, StoredItem>) : {};
   } catch {
-    return {}
+    return {};
   }
 }
 
@@ -85,26 +85,26 @@ export function seedStorage<T extends object>(
   getKey: (row: T) => string,
   versionOf?: (row: T) => number,
 ): void {
-  if (typeof localStorage === 'undefined') return
-  const blob = readBlob(key)
+  if (typeof localStorage === "undefined") return;
+  const blob = readBlob(key);
   for (const row of rows) {
-    const rowKey = getKey(row)
-    const encoded = encodeStorageKey(rowKey)
-    const existing = blob[encoded]
+    const rowKey = getKey(row);
+    const encoded = encodeStorageKey(rowKey);
+    const existing = blob[encoded];
     if (existing !== undefined && versionOf !== undefined) {
-      const localV = versionOf(existing.data as T)
-      const serverV = versionOf(row)
-      if (localV >= serverV) continue // local copy is newer or equal → keep it
+      const localV = versionOf(existing.data as T);
+      const serverV = versionOf(row);
+      if (localV >= serverV) continue; // local copy is newer or equal → keep it
     }
-    blob[encoded] = { versionKey: crypto.randomUUID(), data: row }
+    blob[encoded] = { versionKey: crypto.randomUUID(), data: row };
   }
   try {
-    localStorage.setItem(key, JSON.stringify(blob))
+    localStorage.setItem(key, JSON.stringify(blob));
   } catch (err) {
     // Quota exceeded / storage disabled: the collection's in-memory fallback
     // still serves reads for this session; D1 remains authoritative. Degrade,
     // don't throw. sdlc-debt: session-only cache when the seed can't persist.
-    console.warn('[collection-factory] seed persist failed; session-only cache:', err)
+    console.warn("[collection-factory] seed persist failed; session-only cache:", err);
   }
 }
 
@@ -112,19 +112,19 @@ export function seedStorage<T extends object>(
  *  library's batched-transaction handler shape. Throwing rolls the optimistic
  *  mutation back (library transaction-rolls-back-on-handler-throw). */
 export interface WriteHandlers<T> {
-  onInsert?: (row: T) => Promise<void>
-  onUpdate?: (row: T) => Promise<void>
-  onDelete?: (row: T) => Promise<void>
+  onInsert?: (row: T) => Promise<void>;
+  onUpdate?: (row: T) => Promise<void>;
+  onDelete?: (row: T) => Promise<void>;
 }
 
 export interface DomainCollectionDef<TSchema extends StandardSchemaV1<unknown, object>> {
-  entity: CollectionEntity
-  schema: TSchema
-  getKey: (row: StandardSchemaV1.InferOutput<TSchema>) => string
+  entity: CollectionEntity;
+  schema: TSchema;
+  getKey: (row: StandardSchemaV1.InferOutput<TSchema>) => string;
   /** Version selector for LWW at seed time (e.g. `r => r.updated_at`). Omit for
    *  entities with no version column (server always wins). */
-  versionOf?: (row: StandardSchemaV1.InferOutput<TSchema>) => number
-  handlers?: WriteHandlers<StandardSchemaV1.InferOutput<TSchema>>
+  versionOf?: (row: StandardSchemaV1.InferOutput<TSchema>) => number;
+  handlers?: WriteHandlers<StandardSchemaV1.InferOutput<TSchema>>;
 }
 
 /**
@@ -138,8 +138,8 @@ export interface DomainCollectionDef<TSchema extends StandardSchemaV1<unknown, o
 export function defineDomainCollection<TSchema extends StandardSchemaV1<unknown, object>>(
   def: DomainCollectionDef<TSchema>,
 ) {
-  type Row = StandardSchemaV1.InferOutput<TSchema>
-  const h = def.handlers
+  type Row = StandardSchemaV1.InferOutput<TSchema>;
+  const h = def.handlers;
   const build = (key: string) =>
     createCollection(
       localStorageCollectionOptions<TSchema, string>({
@@ -148,26 +148,26 @@ export function defineDomainCollection<TSchema extends StandardSchemaV1<unknown,
         getKey: def.getKey,
         ...(h?.onInsert && {
           onInsert: async ({ transaction }) => {
-            for (const m of transaction.mutations) await h.onInsert!(m.modified as Row)
+            for (const m of transaction.mutations) await h.onInsert!(m.modified as Row);
           },
         }),
         ...(h?.onUpdate && {
           onUpdate: async ({ transaction }) => {
-            for (const m of transaction.mutations) await h.onUpdate!(m.modified as Row)
+            for (const m of transaction.mutations) await h.onUpdate!(m.modified as Row);
           },
         }),
         ...(h?.onDelete && {
           onDelete: async ({ transaction }) => {
-            for (const m of transaction.mutations) await h.onDelete!(m.modified as Row)
+            for (const m of transaction.mutations) await h.onDelete!(m.modified as Row);
           },
         }),
       }),
-    )
+    );
 
-  const registry = new Map<string, ReturnType<typeof build>>()
+  const registry = new Map<string, ReturnType<typeof build>>();
   // Tracks the last seed reference applied per key, so a reactive re-render that
   // passes the SAME loader payload does not rewrite localStorage every render.
-  const lastSeed = new Map<string, unknown>()
+  const lastSeed = new Map<string, unknown>();
 
   return {
     get(userId: string, seed?: Row[]): ReturnType<typeof build> {
@@ -176,16 +176,16 @@ export function defineDomainCollection<TSchema extends StandardSchemaV1<unknown,
       // this data layer exists to hold). Authenticated routes always supply a
       // real id; if one is ever absent, hand back an unseeded, uncached throwaway
       // so no user's rows can persist under, or be read from, a shared key.
-      if (!userId) return build(storageKey('__anon__', def.entity))
-      const key = storageKey(userId, def.entity)
-      const isClient = typeof window !== 'undefined'
+      if (!userId) return build(storageKey("__anon__", def.entity));
+      const key = storageKey(userId, def.entity);
+      const isClient = typeof window !== "undefined";
       // Seed BEFORE (re)creating so sync-init reads it; on an already-created
       // collection this refreshes localStorage for the next full load. Guard on
       // the seed reference: a new navigation/loader run brings a fresh array and
       // re-seeds, but a re-render with the same payload is a no-op.
       if (seed !== undefined && isClient && lastSeed.get(key) !== seed) {
-        seedStorage(key, seed, def.getKey, def.versionOf)
-        lastSeed.set(key, seed)
+        seedStorage(key, seed, def.getKey, def.versionOf);
+        lastSeed.set(key, seed);
       }
       // Collections are CLIENT-ONLY (shape D3). On the server we never cache: a
       // module-level registry in a warm Cloudflare isolate would bleed one
@@ -195,17 +195,17 @@ export function defineDomainCollection<TSchema extends StandardSchemaV1<unknown,
       // empty collection, so it is safe and never read for isolation-sensitive
       // output. source: node_modules/@tanstack/db/dist/esm/local-storage.js:56
       // (createInMemoryStorage when window absent).
-      if (!isClient) return build(key)
-      const cached = registry.get(key)
-      if (cached) return cached
-      const collection = build(key)
-      registry.set(key, collection)
-      return collection
+      if (!isClient) return build(key);
+      const cached = registry.get(key);
+      if (cached) return cached;
+      const collection = build(key);
+      registry.set(key, collection);
+      return collection;
     },
     /** Test-only: drop the per-user registry so specs start clean. */
     _resetRegistry() {
-      registry.clear()
-      lastSeed.clear()
+      registry.clear();
+      lastSeed.clear();
     },
-  }
+  };
 }

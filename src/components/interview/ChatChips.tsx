@@ -6,27 +6,32 @@
  * Each chip calls `onSelect(label)` when clicked.
  */
 
-import { Chip } from '#/components/ui/Chip'
+import { Chip } from "#/components/ui/Chip";
 
 export interface ChatChipsProps {
-  chips: string[]
-  onSelect: (label: string) => void
-  disabled?: boolean
+  chips: string[];
+  onSelect: (label: string) => void;
+  disabled?: boolean;
 }
 
 export function ChatChips({ chips, onSelect, disabled = false }: ChatChipsProps) {
-  if (chips.length === 0) return null
+  if (chips.length === 0) return null;
 
   return (
-    <div className="wp-chat-chip-bar" data-testid="chat-chips" role="group" aria-label="Quick replies">
+    <div
+      className="wp-chat-chip-bar"
+      data-testid="chat-chips"
+      role="group"
+      aria-label="Quick replies"
+    >
       {chips.map((label) => (
         <Chip
           key={label}
           label={label}
           onClick={disabled ? undefined : () => onSelect(label)}
-          className={disabled ? 'wp-chip--disabled' : ''}
+          className={disabled ? "wp-chip--disabled" : ""}
         />
       ))}
     </div>
-  )
+  );
 }

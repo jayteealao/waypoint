@@ -11,153 +11,157 @@
  * Recorded as a deviation in the implementation record.
  */
 
-import { useState, useRef, useEffect } from 'react'
-import type { InterviewStage, InterviewTurn, TurnResponse } from '#/types/interview'
-import { STAGE_CHIPS } from '#/types/interview'
-import { ChatBubble } from './ChatBubble'
-import { ChatChips } from './ChatChips'
-import { TypingIndicator } from './TypingIndicator'
+import { useState, useRef, useEffect } from "react";
+import type { InterviewStage, InterviewTurn, TurnResponse } from "#/types/interview";
+import { STAGE_CHIPS } from "#/types/interview";
+import { ChatBubble } from "./ChatBubble";
+import { ChatChips } from "./ChatChips";
+import { TypingIndicator } from "./TypingIndicator";
 
 export interface InterviewViewProps {
-  journeyId: string
+  journeyId: string;
   /** Initial turns to render (for resume — hydrated from server). */
-  initialTurns?: InterviewTurn[]
+  initialTurns?: InterviewTurn[];
   /** Initial stage (for resume). Defaults to 'consent'. */
-  initialStage?: InterviewStage
+  initialStage?: InterviewStage;
   /** Initial question to show (first assistant message). */
-  initialQuestion?: string
+  initialQuestion?: string;
   /** Initial chips for the current stage. */
-  initialChips?: string[]
+  initialChips?: string[];
   /**
    * Called when the user submits a turn (chip or free text).
    * Returns the updated { question, chips, stage } for the next turn.
    */
-  onSendTurn: (userContent: string) => Promise<TurnResponse>
+  onSendTurn: (userContent: string) => Promise<TurnResponse>;
   /**
    * Called when the interview reaches a terminal state (complete or declined).
    * The parent route can use this to trigger roadmap preparation.
    */
-  onComplete?: (stage: 'complete' | 'declined') => void
+  onComplete?: (stage: "complete" | "declined") => void;
   /** Pass true to use mock scripted responses (dev/test only). */
-  mock?: boolean
+  mock?: boolean;
 }
 
 /** Completion card shown when stage reaches 'complete' or 'declined'. */
-function CompletionCard({ stage }: { stage: 'complete' | 'declined' }) {
+function CompletionCard({ stage }: { stage: "complete" | "declined" }) {
   const message =
-    stage === 'declined'
-      ? 'No problem — your roadmap will be built from your stated goal. Check back shortly.'
-      : 'Your roadmap is being prepared. Come back in a moment to start your first lesson.'
+    stage === "declined"
+      ? "No problem — your roadmap will be built from your stated goal. Check back shortly."
+      : "Your roadmap is being prepared. Come back in a moment to start your first lesson.";
 
-  const label = stage === 'declined' ? 'Journey started' : 'Roadmap coming'
+  const label = stage === "declined" ? "Journey started" : "Roadmap coming";
 
   return (
     <div className="wp-interview-complete-card" data-testid="interview-complete-card">
       <p className="wp-interview-complete-label">{label}</p>
       <p className="wp-interview-complete-message">{message}</p>
     </div>
-  )
+  );
 }
 
 export function InterviewView({
   journeyId: _journeyId,
   initialTurns = [],
-  initialStage = 'consent',
+  initialStage = "consent",
   initialQuestion,
   initialChips,
   onSendTurn,
   onComplete,
   mock: _mock,
 }: InterviewViewProps) {
-  const [turns, setTurns] = useState<InterviewTurn[]>(initialTurns)
-  const [stage, setStage] = useState<InterviewStage>(initialStage)
-  const [chips, setChips] = useState<string[]>(
-    initialChips ?? STAGE_CHIPS[initialStage],
-  )
-  const [inputValue, setInputValue] = useState('')
-  const [isWaiting, setIsWaiting] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [turns, setTurns] = useState<InterviewTurn[]>(initialTurns);
+  const [stage, setStage] = useState<InterviewStage>(initialStage);
+  const [chips, setChips] = useState<string[]>(initialChips ?? STAGE_CHIPS[initialStage]);
+  const [inputValue, setInputValue] = useState("");
+  const [isWaiting, setIsWaiting] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Show initial question as first assistant bubble if no turns yet
   useEffect(() => {
     if (initialQuestion && turns.length === 0) {
-      setTurns([{ role: 'assistant', content: initialQuestion, stage: initialStage }])
+      setTurns([{ role: "assistant", content: initialQuestion, stage: initialStage }]);
     }
     // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   // Scroll to bottom on new turns or typing indicator
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [turns, isWaiting])
+  }, [turns, isWaiting]);
 
-  const isTerminal = stage === 'complete' || stage === 'declined'
+  const isTerminal = stage === "complete" || stage === "declined";
 
   async function submitUserContent(content: string) {
-    if (!content.trim() || isWaiting || isTerminal) return
+    if (!content.trim() || isWaiting || isTerminal) return;
 
-    const userTurn: InterviewTurn = { role: 'user', content: content.trim(), stage }
-    setTurns((prev) => [...prev, userTurn])
-    setInputValue('')
-    setIsWaiting(true)
+    const userTurn: InterviewTurn = { role: "user", content: content.trim(), stage };
+    setTurns((prev) => [...prev, userTurn]);
+    setInputValue("");
+    setIsWaiting(true);
 
     try {
-      const result = await onSendTurn(content.trim())
+      const result = await onSendTurn(content.trim());
       const assistantTurn: InterviewTurn = {
-        role: 'assistant',
+        role: "assistant",
         content: result.question,
         stage: result.stage,
-      }
-      setTurns((prev) => [...prev, assistantTurn])
-      setStage(result.stage)
-      setChips(result.chips)
+      };
+      setTurns((prev) => [...prev, assistantTurn]);
+      setStage(result.stage);
+      setChips(result.chips);
 
-      if (result.stage === 'complete' || result.stage === 'declined') {
-        onComplete?.(result.stage)
+      if (result.stage === "complete" || result.stage === "declined") {
+        onComplete?.(result.stage);
       }
     } catch (err) {
       // Show error as an assistant message so the user knows something went wrong
       const errorTurn: InterviewTurn = {
-        role: 'assistant',
-        content: 'Something went wrong — please try again.',
+        role: "assistant",
+        content: "Something went wrong — please try again.",
         stage,
-      }
-      setTurns((prev) => [...prev, errorTurn])
+      };
+      setTurns((prev) => [...prev, errorTurn]);
     } finally {
-      setIsWaiting(false)
+      setIsWaiting(false);
     }
   }
 
   function handleChipSelect(label: string) {
-    void submitUserContent(label)
+    void submitUserContent(label);
   }
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    void submitUserContent(inputValue)
+    e.preventDefault();
+    void submitUserContent(inputValue);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Submit on Enter without Shift (Shift+Enter = new line)
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      void submitUserContent(inputValue)
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void submitUserContent(inputValue);
     }
   }
 
   return (
     <div className="wp-interview-container" data-testid="interview-view">
       {/* Message history */}
-      <div className="wp-chat-scroll" ref={scrollRef} aria-label="Interview conversation" aria-live="polite" aria-relevant="additions">
+      <div
+        className="wp-chat-scroll"
+        ref={scrollRef}
+        aria-label="Interview conversation"
+        aria-live="polite"
+        aria-relevant="additions"
+      >
         {turns.map((turn, i) => (
           <ChatBubble
             key={i}
             role={turn.role}
             content={turn.content}
-            testId={turn.role === 'user' ? `chat-bubble-user-${i}` : `chat-bubble-assistant-${i}`}
+            testId={turn.role === "user" ? `chat-bubble-user-${i}` : `chat-bubble-assistant-${i}`}
           />
         ))}
         {isWaiting && <TypingIndicator />}
@@ -198,5 +202,5 @@ export function InterviewView({
         </div>
       )}
     </div>
-  )
+  );
 }

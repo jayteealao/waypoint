@@ -1,45 +1,45 @@
-import { createContext, useCallback, useContext, useState } from 'react'
-import type { Journey } from '#/db/schema'
-import { Sidebar } from './Sidebar'
-import { DrawerNav } from './DrawerNav'
-import ThemeToggle from '../ThemeToggle'
-import { Menu } from 'lucide-react'
+import { createContext, useCallback, useContext, useState } from "react";
+import type { Journey } from "#/db/schema";
+import { Sidebar } from "./Sidebar";
+import { DrawerNav } from "./DrawerNav";
+import ThemeToggle from "../ThemeToggle";
+import { Menu } from "lucide-react";
 
 /* ─── Shell context ──────────────────────────────────────────────────── */
 
 /** A waypoint entry displayed in the Sidebar and DrawerNav navigation lists. */
 export interface ShellWaypoint {
-  id:        string
-  label:     string
-  href:      string
-  completed: boolean
+  id: string;
+  label: string;
+  href: string;
+  completed: boolean;
 }
 
 interface ShellContextValue {
-  drawerOpen:    boolean
-  toggleDrawer:  () => void
-  closeDrawer:   () => void
-  waypoints:     ShellWaypoint[]
-  setWaypoints:  (ws: ShellWaypoint[]) => void
+  drawerOpen: boolean;
+  toggleDrawer: () => void;
+  closeDrawer: () => void;
+  waypoints: ShellWaypoint[];
+  setWaypoints: (ws: ShellWaypoint[]) => void;
 }
 
 export const ShellContext = createContext<ShellContextValue>({
-  drawerOpen:   false,
+  drawerOpen: false,
   toggleDrawer: () => {},
-  closeDrawer:  () => {},
-  waypoints:    [],
+  closeDrawer: () => {},
+  waypoints: [],
   setWaypoints: () => {},
-})
+});
 
 export function useShell() {
-  return useContext(ShellContext)
+  return useContext(ShellContext);
 }
 
 /* ─── AppShell ───────────────────────────────────────────────────────── */
 
 export interface AppShellProps {
-  children:        React.ReactNode
-  currentJourney?: Journey | null
+  children: React.ReactNode;
+  currentJourney?: Journey | null;
 }
 
 /**
@@ -52,14 +52,16 @@ export interface AppShellProps {
  * The drawer holds the same navigation as the sidebar.
  */
 export function AppShell({ children, currentJourney = null }: AppShellProps) {
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [waypoints, setWaypoints]   = useState<ShellWaypoint[]>([])
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [waypoints, setWaypoints] = useState<ShellWaypoint[]>([]);
 
-  const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), [])
-  const closeDrawer  = useCallback(() => setDrawerOpen(false), [])
+  const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   return (
-    <ShellContext.Provider value={{ drawerOpen, toggleDrawer, closeDrawer, waypoints, setWaypoints }}>
+    <ShellContext.Provider
+      value={{ drawerOpen, toggleDrawer, closeDrawer, waypoints, setWaypoints }}
+    >
       <div className="wp-shell">
         {/* Sidebar — desktop only */}
         <div className="hidden md:flex">
@@ -92,19 +94,17 @@ export function AppShell({ children, currentJourney = null }: AppShellProps) {
           <div className="wp-mobile-progress md:hidden" aria-hidden="true">
             <div
               className="wp-mobile-progress-fill"
-              style={{ width: '0%' /* populated by later slices */ }}
+              style={{ width: "0%" /* populated by later slices */ }}
             />
           </div>
 
           {/* Page content */}
-          <main className="flex-1">
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
         </div>
 
         {/* Drawer nav — mobile overlay */}
         <DrawerNav currentJourney={currentJourney} />
       </div>
     </ShellContext.Provider>
-  )
+  );
 }

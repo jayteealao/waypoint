@@ -7,11 +7,11 @@
  */
 export interface ReconnectingBannerProps {
   /** When false, the banner is not rendered. */
-  visible: boolean
+  visible: boolean;
 }
 
 export function ReconnectingBanner({ visible }: ReconnectingBannerProps) {
-  if (!visible) return null
+  if (!visible) return null;
 
   return (
     <div
@@ -23,5 +23,5 @@ export function ReconnectingBanner({ visible }: ReconnectingBannerProps) {
       <span className="wp-reconnecting-banner__dot" aria-hidden="true" />
       Reconnecting to lesson stream…
     </div>
-  )
+  );
 }

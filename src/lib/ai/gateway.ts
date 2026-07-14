@@ -17,21 +17,21 @@
  * same helper token-by-token.
  */
 
-import type { GenerationType } from './tiers'
-import { TIERS } from './tiers'
-import { checkQuota } from './quota'
-import type { QuotaStatus } from './quota'
-import { runModelWithFallback, computeCost, recordUsage } from './model-stream'
+import type { GenerationType } from "./tiers";
+import { TIERS } from "./tiers";
+import { checkQuota } from "./quota";
+import type { QuotaStatus } from "./quota";
+import { runModelWithFallback, computeCost, recordUsage } from "./model-stream";
 
 // ---- Public error types -------------------------------------------------------
 
 /** Thrown by callGateway when the user's daily quota is exhausted. */
 export class QuotaExhaustedError extends Error {
-  readonly status: QuotaStatus
+  readonly status: QuotaStatus;
   constructor(status: QuotaStatus) {
-    super('Daily generation quota exhausted')
-    this.name = 'QuotaExhaustedError'
-    this.status = status
+    super("Daily generation quota exhausted");
+    this.name = "QuotaExhaustedError";
+    this.status = status;
   }
 }
 
@@ -39,43 +39,43 @@ export class QuotaExhaustedError extends Error {
 
 type GatewayBase = {
   /** Cloudflare Workers env — must have DB and OPENROUTER_API_KEY. */
-  env: { DB: D1Database; OPENROUTER_API_KEY: string }
-  userId: string
-  journeyId?: string | null
-  type: GenerationType
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>
-}
+  env: { DB: D1Database; OPENROUTER_API_KEY: string };
+  userId: string;
+  journeyId?: string | null;
+  type: GenerationType;
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+};
 
 /** Tool-call request (interview tier). */
 export type GatewayCallWithTools = GatewayBase & {
-  tools: Array<{ name: string; description: string }>
-}
+  tools: Array<{ name: string; description: string }>;
+};
 
 /** Plain text / prompt-based-JSON generation request (lesson, roadmap, quiz). No tools. */
 export type GatewayCallText = GatewayBase & {
-  tools?: never
-}
+  tools?: never;
+};
 
 /** Discriminated union — a request either carries tools or it does not. */
-export type GatewayInput = GatewayCallWithTools | GatewayCallText
+export type GatewayInput = GatewayCallWithTools | GatewayCallText;
 
 /** Collected usage data returned alongside the response. */
 export interface GatewayUsage {
-  model: string
-  promptTokens: number
-  completionTokens: number
-  costUsd: number
-  durationMs: number
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  costUsd: number;
+  durationMs: number;
 }
 
 /** Response from a successful gateway call. */
 export interface GatewayResponse {
   /** Tool call result — present when tools were requested. */
-  toolUse?: { name: string; input: Record<string, unknown> }
+  toolUse?: { name: string; input: Record<string, unknown> };
   /** Generated text — present for text calls. */
-  text?: string
+  text?: string;
   /** Recorded usage (also persisted to D1 usage_events). */
-  usage: GatewayUsage
+  usage: GatewayUsage;
 }
 
 // ---- Gateway ------------------------------------------------------------------
@@ -90,24 +90,27 @@ export interface GatewayResponse {
  * @throws {Error} if all models in the tier's fallback chain fail.
  */
 export async function callGateway(input: GatewayInput): Promise<GatewayResponse> {
-  const { env, userId, journeyId = null, type, messages, tools } = input
+  const { env, userId, journeyId = null, type, messages, tools } = input;
 
   // ── 1. Quota gate ──────────────────────────────────────────────────────────
-  const quotaStatus = await checkQuota(env.DB, userId, type)
+  const quotaStatus = await checkQuota(env.DB, userId, type);
   if (!quotaStatus.allowed) {
     // quota.rejected signal already emitted by checkQuota()
-    throw new QuotaExhaustedError(quotaStatus)
+    throw new QuotaExhaustedError(quotaStatus);
   }
 
   // ── 2. Tier config ─────────────────────────────────────────────────────────
-  const tier = TIERS[type]
-  const modelChain = [tier.primaryModel, ...tier.fallbackChain]
+  const tier = TIERS[type];
+  const modelChain = [tier.primaryModel, ...tier.fallbackChain];
 
   // ── 3. generation.started signal ───────────────────────────────────────────
-  const estimatedPromptTokens = messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0)
+  const estimatedPromptTokens = messages.reduce(
+    (acc, m) => acc + Math.ceil(m.content.length / 4),
+    0,
+  );
   console.log(
     JSON.stringify({
-      event: 'generation.started',
+      event: "generation.started",
       user_id: userId,
       journey_id: journeyId,
       model: tier.primaryModel,
@@ -115,15 +118,19 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
       estimated_prompt_tokens: estimatedPromptTokens,
       timestamp: Date.now(),
     }),
-  )
+  );
 
-  const startTime = Date.now()
+  const startTime = Date.now();
 
   // ── 4. Run the model chain (buffered) via the shared helper ─────────────────
   // Buffered consumption: accumulate the streamed text into one string.
-  let textContent = ''
+  let textContent = "";
   try {
-    const { model, usage: rawUsage, toolUse } = await runModelWithFallback({
+    const {
+      model,
+      usage: rawUsage,
+      toolUse,
+    } = await runModelWithFallback({
       env,
       modelChain,
       messages,
@@ -131,45 +138,53 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
       reasoningEffort: tier.reasoningEffort,
       handlers: {
         onTextDelta: (delta) => {
-          textContent += delta
+          textContent += delta;
         },
       },
       onFallback: (previousModel, model, err) => {
         console.log(
           JSON.stringify({
-            event: 'model.fallback_triggered',
+            event: "model.fallback_triggered",
             user_id: userId,
             original_model: previousModel,
             fallback_model: model,
             reason: classifyError(err),
           }),
-        )
+        );
       },
-    })
+    });
 
-    const durationMs = Date.now() - startTime
+    const durationMs = Date.now() - startTime;
 
     // ── 5. Cost computation: prefer total_cost over recomputed ───────────────
-    const { costUsd, recomputed } = computeCost(rawUsage, tier)
+    const { costUsd, recomputed } = computeCost(rawUsage, tier);
     if (recomputed) {
       console.log(
         JSON.stringify({
-          event: 'generation.cost_recomputed',
+          event: "generation.cost_recomputed",
           user_id: userId,
           model,
           generation_type: type,
-          warning: 'total_cost absent from usage payload; cost recomputed from token counts',
+          warning: "total_cost absent from usage payload; cost recomputed from token counts",
         }),
-      )
+      );
     }
 
     // ── 6. Record usage in D1 ────────────────────────────────────────────────
-    await recordUsage(env.DB, { userId, journeyId, model, type, usage: rawUsage, costUsd, durationMs })
+    await recordUsage(env.DB, {
+      userId,
+      journeyId,
+      model,
+      type,
+      usage: rawUsage,
+      costUsd,
+      durationMs,
+    });
 
     // ── 7. generation.completed signal ───────────────────────────────────────
     console.log(
       JSON.stringify({
-        event: 'generation.completed',
+        event: "generation.completed",
         user_id: userId,
         journey_id: journeyId,
         model,
@@ -178,9 +193,9 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
         completion_tokens: rawUsage.completion_tokens,
         cost_usd: costUsd,
         duration_ms: durationMs,
-        outcome: 'success',
+        outcome: "success",
       }),
-    )
+    );
 
     const usageResult: GatewayUsage = {
       model,
@@ -188,15 +203,15 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
       completionTokens: rawUsage.completion_tokens,
       costUsd,
       durationMs,
-    }
+    };
 
-    return { toolUse, text: textContent || undefined, usage: usageResult }
+    return { toolUse, text: textContent || undefined, usage: usageResult };
   } catch (err) {
     // ── All models exhausted ───────────────────────────────────────────────
-    const durationMs = Date.now() - startTime
+    const durationMs = Date.now() - startTime;
     console.log(
       JSON.stringify({
-        event: 'generation.completed',
+        event: "generation.completed",
         user_id: userId,
         journey_id: journeyId,
         model: modelChain[modelChain.length - 1],
@@ -205,21 +220,21 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
         completion_tokens: 0,
         cost_usd: 0,
         duration_ms: durationMs,
-        outcome: 'failure',
-        error_code: err instanceof Error ? err.message : 'unknown',
+        outcome: "failure",
+        error_code: err instanceof Error ? err.message : "unknown",
       }),
-    )
-    throw err
+    );
+    throw err;
   }
 }
 
 /** Classify an error into a canonical reason string for the fallback signal. */
-function classifyError(err: unknown): 'timeout' | 'error' | 'quota' | 'tool-call-regression' {
+function classifyError(err: unknown): "timeout" | "error" | "quota" | "tool-call-regression" {
   if (err instanceof Error) {
-    const msg = err.message.toLowerCase()
-    if (msg.includes('timeout') || msg.includes('timed out')) return 'timeout'
-    if (msg.includes('quota') || msg.includes('rate limit') || msg.includes('429')) return 'quota'
-    if (msg.includes('tool')) return 'tool-call-regression'
+    const msg = err.message.toLowerCase();
+    if (msg.includes("timeout") || msg.includes("timed out")) return "timeout";
+    if (msg.includes("quota") || msg.includes("rate limit") || msg.includes("429")) return "quota";
+    if (msg.includes("tool")) return "tool-call-regression";
   }
-  return 'error'
+  return "error";
 }

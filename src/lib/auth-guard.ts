@@ -1,4 +1,4 @@
-import { createAuth } from '#/lib/auth'
+import { createAuth } from "#/lib/auth";
 
 /**
  * Requires an authenticated session for the incoming request.
@@ -14,14 +14,17 @@ import { createAuth } from '#/lib/auth'
 export async function requireAuth(
   env: Env,
   request: Request,
-): Promise<{ session: { id: string; userId: string; expiresAt: Date }; user: { id: string; name: string; email: string; image: string | null } }> {
-  const auth = createAuth(env)
-  const result = await auth.api.getSession({ headers: request.headers })
+): Promise<{
+  session: { id: string; userId: string; expiresAt: Date };
+  user: { id: string; name: string; email: string; image: string | null };
+}> {
+  const auth = createAuth(env);
+  const result = await auth.api.getSession({ headers: request.headers });
   if (!result?.session) {
-    throw new Response(null, { status: 401 })
+    throw new Response(null, { status: 401 });
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return result as any
+  return result as any;
 }
 
 /**
@@ -37,11 +40,8 @@ export async function requireAuth(
  * @param resourceUserId - User ID stored on the resource row
  * @throws {Response} 403 if IDs do not match or either is falsy
  */
-export function requireOwnership(
-  sessionUserId: string,
-  resourceUserId: string,
-): void {
+export function requireOwnership(sessionUserId: string, resourceUserId: string): void {
   if (!sessionUserId || !resourceUserId || sessionUserId !== resourceUserId) {
-    throw new Response(null, { status: 403 })
+    throw new Response(null, { status: 403 });
   }
 }

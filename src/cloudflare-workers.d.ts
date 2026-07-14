@@ -10,25 +10,25 @@
 // Extend Cloudflare.Env (flows into `env` from `cloudflare:workers`).
 declare namespace Cloudflare {
   interface Env {
-    GOOGLE_CLIENT_ID: string
-    GOOGLE_CLIENT_SECRET: string
-    GITHUB_CLIENT_ID: string
-    GITHUB_CLIENT_SECRET: string
-    BETTER_AUTH_SECRET: string
-    BETTER_AUTH_BASE_URL: string | undefined
-    BETTER_AUTH_API_KEY: string | undefined
-    OPENROUTER_API_KEY: string
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+    GITHUB_CLIENT_ID: string;
+    GITHUB_CLIENT_SECRET: string;
+    BETTER_AUTH_SECRET: string;
+    BETTER_AUTH_BASE_URL: string | undefined;
+    BETTER_AUTH_API_KEY: string | undefined;
+    OPENROUTER_API_KEY: string;
   }
 }
 
 // Keep global Env in sync (used directly in lib/auth.ts, server/journeys.ts, etc.).
 interface Env {
-  GOOGLE_CLIENT_ID: string
-  GOOGLE_CLIENT_SECRET: string
-  GITHUB_CLIENT_ID: string
-  GITHUB_CLIENT_SECRET: string
-  BETTER_AUTH_SECRET: string
-  BETTER_AUTH_BASE_URL: string | undefined
-  BETTER_AUTH_API_KEY: string | undefined
-  OPENROUTER_API_KEY: string
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_BASE_URL: string | undefined;
+  BETTER_AUTH_API_KEY: string | undefined;
+  OPENROUTER_API_KEY: string;
 }

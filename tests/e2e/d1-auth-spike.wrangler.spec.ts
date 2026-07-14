@@ -1,47 +1,43 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from "@playwright/test";
 
 // AC-PP4: D1 + better-auth spike under workerd runtime.
 // Proves:
 //  (a) better-auth mounts on the createFileRoute server handler (returns non-500)
 //  (b) per-request factory produces no module-scope state leak between requests
 
-const AUTH_SESSION_URL = '/api/auth/get-session'
+const AUTH_SESSION_URL = "/api/auth/get-session";
 
-test('better-auth responds on createFileRoute mount (AC-PP4a)', async ({
-  request,
-}) => {
+test("better-auth responds on createFileRoute mount (AC-PP4a)", async ({ request }) => {
   // An unauthenticated GET to the session endpoint must return 200 (not 500).
   // A 200 with {"session":null,"user":null} proves mount + D1 round-trip succeeded.
-  const response = await request.get(AUTH_SESSION_URL)
+  const response = await request.get(AUTH_SESSION_URL);
 
   // Any 2xx status proves the auth mount works; 5xx means a runtime crash.
-  expect(response.status()).toBeLessThan(500)
-  expect(response.status()).toBeGreaterThanOrEqual(200)
-})
+  expect(response.status()).toBeLessThan(500);
+  expect(response.status()).toBeGreaterThanOrEqual(200);
+});
 
-test('no module-scope client leak across concurrent requests (AC-PP4b)', async ({
-  request,
-}) => {
+test("no module-scope client leak across concurrent requests (AC-PP4b)", async ({ request }) => {
   // Two concurrent requests to the session endpoint (Promise.all — not sequential).
   // Concurrent isolation is a stronger proof than sequential: if better-auth used
   // module-scope state, concurrent requests could race on that shared state and crash.
   const [r1, r2] = await Promise.all([
     request.get(AUTH_SESSION_URL),
     request.get(AUTH_SESSION_URL),
-  ])
+  ]);
 
-  expect(r1.status()).toBeLessThan(500)
-  expect(r2.status()).toBeLessThan(500)
+  expect(r1.status()).toBeLessThan(500);
+  expect(r2.status()).toBeLessThan(500);
 
   // Both responses should be consistent (same shape for unauthenticated session)
-  const body1 = await r1.json().catch(() => null)
-  const body2 = await r2.json().catch(() => null)
+  const body1 = await r1.json().catch(() => null);
+  const body2 = await r2.json().catch(() => null);
 
   // If either response body is a runtime crash error, fail the test.
   if (body1 !== null) {
-    expect(body1).not.toMatchObject({ error: expect.anything() })
+    expect(body1).not.toMatchObject({ error: expect.anything() });
   }
   if (body2 !== null) {
-    expect(body2).not.toMatchObject({ error: expect.anything() })
+    expect(body2).not.toMatchObject({ error: expect.anything() });
   }
-})
+});

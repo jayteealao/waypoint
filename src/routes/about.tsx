@@ -1,15 +1,12 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/about')({
+export const Route = createFileRoute("/about")({
   component: About,
-})
+});
 
 function About() {
   return (
-    <main
-      className="min-h-screen bg-[var(--paper)] px-4 py-8"
-      style={{ color: 'var(--ink)' }}
-    >
+    <main className="min-h-screen bg-[var(--paper)] px-4 py-8" style={{ color: "var(--ink)" }}>
       <div className="page-wrap">
         <nav className="mb-8">
           <Link
@@ -27,11 +24,11 @@ function About() {
             A learning companion built to last.
           </h1>
           <p className="m-0 max-w-3xl text-base leading-8 text-[var(--ink-muted)]">
-            Waypoint pairs adaptive AI with spaced-repetition science so you can
-            make measurable progress on any topic — on any device, at any pace.
+            Waypoint pairs adaptive AI with spaced-repetition science so you can make measurable
+            progress on any topic — on any device, at any pace.
           </p>
         </section>
       </div>
     </main>
-  )
+  );
 }

@@ -19,5 +19,5 @@ export function TypingIndicator() {
       <span className="wp-typing-dot" aria-hidden="true" />
       <span className="wp-typing-dot" aria-hidden="true" />
     </div>
-  )
+  );
 }

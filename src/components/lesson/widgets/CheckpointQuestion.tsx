@@ -12,11 +12,11 @@
  * explanation region announced via aria-live="polite".
  */
 
-import { useState, useEffect } from 'react'
-import type { CheckpointProps } from '#/types/lesson-document'
+import { useState, useEffect } from "react";
+import type { CheckpointProps } from "#/types/lesson-document";
 
 interface CheckpointQuestionProps extends CheckpointProps {
-  id: string
+  id: string;
 }
 
 export function CheckpointQuestion({
@@ -26,41 +26,41 @@ export function CheckpointQuestion({
   correct_index,
   explanation,
 }: CheckpointQuestionProps) {
-  const storageKey = `wp:checkpoint:${id}`
-  const [selected, setSelected] = useState<number | null>(null)
-  const [hydrated, setHydrated] = useState(false)
+  const storageKey = `wp:checkpoint:${id}`;
+  const [selected, setSelected] = useState<number | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   // Restore a prior answer from localStorage on mount; mark component as hydrated
   // so E2E tests can wait for data-hydrated="true" before interacting.
   useEffect(() => {
-    setHydrated(true)
+    setHydrated(true);
     try {
-      const stored = localStorage.getItem(storageKey)
+      const stored = localStorage.getItem(storageKey);
       if (stored !== null) {
-        const parsed = parseInt(stored, 10)
-        if (!Number.isNaN(parsed)) setSelected(parsed)
+        const parsed = parseInt(stored, 10);
+        if (!Number.isNaN(parsed)) setSelected(parsed);
       }
     } catch {
       // localStorage unavailable (SSR guard / private browsing)
     }
-  }, [storageKey])
+  }, [storageKey]);
 
-  const answered = selected !== null
+  const answered = selected !== null;
 
   function choose(index: number) {
-    if (answered) return
-    setSelected(index)
+    if (answered) return;
+    setSelected(index);
     try {
-      localStorage.setItem(storageKey, String(index))
+      localStorage.setItem(storageKey, String(index));
     } catch {
       // localStorage unavailable — answer still shows in session
     }
   }
 
   function handleKeyDown(index: number, e: React.KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      choose(index)
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      choose(index);
     }
   }
 
@@ -73,13 +73,9 @@ export function CheckpointQuestion({
     >
       <p className="wp-checkpoint-question">{question}</p>
 
-      <div
-        className="wp-checkpoint-options"
-        role="radiogroup"
-        aria-label={question}
-      >
+      <div className="wp-checkpoint-options" role="radiogroup" aria-label={question}>
         {options.map((option, i) => {
-          const isSelected = selected === i
+          const isSelected = selected === i;
           return (
             // button with role="radio" — WAI-ARIA permits role overrides on native
             // elements; <button role="radio"> gives us native click/keyboard semantics
@@ -98,12 +94,10 @@ export function CheckpointQuestion({
               onKeyDown={(e) => handleKeyDown(i, e)}
               tabIndex={!answered || isSelected ? 0 : -1}
             >
-              <span aria-hidden="true">
-                {isSelected ? '●' : '○'}
-              </span>
+              <span aria-hidden="true">{isSelected ? "●" : "○"}</span>
               {option}
             </button>
-          )
+          );
         })}
       </div>
 
@@ -114,12 +108,10 @@ export function CheckpointQuestion({
           aria-live="polite"
           data-testid="checkpoint-explanation"
         >
-          <strong>
-            {selected === correct_index ? 'Correct! ' : 'Not quite — '}
-          </strong>
+          <strong>{selected === correct_index ? "Correct! " : "Not quite — "}</strong>
           {explanation}
         </div>
       )}
     </div>
-  )
+  );
 }

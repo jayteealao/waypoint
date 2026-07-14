@@ -1,10 +1,10 @@
 export interface MeterProps {
   /** Progress 0–100 */
-  value:      number
-  label?:     string
+  value: number;
+  label?: string;
   /** Show percentage text alongside label */
-  showValue?: boolean
-  className?: string
+  showValue?: boolean;
+  className?: string;
 }
 
 /**
@@ -12,8 +12,8 @@ export interface MeterProps {
  * Transition is gated on `prefers-reduced-motion: no-preference` in CSS.
  * Never uses red for incomplete — ember fill on a neutral track.
  */
-export function Meter({ value, label, showValue, className = '' }: MeterProps) {
-  const clamped = Math.max(0, Math.min(100, value))
+export function Meter({ value, label, showValue, className = "" }: MeterProps) {
+  const clamped = Math.max(0, Math.min(100, value));
 
   return (
     <div
@@ -31,11 +31,8 @@ export function Meter({ value, label, showValue, className = '' }: MeterProps) {
         </div>
       )}
       <div className="wp-meter-track">
-        <div
-          className="wp-meter-fill"
-          style={{ width: `${clamped}%` }}
-        />
+        <div className="wp-meter-fill" style={{ width: `${clamped}%` }} />
       </div>
     </div>
-  )
+  );
 }

@@ -1,21 +1,21 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { Link, useRouterState } from '@tanstack/react-router'
-import type { Journey } from '#/db/schema'
-import { useShell } from './AppShell'
-import ThemeToggle from '../ThemeToggle'
-import { X, Compass } from 'lucide-react'
+import { useEffect, useRef, useCallback } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import type { Journey } from "#/db/schema";
+import { useShell } from "./AppShell";
+import ThemeToggle from "../ThemeToggle";
+import { X, Compass } from "lucide-react";
 
 const FOCUSABLE = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
-].join(', ')
+].join(", ");
 
 export interface DrawerNavProps {
-  currentJourney?: Journey | null
+  currentJourney?: Journey | null;
 }
 
 /**
@@ -30,89 +30,91 @@ export interface DrawerNavProps {
  * - Backdrop click closes the drawer
  */
 export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
-  const { drawerOpen, closeDrawer, waypoints } = useShell()
-  const drawerRef    = useRef<HTMLDivElement>(null)
-  const backdropRef  = useRef<HTMLDivElement>(null)
-  const previousFocus = useRef<Element | null>(null)
+  const { drawerOpen, closeDrawer, waypoints } = useShell();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const previousFocus = useRef<Element | null>(null);
 
-  const routerState = useRouterState()
-  const pathname    = routerState.location.pathname
+  const routerState = useRouterState();
+  const pathname = routerState.location.pathname;
 
   // On open: store previous focus and move into drawer
   useEffect(() => {
     if (drawerOpen) {
-      previousFocus.current = document.activeElement
-      const first = drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)[0]
-      first?.focus()
+      previousFocus.current = document.activeElement;
+      const first = drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)[0];
+      first?.focus();
     } else {
       // On close: return focus to previous element
-      const prev = previousFocus.current
+      const prev = previousFocus.current;
       if (prev instanceof HTMLElement) {
-        prev.focus()
+        prev.focus();
       }
-      previousFocus.current = null
+      previousFocus.current = null;
     }
-  }, [drawerOpen])
+  }, [drawerOpen]);
 
   // Focus trap + Escape key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!drawerOpen) return
+      if (!drawerOpen) return;
 
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        closeDrawer()
-        return
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeDrawer();
+        return;
       }
 
-      if (e.key !== 'Tab') return
+      if (e.key !== "Tab") return;
 
       const focusable = Array.from(
         drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [],
-      )
-      if (focusable.length === 0) return
+      );
+      if (focusable.length === 0) return;
 
-      const first = focusable[0]
-      const last  = focusable[focusable.length - 1]
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
 
       if (e.shiftKey) {
         if (document.activeElement === first) {
-          e.preventDefault()
-          last.focus()
+          e.preventDefault();
+          last.focus();
         }
       } else {
         if (document.activeElement === last) {
-          e.preventDefault()
-          first.focus()
+          e.preventDefault();
+          first.focus();
         }
       }
     },
     [drawerOpen, closeDrawer],
-  )
+  );
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   // Prevent body scroll when drawer is open
   useEffect(() => {
-    document.body.style.overflow = drawerOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [drawerOpen])
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
 
   // Close on navigation (route change)
   useEffect(() => {
-    closeDrawer()
+    closeDrawer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
+  }, [pathname]);
 
   return (
     <>
       {/* Backdrop */}
       <div
         ref={backdropRef}
-        className={`wp-drawer-backdrop md:hidden ${drawerOpen ? '' : 'hidden'}`}
+        className={`wp-drawer-backdrop md:hidden ${drawerOpen ? "" : "hidden"}`}
         aria-hidden="true"
         onClick={closeDrawer}
       />
@@ -124,7 +126,7 @@ export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
-        className={`wp-drawer md:hidden ${drawerOpen ? '' : 'hidden'}`}
+        className={`wp-drawer md:hidden ${drawerOpen ? "" : "hidden"}`}
         data-testid="drawer-nav"
       >
         {/* Drawer header */}
@@ -147,13 +149,13 @@ export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
         <nav className="flex-1 overflow-y-auto p-3" aria-label="Mobile navigation">
           <Link
             to="/"
-            className={`wp-sidebar-nav-item${pathname === '/' ? ' wp-sidebar-nav-item--active' : ''}`}
+            className={`wp-sidebar-nav-item${pathname === "/" ? " wp-sidebar-nav-item--active" : ""}`}
           >
             Journeys
           </Link>
           <Link
             to="/account"
-            className={`wp-sidebar-nav-item${pathname === '/account' ? ' wp-sidebar-nav-item--active' : ''}`}
+            className={`wp-sidebar-nav-item${pathname === "/account" ? " wp-sidebar-nav-item--active" : ""}`}
           >
             Account
           </Link>
@@ -171,24 +173,18 @@ export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
                 </>
               )}
               {waypoints.length > 0 && (
-                <nav
-                  className="mt-3 space-y-0.5"
-                  aria-label="Journey waypoints"
-                >
+                <nav className="mt-3 space-y-0.5" aria-label="Journey waypoints">
                   {waypoints.map((wp) => (
                     <Link
                       key={wp.id}
                       to={wp.href}
                       data-waypoint={wp.id}
-                      data-completed={wp.completed ? 'true' : 'false'}
-                      className={`wp-sidebar-nav-item${pathname === wp.href ? ' wp-sidebar-nav-item--active' : ''}`}
+                      data-completed={wp.completed ? "true" : "false"}
+                      className={`wp-sidebar-nav-item${pathname === wp.href ? " wp-sidebar-nav-item--active" : ""}`}
                     >
                       <span className="flex-1 truncate">{wp.label}</span>
                       {wp.completed && (
-                        <span
-                          className="ml-1 text-[var(--success)]"
-                          aria-label="Completed"
-                        >
+                        <span className="ml-1 text-[var(--success)]" aria-label="Completed">
                           ✓
                         </span>
                       )}
@@ -206,5 +202,5 @@ export function DrawerNav({ currentJourney = null }: DrawerNavProps) {
         </div>
       </div>
     </>
-  )
+  );
 }

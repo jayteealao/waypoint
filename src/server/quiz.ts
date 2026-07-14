@@ -13,31 +13,29 @@
  * Instrumentation: emits quiz.generated and quiz.graded signals on success.
  */
 
-import { createServerFn, createMiddleware } from '@tanstack/react-start'
-import { getRequest } from '@tanstack/react-start/server'
-import { env } from 'cloudflare:workers'
-import { Rating } from 'ts-fsrs'
-import { requireAuth, requireOwnership } from '#/lib/auth-guard'
-import { callGateway } from '#/lib/ai/gateway'
-import { QUIZ_SYSTEM_PROMPT, GRADING_SYSTEM_PROMPT } from '#/lib/interview/prompts'
+import { createServerFn, createMiddleware } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { env } from "cloudflare:workers";
+import { Rating } from "ts-fsrs";
+import { requireAuth, requireOwnership } from "#/lib/auth-guard";
+import { callGateway } from "#/lib/ai/gateway";
+import { QUIZ_SYSTEM_PROMPT, GRADING_SYSTEM_PROMPT } from "#/lib/interview/prompts";
 import {
   validateQuizQuestion,
   validateGrading,
   buildQuizPrompt,
   buildGradingPrompt,
-} from '#/lib/quiz/schema'
-import { applyGradeToCard, getDueConceptIds } from '#/lib/quiz/fsrs-scheduler'
-import type { QuizQuestion, Waypoint, Concept, Journey } from '#/db/schema'
-import type { GradingOutput } from '#/lib/quiz/schema'
+} from "#/lib/quiz/schema";
+import { applyGradeToCard, getDueConceptIds } from "#/lib/quiz/fsrs-scheduler";
+import type { QuizQuestion, Waypoint, Concept, Journey } from "#/db/schema";
+import type { GradingOutput } from "#/lib/quiz/schema";
 
 // ─── withSession middleware (standard pattern) ────────────────────────────────
 
-const withSession = createMiddleware({ type: 'function' }).server(
-  async ({ next }) => {
-    const sessionData = await requireAuth(env, getRequest())
-    return next({ context: { session: sessionData } })
-  },
-)
+const withSession = createMiddleware({ type: "function" }).server(async ({ next }) => {
+  const sessionData = await requireAuth(env, getRequest());
+  return next({ context: { session: sessionData } });
+});
 
 // ─── generateQuiz ─────────────────────────────────────────────────────────────
 
@@ -58,116 +56,111 @@ const withSession = createMiddleware({ type: 'function' }).server(
  * @throws 404 if the journey or waypoint is not found.
  * @throws 403 if the journey is not owned by the authenticated user.
  */
-export const generateQuiz = createServerFn({ method: 'POST' })
+export const generateQuiz = createServerFn({ method: "POST" })
   .middleware([withSession])
   .validator((input: { waypointId: string; journeyId: string }) => input)
   .handler(async ({ data, context }): Promise<QuizQuestion[]> => {
-    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
-    const { waypointId, journeyId } = data
-    const userId = session.user.id
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+    const { waypointId, journeyId } = data;
+    const userId = session.user.id;
 
     // ── 1. Verify journey ownership ──────────────────────────────────────────
-    const journey = await env.DB.prepare('SELECT * FROM journeys WHERE id = ?')
+    const journey = await env.DB.prepare("SELECT * FROM journeys WHERE id = ?")
       .bind(journeyId)
-      .first<Journey>()
-    if (!journey) throw new Response(null, { status: 404 })
-    requireOwnership(userId, journey.user_id)
+      .first<Journey>();
+    if (!journey) throw new Response(null, { status: 404 });
+    requireOwnership(userId, journey.user_id);
 
     // ── 2. Load waypoint ─────────────────────────────────────────────────────
-    const waypoint = await env.DB.prepare(
-      'SELECT * FROM waypoints WHERE id = ? AND journey_id = ?',
-    )
+    const waypoint = await env.DB.prepare("SELECT * FROM waypoints WHERE id = ? AND journey_id = ?")
       .bind(waypointId, journeyId)
-      .first<Waypoint>()
-    if (!waypoint) throw new Response(null, { status: 404 })
+      .first<Waypoint>();
+    if (!waypoint) throw new Response(null, { status: 404 });
 
     const conceptNames: string[] = (() => {
       try {
-        const parsed = JSON.parse(waypoint.concepts)
-        return Array.isArray(parsed) ? (parsed as string[]) : []
+        const parsed = JSON.parse(waypoint.concepts);
+        return Array.isArray(parsed) ? (parsed as string[]) : [];
       } catch {
-        return []
+        return [];
       }
-    })()
+    })();
 
     // ── 3. Upsert concepts + collect IDs ─────────────────────────────────────
-    const waypointContext = `${waypoint.title}${waypoint.goal ? ` — ${waypoint.goal}` : ''}`
-    const conceptIdByName = new Map<string, string>()
+    const waypointContext = `${waypoint.title}${waypoint.goal ? ` — ${waypoint.goal}` : ""}`;
+    const conceptIdByName = new Map<string, string>();
 
     for (const name of conceptNames) {
       // Upsert: insert only if not already there
       const existing = await env.DB.prepare(
-        'SELECT id FROM concepts WHERE journey_id = ? AND name = ?',
+        "SELECT id FROM concepts WHERE journey_id = ? AND name = ?",
       )
         .bind(journeyId, name)
-        .first<{ id: string }>()
+        .first<{ id: string }>();
 
-      let conceptId: string
+      let conceptId: string;
       if (existing) {
-        conceptId = existing.id
+        conceptId = existing.id;
       } else {
-        conceptId = crypto.randomUUID()
+        conceptId = crypto.randomUUID();
         await env.DB.prepare(
-          'INSERT OR IGNORE INTO concepts (id, journey_id, name, description) VALUES (?, ?, ?, NULL)',
+          "INSERT OR IGNORE INTO concepts (id, journey_id, name, description) VALUES (?, ?, ?, NULL)",
         )
           .bind(conceptId, journeyId, name)
-          .run()
+          .run();
       }
-      conceptIdByName.set(name, conceptId)
+      conceptIdByName.set(name, conceptId);
     }
 
     // ── 4. Initialise FSRS cards for new concepts ─────────────────────────────
-    const serverNow = new Date()
+    const serverNow = new Date();
     for (const [, conceptId] of conceptIdByName) {
-      await applyGradeToCard(env.DB, userId, conceptId, Rating.Manual, serverNow)
+      await applyGradeToCard(env.DB, userId, conceptId, Rating.Manual, serverNow);
     }
 
     // ── 5. Resurfacing: append up to 2 due concepts from earlier waypoints ────
-    const dueConceptIds = await getDueConceptIds(env.DB, userId, journeyId, waypointId, 2)
+    const dueConceptIds = await getDueConceptIds(env.DB, userId, journeyId, waypointId, 2);
 
     // Build the ordered concept list: waypoint concepts first, then resurfaced
     interface ConceptItem {
-      conceptId: string
-      name: string
-      type: 'mc' | 'frq'
+      conceptId: string;
+      name: string;
+      type: "mc" | "frq";
     }
-    const conceptQueue: ConceptItem[] = []
+    const conceptQueue: ConceptItem[] = [];
 
     for (const name of conceptNames) {
-      const conceptId = conceptIdByName.get(name)!
+      const conceptId = conceptIdByName.get(name)!;
       // Alternate between MC and FRQ for variety (first is always MC)
-      const type: 'mc' | 'frq' = conceptQueue.length % 3 === 2 ? 'frq' : 'mc'
-      conceptQueue.push({ conceptId, name, type })
+      const type: "mc" | "frq" = conceptQueue.length % 3 === 2 ? "frq" : "mc";
+      conceptQueue.push({ conceptId, name, type });
     }
 
     for (const conceptId of dueConceptIds) {
-      const conceptRow = await env.DB.prepare('SELECT name FROM concepts WHERE id = ?')
+      const conceptRow = await env.DB.prepare("SELECT name FROM concepts WHERE id = ?")
         .bind(conceptId)
-        .first<{ name: string }>()
+        .first<{ name: string }>();
       if (conceptRow) {
-        conceptQueue.push({ conceptId, name: conceptRow.name, type: 'mc' })
+        conceptQueue.push({ conceptId, name: conceptRow.name, type: "mc" });
       }
     }
 
     // ── 6. Generate questions via gateway ─────────────────────────────────────
-    const systemMsg = { role: 'user' as const, content: QUIZ_SYSTEM_PROMPT }
+    const systemMsg = { role: "user" as const, content: QUIZ_SYSTEM_PROMPT };
 
     interface GeneratedQuestion {
-      conceptId: string
-      name: string
-      type: 'mc' | 'frq'
-      output: ReturnType<typeof validateQuizQuestion>
+      conceptId: string;
+      name: string;
+      type: "mc" | "frq";
+      output: ReturnType<typeof validateQuizQuestion>;
     }
-    const generated: GeneratedQuestion[] = []
+    const generated: GeneratedQuestion[] = [];
 
     for (const item of conceptQueue) {
-      const userContent = buildQuizPrompt(item.name, waypointContext, item.type)
-      const messages = [
-        systemMsg,
-        { role: 'user' as const, content: userContent },
-      ]
+      const userContent = buildQuizPrompt(item.name, waypointContext, item.type);
+      const messages = [systemMsg, { role: "user" as const, content: userContent }];
 
-      let questionOutput: ReturnType<typeof validateQuizQuestion> | null = null
+      let questionOutput: ReturnType<typeof validateQuizQuestion> | null = null;
 
       for (let attempt = 0; attempt <= 1; attempt++) {
         try {
@@ -175,50 +168,55 @@ export const generateQuiz = createServerFn({ method: 'POST' })
             env,
             userId,
             journeyId,
-            type: 'quiz',
+            type: "quiz",
             messages,
-          })
+          });
 
-          const rawText = response.text ?? ''
-          let parsed: unknown
+          const rawText = response.text ?? "";
+          let parsed: unknown;
           try {
-            parsed = JSON.parse(rawText)
+            parsed = JSON.parse(rawText);
           } catch {
             // Not valid JSON — let validateQuizQuestion throw on next attempt
-            if (attempt === 0) continue
-            break
+            if (attempt === 0) continue;
+            break;
           }
-          questionOutput = validateQuizQuestion(parsed)
-          break
+          questionOutput = validateQuizQuestion(parsed);
+          break;
         } catch {
           if (attempt === 1) {
             // Second failure — skip this concept rather than blocking the whole quiz
             console.log(
               JSON.stringify({
-                event: 'quiz.question_generation_failed',
+                event: "quiz.question_generation_failed",
                 user_id: userId,
                 waypoint_id: waypointId,
                 concept: item.name,
                 attempt,
               }),
-            )
+            );
           }
         }
       }
 
       if (questionOutput) {
-        generated.push({ conceptId: item.conceptId, name: item.name, type: item.type, output: questionOutput })
+        generated.push({
+          conceptId: item.conceptId,
+          name: item.name,
+          type: item.type,
+          output: questionOutput,
+        });
       }
     }
 
     // ── 7. Batch-insert quiz_questions rows ───────────────────────────────────
-    const insertedQuestions: QuizQuestion[] = []
+    const insertedQuestions: QuizQuestion[] = [];
 
     for (const gen of generated) {
-      const id = crypto.randomUUID()
-      const optionsJson = JSON.stringify(gen.output.options)
-      const correctAnswer = gen.output.correct_answer ?? null
-      const rubric = gen.output.rubric ?? null
+      const id = crypto.randomUUID();
+      const optionsJson = JSON.stringify(gen.output.options);
+      const correctAnswer = gen.output.correct_answer ?? null;
+      const rubric = gen.output.rubric ?? null;
 
       await env.DB.prepare(
         `INSERT INTO quiz_questions (id, waypoint_id, type, question, options, correct_answer, concept_id, rubric)
@@ -234,7 +232,7 @@ export const generateQuiz = createServerFn({ method: 'POST' })
           gen.conceptId,
           rubric,
         )
-        .run()
+        .run();
 
       insertedQuestions.push({
         id,
@@ -245,21 +243,21 @@ export const generateQuiz = createServerFn({ method: 'POST' })
         correct_answer: correctAnswer,
         concept_id: gen.conceptId,
         rubric,
-      })
+      });
     }
 
     console.log(
       JSON.stringify({
-        event: 'quiz.generated',
+        event: "quiz.generated",
         user_id: userId,
         waypoint_id: waypointId,
         question_count: insertedQuestions.length,
         resurfaced_count: dueConceptIds.length,
       }),
-    )
+    );
 
-    return insertedQuestions
-  })
+    return insertedQuestions;
+  });
 
 // ─── getQuizQuestions ─────────────────────────────────────────────────────────
 
@@ -272,12 +270,12 @@ export const getQuizQuestions = createServerFn()
   .validator((waypointId: string) => waypointId)
   .handler(async ({ data: waypointId }): Promise<QuizQuestion[]> => {
     const result = await env.DB.prepare(
-      'SELECT * FROM quiz_questions WHERE waypoint_id = ? ORDER BY rowid',
+      "SELECT * FROM quiz_questions WHERE waypoint_id = ? ORDER BY rowid",
     )
       .bind(waypointId)
-      .all<QuizQuestion>()
-    return result.results
-  })
+      .all<QuizQuestion>();
+    return result.results;
+  });
 
 // ─── gradeAnswer ──────────────────────────────────────────────────────────────
 
@@ -292,13 +290,13 @@ export const getQuizQuestions = createServerFn()
  *
  * @throws 404 if the question is not found.
  */
-export const gradeAnswer = createServerFn({ method: 'POST' })
+export const gradeAnswer = createServerFn({ method: "POST" })
   .middleware([withSession])
   .validator((input: { questionId: string; response: string; journeyId?: string }) => input)
   .handler(async ({ data, context }): Promise<GradingOutput> => {
-    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
-    const { questionId, response: learnerResponse, journeyId = null } = data
-    const userId = session.user.id
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+    const { questionId, response: learnerResponse, journeyId = null } = data;
+    const userId = session.user.id;
 
     // Read question for context — and verify it belongs to a journey owned by this user
     const question = await env.DB.prepare(
@@ -308,54 +306,58 @@ export const gradeAnswer = createServerFn({ method: 'POST' })
        WHERE q.id = ? AND j.user_id = ?`,
     )
       .bind(questionId, userId)
-      .first<QuizQuestion>()
-    if (!question) throw new Response(null, { status: 404 })
+      .first<QuizQuestion>();
+    if (!question) throw new Response(null, { status: 404 });
 
-    const userContent = buildGradingPrompt(question, learnerResponse)
+    const userContent = buildGradingPrompt(question, learnerResponse);
     const messages = [
-      { role: 'user' as const, content: GRADING_SYSTEM_PROMPT },
-      { role: 'user' as const, content: userContent },
-    ]
+      { role: "user" as const, content: GRADING_SYSTEM_PROMPT },
+      { role: "user" as const, content: userContent },
+    ];
 
     const gatewayResponse = await callGateway({
       env,
       userId,
       journeyId,
-      type: 'quiz',
+      type: "quiz",
       messages,
-    })
+    });
 
-    const rawText = gatewayResponse.text ?? ''
-    let parsed: unknown
+    const rawText = gatewayResponse.text ?? "";
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(rawText)
+      parsed = JSON.parse(rawText);
     } catch {
       // Malformed JSON from grader — return safe fallback (incorrect, gentle)
       console.log(
         JSON.stringify({
-          event: 'quiz.grading_parse_error',
+          event: "quiz.grading_parse_error",
           user_id: userId,
           question_id: questionId,
           raw_text: rawText.slice(0, 200),
         }),
-      )
-      return { verdict: 'incorrect', score: 0, feedback: 'Could not parse the grading response — please try again.' }
+      );
+      return {
+        verdict: "incorrect",
+        score: 0,
+        feedback: "Could not parse the grading response — please try again.",
+      };
     }
 
-    const grading = validateGrading(parsed)
+    const grading = validateGrading(parsed);
 
     console.log(
       JSON.stringify({
-        event: 'quiz.graded',
+        event: "quiz.graded",
         user_id: userId,
         question_id: questionId,
         verdict: grading.verdict,
         score: grading.score,
       }),
-    )
+    );
 
-    return grading
-  })
+    return grading;
+  });
 
 // ─── recordAttemptAndUpdateFsrs ───────────────────────────────────────────────
 
@@ -370,21 +372,21 @@ export const gradeAnswer = createServerFn({ method: 'POST' })
  *   score=1 → Rating.Hard (partially correct, harder scheduling)
  *   score=0 → Rating.Again (incorrect, resets to learning)
  */
-export const recordAttemptAndUpdateFsrs = createServerFn({ method: 'POST' })
+export const recordAttemptAndUpdateFsrs = createServerFn({ method: "POST" })
   .middleware([withSession])
   .validator(
     (input: {
-      questionId: string
-      response: string
-      score: 0 | 1 | 2
-      feedback: string
-      journeyId: string
+      questionId: string;
+      response: string;
+      score: 0 | 1 | 2;
+      feedback: string;
+      journeyId: string;
     }) => input,
   )
   .handler(async ({ data, context }): Promise<void> => {
-    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
-    const { questionId, response: learnerResponse, score, feedback, journeyId } = data
-    const userId = session.user.id
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+    const { questionId, response: learnerResponse, score, feedback, journeyId } = data;
+    const userId = session.user.id;
 
     // ── Authorisation check ──────────────────────────────────────────────────
     // Verify the question belongs to a waypoint in a journey owned by this user
@@ -395,18 +397,18 @@ export const recordAttemptAndUpdateFsrs = createServerFn({ method: 'POST' })
        WHERE q.id = ? AND j.user_id = ? AND j.id = ?`,
     )
       .bind(questionId, userId, journeyId)
-      .first<{ id: string; concept_id: string | null }>()
-    if (!authCheck) throw new Response(null, { status: 403 })
+      .first<{ id: string; concept_id: string | null }>();
+    if (!authCheck) throw new Response(null, { status: 403 });
 
     // ── Insert attempt ───────────────────────────────────────────────────────
-    const attemptId = crypto.randomUUID()
-    const now = Date.now()
+    const attemptId = crypto.randomUUID();
+    const now = Date.now();
     await env.DB.prepare(
       `INSERT INTO quiz_attempts (id, user_id, quiz_question_id, response, score, feedback, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
       .bind(attemptId, userId, questionId, learnerResponse, score, feedback, now)
-      .run()
+      .run();
 
     // ── Update FSRS card ─────────────────────────────────────────────────────
     if (authCheck.concept_id) {
@@ -414,16 +416,10 @@ export const recordAttemptAndUpdateFsrs = createServerFn({ method: 'POST' })
         0: Rating.Again,
         1: Rating.Hard,
         2: Rating.Good,
-      }
-      await applyGradeToCard(
-        env.DB,
-        userId,
-        authCheck.concept_id,
-        ratingMap[score],
-        new Date(now),
-      )
+      };
+      await applyGradeToCard(env.DB, userId, authCheck.concept_id, ratingMap[score], new Date(now));
     }
-  })
+  });
 
 // ─── getWaypointCompletionStatus ──────────────────────────────────────────────
 
@@ -438,14 +434,14 @@ export const getWaypointCompletionStatus = createServerFn()
   .middleware([withSession])
   .validator((journeyId: string) => journeyId)
   .handler(async ({ data: journeyId, context }): Promise<Record<string, boolean>> => {
-    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> }
-    const userId = session.user.id
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+    const userId = session.user.id;
 
     // Verify journey ownership before revealing waypoint IDs
-    const journey = await env.DB.prepare('SELECT id FROM journeys WHERE id = ? AND user_id = ?')
+    const journey = await env.DB.prepare("SELECT id FROM journeys WHERE id = ? AND user_id = ?")
       .bind(journeyId, userId)
-      .first<{ id: string }>()
-    if (!journey) throw new Response(null, { status: 404 })
+      .first<{ id: string }>();
+    if (!journey) throw new Response(null, { status: 404 });
 
     // Get all waypoint IDs in this journey that have quiz questions
     const waypointIds = await env.DB.prepare(
@@ -455,21 +451,21 @@ export const getWaypointCompletionStatus = createServerFn()
        WHERE w.journey_id = ?`,
     )
       .bind(journeyId)
-      .all<{ waypoint_id: string }>()
+      .all<{ waypoint_id: string }>();
 
-    const result: Record<string, boolean> = {}
+    const result: Record<string, boolean> = {};
 
     for (const { waypoint_id: waypointId } of waypointIds.results) {
       // Count total questions for this waypoint
       const totalRow = await env.DB.prepare(
-        'SELECT COUNT(*) as total FROM quiz_questions WHERE waypoint_id = ?',
+        "SELECT COUNT(*) as total FROM quiz_questions WHERE waypoint_id = ?",
       )
         .bind(waypointId)
-        .first<{ total: number }>()
-      const total = totalRow?.total ?? 0
+        .first<{ total: number }>();
+      const total = totalRow?.total ?? 0;
       if (total === 0) {
-        result[waypointId] = false
-        continue
+        result[waypointId] = false;
+        continue;
       }
 
       // Count how many questions have a passing attempt
@@ -480,14 +476,14 @@ export const getWaypointCompletionStatus = createServerFn()
          WHERE q.waypoint_id = ?`,
       )
         .bind(userId, waypointId)
-        .first<{ passed: number }>()
-      const passed = passedRow?.passed ?? 0
+        .first<{ passed: number }>();
+      const passed = passedRow?.passed ?? 0;
 
-      result[waypointId] = passed >= total
+      result[waypointId] = passed >= total;
     }
 
-    return result
-  })
+    return result;
+  });
 
 // Re-export Concept type for convenience
-export type { Concept }
+export type { Concept };

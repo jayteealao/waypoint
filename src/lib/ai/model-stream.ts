@@ -12,47 +12,47 @@
  */
 
 // @ts-ignore — @tanstack/ai is in beta; complex generic constraints bypassed with 'as any'
-import { chat, toolDefinition } from '@tanstack/ai'
-import { createOpenRouterText } from '@tanstack/ai-openrouter'
-import type { TierConfig } from './tiers'
-import type { GenerationType } from './tiers'
+import { chat, toolDefinition } from "@tanstack/ai";
+import { createOpenRouterText } from "@tanstack/ai-openrouter";
+import type { TierConfig } from "./tiers";
+import type { GenerationType } from "./tiers";
 
 /** Raw usage payload shape from OpenRouter via @tanstack/ai stream events. */
 export interface StreamUsage {
-  prompt_tokens: number
-  completion_tokens: number
+  prompt_tokens: number;
+  completion_tokens: number;
   /** OpenRouter includes the 5.5% credit fee; prefer over recomputed cost. */
-  total_cost?: number
+  total_cost?: number;
 }
 
 /** Consumption handlers — the seam that keeps buffered and streaming callers separate. */
 export interface ModelStreamHandlers {
   /** Called for each streamed text chunk (TEXT_MESSAGE_CONTENT / TEXT_DELTA). */
-  onTextDelta?: (delta: string) => void
+  onTextDelta?: (delta: string) => void;
 }
 
 export interface RunModelOptions {
-  env: { OPENROUTER_API_KEY: string }
+  env: { OPENROUTER_API_KEY: string };
   /** Ordered model chain: [primary, ...fallbacks]. */
-  modelChain: string[]
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>
-  tools?: Array<{ name: string; description: string }>
-  reasoningEffort?: 'low' | 'medium' | 'high'
-  handlers?: ModelStreamHandlers
+  modelChain: string[];
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  tools?: Array<{ name: string; description: string }>;
+  reasoningEffort?: "low" | "medium" | "high";
+  handlers?: ModelStreamHandlers;
   /** Called once per retry with (fromModel, toModel, error) — caller supplies the log payload. */
-  onFallback?: (fromModel: string, toModel: string, error: unknown) => void
+  onFallback?: (fromModel: string, toModel: string, error: unknown) => void;
   /**
    * Per-model stream timeout in ms. When set, a stream that exceeds it throws
    * (advancing to the next model). Omitted → no timeout (the buffered gateway path).
    */
-  modelTimeoutMs?: number
+  modelTimeoutMs?: number;
 }
 
 export interface RunModelResult {
   /** The model that produced the successful response. */
-  model: string
-  usage: StreamUsage
-  toolUse?: { name: string; input: Record<string, unknown> }
+  model: string;
+  usage: StreamUsage;
+  toolUse?: { name: string; input: Record<string, unknown> };
 }
 
 /**
@@ -66,70 +66,79 @@ export interface RunModelResult {
  * emits either shape keeps working.
  */
 export async function runModelWithFallback(opts: RunModelOptions): Promise<RunModelResult> {
-  const { env, modelChain, messages, tools, reasoningEffort, handlers, onFallback, modelTimeoutMs } = opts
+  const {
+    env,
+    modelChain,
+    messages,
+    tools,
+    reasoningEffort,
+    handlers,
+    onFallback,
+    modelTimeoutMs,
+  } = opts;
 
   const toolDefs = tools?.map((t) =>
     toolDefinition({
       name: t.name,
       description: t.description,
     }),
-  )
+  );
 
-  let lastError: unknown
+  let lastError: unknown;
 
   for (let i = 0; i < modelChain.length; i++) {
-    const model = modelChain[i]!
+    const model = modelChain[i]!;
     if (i > 0) {
-      onFallback?.(modelChain[i - 1]!, model, lastError)
+      onFallback?.(modelChain[i - 1]!, model, lastError);
     }
 
     try {
       // @ts-expect-error — createOpenRouterText accepts a string model ID; the TS overloads
       // enumerate the known model names but the list is non-exhaustive at runtime.
-      const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY)
+      const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY);
 
       const streamOpts: Record<string, unknown> = {
         adapter: adapter as any,
         messages: messages as any,
-      }
+      };
       if (toolDefs && toolDefs.length > 0) {
-        streamOpts['tools'] = toolDefs as any
+        streamOpts["tools"] = toolDefs as any;
       }
       // Per-tier reasoning effort → OpenRouter `reasoning.effort`. The adapter spreads
       // `modelOptions` into the ChatRequest (see @tanstack/ai-openrouter@0.15.8). Omitted
       // entirely when unset so the model's own default applies (e.g. grok-4.5's `high`).
       if (reasoningEffort) {
-        streamOpts['modelOptions'] = { reasoning: { effort: reasoningEffort } }
+        streamOpts["modelOptions"] = { reasoning: { effort: reasoningEffort } };
       }
 
-      const stream = chat(streamOpts as any)
+      const stream = chat(streamOpts as any);
 
-      let toolName: string | undefined
-      let toolArgsJson = ''
-      const usage: StreamUsage = { prompt_tokens: 0, completion_tokens: 0 }
-      const modelCallStart = Date.now()
+      let toolName: string | undefined;
+      let toolArgsJson = "";
+      const usage: StreamUsage = { prompt_tokens: 0, completion_tokens: 0 };
+      const modelCallStart = Date.now();
 
       for await (const chunk of stream as AsyncIterable<Record<string, unknown>>) {
         if (modelTimeoutMs !== undefined && Date.now() - modelCallStart > modelTimeoutMs) {
-          throw new Error('model-stream: model stream timeout exceeded')
+          throw new Error("model-stream: model stream timeout exceeded");
         }
-        const chunkType = chunk['type'] as string | undefined
-        if (chunkType === 'TOOL_CALL_START') {
-          toolName = chunk['toolCallName'] as string
-          toolArgsJson = ''
-        } else if (chunkType === 'TOOL_CALL_ARGS') {
-          toolArgsJson += (chunk['delta'] as string) ?? ''
-        } else if (chunkType === 'TEXT_MESSAGE_CONTENT' || chunkType === 'TEXT_DELTA') {
-          handlers?.onTextDelta?.((chunk['delta'] as string) ?? '')
-        } else if (chunkType === 'RUN_FINISHED' || chunkType === 'USAGE') {
-          const raw = chunk['usage'] as Record<string, unknown> | undefined
+        const chunkType = chunk["type"] as string | undefined;
+        if (chunkType === "TOOL_CALL_START") {
+          toolName = chunk["toolCallName"] as string;
+          toolArgsJson = "";
+        } else if (chunkType === "TOOL_CALL_ARGS") {
+          toolArgsJson += (chunk["delta"] as string) ?? "";
+        } else if (chunkType === "TEXT_MESSAGE_CONTENT" || chunkType === "TEXT_DELTA") {
+          handlers?.onTextDelta?.((chunk["delta"] as string) ?? "");
+        } else if (chunkType === "RUN_FINISHED" || chunkType === "USAGE") {
+          const raw = chunk["usage"] as Record<string, unknown> | undefined;
           if (raw) {
-            const pt = raw['promptTokens'] ?? raw['prompt_tokens']
-            const ct = raw['completionTokens'] ?? raw['completion_tokens']
-            if (pt !== undefined) usage.prompt_tokens = Number(pt)
-            if (ct !== undefined) usage.completion_tokens = Number(ct)
-            const tc = raw['total_cost'] ?? raw['totalCost'] ?? raw['cost']
-            if (tc !== undefined) usage.total_cost = Number(tc)
+            const pt = raw["promptTokens"] ?? raw["prompt_tokens"];
+            const ct = raw["completionTokens"] ?? raw["completion_tokens"];
+            if (pt !== undefined) usage.prompt_tokens = Number(pt);
+            if (ct !== undefined) usage.completion_tokens = Number(ct);
+            const tc = raw["total_cost"] ?? raw["totalCost"] ?? raw["cost"];
+            if (tc !== undefined) usage.total_cost = Number(tc);
           }
         }
       }
@@ -140,16 +149,16 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
               name: toolName,
               input: toolArgsJson ? (JSON.parse(toolArgsJson) as Record<string, unknown>) : {},
             }
-          : undefined
+          : undefined;
 
-      return { model, usage, toolUse }
+      return { model, usage, toolUse };
     } catch (err) {
-      lastError = err
+      lastError = err;
       // Continue to the next model in the chain (logged via onFallback on next iteration).
     }
   }
 
-  throw lastError ?? new Error('model-stream: all models in the chain failed')
+  throw lastError ?? new Error("model-stream: all models in the chain failed");
 }
 
 /**
@@ -157,24 +166,27 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
  * includes the 5.5% credit fee), else recompute from the tier's pricing table.
  * `recomputed` lets the caller emit its own stale-pricing warning signal.
  */
-export function computeCost(usage: StreamUsage, tier: TierConfig): { costUsd: number; recomputed: boolean } {
+export function computeCost(
+  usage: StreamUsage,
+  tier: TierConfig,
+): { costUsd: number; recomputed: boolean } {
   if (usage.total_cost !== undefined) {
-    return { costUsd: usage.total_cost, recomputed: false }
+    return { costUsd: usage.total_cost, recomputed: false };
   }
   // sdlc-debt: pricing table goes stale on model swaps; prefer total_cost. Upgrade path: rely on OpenRouter total_cost once every tier surfaces it.
-  const { pricingPer1MTokens: p } = tier
-  const costUsd = (usage.prompt_tokens * p.input + usage.completion_tokens * p.output) / 1_000_000
-  return { costUsd, recomputed: true }
+  const { pricingPer1MTokens: p } = tier;
+  const costUsd = (usage.prompt_tokens * p.input + usage.completion_tokens * p.output) / 1_000_000;
+  return { costUsd, recomputed: true };
 }
 
 export interface RecordUsageInput {
-  userId: string
-  journeyId?: string | null
-  model: string
-  type: GenerationType
-  usage: Pick<StreamUsage, 'prompt_tokens' | 'completion_tokens'>
-  costUsd: number
-  durationMs: number
+  userId: string;
+  journeyId?: string | null;
+  model: string;
+  type: GenerationType;
+  usage: Pick<StreamUsage, "prompt_tokens" | "completion_tokens">;
+  costUsd: number;
+  durationMs: number;
 }
 
 /**
@@ -187,9 +199,9 @@ export interface RecordUsageInput {
  * the quota SUM always return 0.
  */
 export async function recordUsage(db: D1Database, input: RecordUsageInput): Promise<void> {
-  const { userId, journeyId = null, model, type, usage, costUsd, durationMs } = input
-  const usageId = crypto.randomUUID()
-  const insertedAt = new Date().toISOString()
+  const { userId, journeyId = null, model, type, usage, costUsd, durationMs } = input;
+  const usageId = crypto.randomUUID();
+  const insertedAt = new Date().toISOString();
   await db
     .prepare(
       `INSERT INTO usage_events (id, user_id, journey_id, model, type, prompt_tokens, completion_tokens, cost_usd, duration_ms, outcome, at)
@@ -207,5 +219,5 @@ export async function recordUsage(db: D1Database, input: RecordUsageInput): Prom
       durationMs,
       insertedAt,
     )
-    .run()
+    .run();
 }

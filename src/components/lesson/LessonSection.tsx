@@ -11,14 +11,14 @@
  * upgrades the innerHTML to the DOMPurify version after hydration.
  */
 
-import { useState, useEffect } from 'react'
-import type React from 'react'
-import type { LessonSection as LessonSectionType } from '#/types/lesson-document'
-import { sanitizeHtml, sanitizerReady, escapeHtml } from '#/lib/lesson/sanitize'
-import { resolveWidget } from '#/lib/lesson/widget-registry'
+import { useState, useEffect } from "react";
+import type React from "react";
+import type { LessonSection as LessonSectionType } from "#/types/lesson-document";
+import { sanitizeHtml, sanitizerReady, escapeHtml } from "#/lib/lesson/sanitize";
+import { resolveWidget } from "#/lib/lesson/widget-registry";
 
 interface LessonSectionProps {
-  section: LessonSectionType
+  section: LessonSectionType;
 }
 
 /**
@@ -32,13 +32,13 @@ interface LessonSectionProps {
  */
 function ProseSection({ id, html }: { id: string; html: string }) {
   // Always start with the SSR-identical escapeHtml value to avoid hydration mismatch
-  const [safeHtml, setSafeHtml] = useState(() => escapeHtml(html))
+  const [safeHtml, setSafeHtml] = useState(() => escapeHtml(html));
 
   useEffect(() => {
     sanitizerReady.then(() => {
-      setSafeHtml(sanitizeHtml(html))
-    })
-  }, [html])
+      setSafeHtml(sanitizeHtml(html));
+    });
+  }, [html]);
 
   return (
     <div
@@ -48,54 +48,43 @@ function ProseSection({ id, html }: { id: string; html: string }) {
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
-  )
+  );
 }
 
 export function LessonSection({ section }: LessonSectionProps) {
-  const { id } = section
+  const { id } = section;
 
   switch (section.type) {
-    case 'heading':
+    case "heading":
       return section.level === 2 ? (
-        <h2
-          className="wp-lesson-heading-2"
-          data-testid={`lesson-section-${id}`}
-        >
+        <h2 className="wp-lesson-heading-2" data-testid={`lesson-section-${id}`}>
           {section.text}
         </h2>
       ) : (
-        <h3
-          className="wp-lesson-heading-3"
-          data-testid={`lesson-section-${id}`}
-        >
+        <h3 className="wp-lesson-heading-3" data-testid={`lesson-section-${id}`}>
           {section.text}
         </h3>
-      )
+      );
 
-    case 'prose':
-      return <ProseSection id={id} html={section.html} />
+    case "prose":
+      return <ProseSection id={id} html={section.html} />;
 
-    case 'code':
+    case "code":
       return (
-        <div
-          className="wp-lesson-code"
-          data-testid={`lesson-section-${id}`}
-        >
+        <div className="wp-lesson-code" data-testid={`lesson-section-${id}`}>
           <pre>
             <code className={`language-${section.language}`}>{section.code}</code>
           </pre>
         </div>
-      )
+      );
 
-    case 'citation':
+    case "citation":
       return (
-        <blockquote
-          className="wp-lesson-citation"
-          data-testid={`lesson-section-${id}`}
-        >
+        <blockquote className="wp-lesson-citation" data-testid={`lesson-section-${id}`}>
           <p>{section.quote}</p>
           <p className="wp-lesson-citation-source">
-            — {section.url ? (
+            —{" "}
+            {section.url ? (
               <a href={section.url} target="_blank" rel="noopener noreferrer">
                 {section.source}
               </a>
@@ -104,10 +93,10 @@ export function LessonSection({ section }: LessonSectionProps) {
             )}
           </p>
         </blockquote>
-      )
+      );
 
-    case 'widget': {
-      const resolved = resolveWidget(section.widget_type, section.props)
+    case "widget": {
+      const resolved = resolveWidget(section.widget_type, section.props);
       if (!resolved) {
         return (
           <div
@@ -118,22 +107,22 @@ export function LessonSection({ section }: LessonSectionProps) {
           >
             Content unavailable
           </div>
-        )
+        );
       }
       // The registry's validate() already confirmed the props are correct for
       // this component type. We cast here because TypeScript cannot carry the
       // generic P across the resolveWidget() call boundary.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const WidgetComponent = resolved.component as React.ComponentType<any>
+      const WidgetComponent = resolved.component as React.ComponentType<any>;
       return (
         <div data-testid={`lesson-section-${id}`}>
           <WidgetComponent {...(resolved.validProps as Record<string, unknown>)} id={id} />
         </div>
-      )
+      );
     }
 
     default:
       // Exhaustiveness guard — TypeScript narrowing ensures this is unreachable
-      return null
+      return null;
   }
 }

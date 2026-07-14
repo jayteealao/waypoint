@@ -23,94 +23,99 @@
  *   data-testid="adapt-decline"          — decline button
  */
 
-import { useState } from 'react'
-import { createFileRoute, useRouter, Link } from '@tanstack/react-router'
-import { getQuizQuestions, generateQuiz } from '#/server/quiz'
-import { proposeAdaptation, respondToProposal } from '#/server/adaptation'
-import { QuizView } from '#/components/quiz/QuizView'
-import { AdaptationCard } from '#/components/progress/AdaptationCard'
-import type { QuizQuestion, Adaptation } from '#/db/schema'
+import { useState } from "react";
+import { createFileRoute, useRouter, Link } from "@tanstack/react-router";
+import { getQuizQuestions, generateQuiz } from "#/server/quiz";
+import { proposeAdaptation, respondToProposal } from "#/server/adaptation";
+import { QuizView } from "#/components/quiz/QuizView";
+import { AdaptationCard } from "#/components/progress/AdaptationCard";
+import type { QuizQuestion, Adaptation } from "#/db/schema";
 
 export const Route = createFileRoute(
-  '/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz',
+  "/_authenticated/journey/$journeyId/waypoint/$waypointId/quiz",
 )({
-  head: () => ({ meta: [{ title: 'Waypoint — Quiz' }] }),
+  head: () => ({ meta: [{ title: "Waypoint — Quiz" }] }),
   loader: async ({ params }): Promise<{ questions: QuizQuestion[] }> => {
-    const { journeyId, waypointId } = params
+    const { journeyId, waypointId } = params;
 
-    let questions = await getQuizQuestions({ data: waypointId })
+    let questions = await getQuizQuestions({ data: waypointId });
 
     if (questions.length === 0) {
       // First visit — generate and persist questions for this waypoint
-      questions = await generateQuiz({ data: { waypointId, journeyId } })
+      questions = await generateQuiz({ data: { waypointId, journeyId } });
     }
 
-    return { questions }
+    return { questions };
   },
   component: QuizPage,
-})
+});
 
 function QuizPage() {
-  const { journeyId, waypointId } = Route.useParams()
-  const { questions }              = Route.useLoaderData()
-  const router                     = useRouter()
+  const { journeyId, waypointId } = Route.useParams();
+  const { questions } = Route.useLoaderData();
+  const router = useRouter();
 
-  const [quizDone,   setQuizDone]   = useState(false)
-  const [adaptation, setAdaptation] = useState<Adaptation | null>(null)
-  const [adapting,   setAdapting]   = useState(false)   // loading flag while calling server
+  const [quizDone, setQuizDone] = useState(false);
+  const [adaptation, setAdaptation] = useState<Adaptation | null>(null);
+  const [adapting, setAdapting] = useState(false); // loading flag while calling server
 
   async function handleComplete(score: number, total: number) {
-    setQuizDone(true)
+    setQuizDone(true);
     // Call proposeAdaptation — returns null if score ≥ 50% or pending proposal exists
     try {
       const proposal = await proposeAdaptation({
         data: { journeyId, waypointId, quizScore: score, totalQuestions: total },
-      })
-      setAdaptation(proposal)
+      });
+      setAdaptation(proposal);
     } catch {
       // Non-fatal: adaptation check failed; proceed without proposal
-      setAdaptation(null)
+      setAdaptation(null);
     }
   }
 
   async function handleAccept() {
-    if (!adaptation) return
-    setAdapting(true)
+    if (!adaptation) return;
+    setAdapting(true);
     try {
-      await respondToProposal({ data: { adaptationId: adaptation.id, response: 'accepted' } })
+      await respondToProposal({ data: { adaptationId: adaptation.id, response: "accepted" } });
     } catch {
       // Best-effort: acceptance recorded if possible
     }
-    void router.navigate({ to: '/journey/$journeyId/waypoint/$waypointId', params: { journeyId, waypointId } })
+    void router.navigate({
+      to: "/journey/$journeyId/waypoint/$waypointId",
+      params: { journeyId, waypointId },
+    });
   }
 
   async function handleDecline() {
-    if (!adaptation) return
-    setAdapting(true)
+    if (!adaptation) return;
+    setAdapting(true);
     try {
-      await respondToProposal({ data: { adaptationId: adaptation.id, response: 'declined' } })
+      await respondToProposal({ data: { adaptationId: adaptation.id, response: "declined" } });
     } catch {
       // Best-effort: decline recorded if possible
     }
-    void router.navigate({ to: '/journey/$journeyId/waypoint/$waypointId', params: { journeyId, waypointId } })
+    void router.navigate({
+      to: "/journey/$journeyId/waypoint/$waypointId",
+      params: { journeyId, waypointId },
+    });
   }
 
   return (
-    <div data-testid="quiz-page" style={{ padding: '1.5rem 1rem' }}>
+    <div data-testid="quiz-page" style={{ padding: "1.5rem 1rem" }}>
       <QuizView
         mode="journey"
         questions={questions}
         journeyId={journeyId}
         waypointId={waypointId}
-        onComplete={(score, total) => { void handleComplete(score, total) }}
+        onComplete={(score, total) => {
+          void handleComplete(score, total);
+        }}
       />
 
       {/* Overlay shown after quiz completion */}
       {quizDone && (
-        <div
-          className="wp-quiz-completion-overlay"
-          data-testid="quiz-completion-overlay"
-        >
+        <div className="wp-quiz-completion-overlay" data-testid="quiz-completion-overlay">
           <AdaptationCard
             adaptation={adaptation}
             onAccept={handleAccept}
@@ -120,7 +125,7 @@ function QuizPage() {
 
           {/* Next lesson CTA — always visible regardless of proposal */}
           {!adaptation && (
-            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
               <Link
                 to="/journey/$journeyId/waypoint/$waypointId"
                 params={{ journeyId, waypointId }}
@@ -133,5 +138,5 @@ function QuizPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

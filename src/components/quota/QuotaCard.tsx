@@ -8,12 +8,12 @@
  * features (tutor-interview, roadmap-lesson-generation, quiz-fsrs) by those slices.
  */
 
-import { Card } from '#/components/ui/Card'
-import { Meter } from '#/components/ui/Meter'
-import type { QuotaStatus } from '#/lib/ai/quota'
+import { Card } from "#/components/ui/Card";
+import { Meter } from "#/components/ui/Meter";
+import type { QuotaStatus } from "#/lib/ai/quota";
 
 export interface QuotaCardProps {
-  status: QuotaStatus
+  status: QuotaStatus;
 }
 
 /**
@@ -22,18 +22,18 @@ export interface QuotaCardProps {
  */
 function formatResetTime(date: Date): string {
   return date.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
-  })
+  });
 }
 
 export default function QuotaCard({ status }: QuotaCardProps) {
-  const { used, limit, resetAt } = status
-  const usedPct = limit > 0 ? Math.min(100, (used / limit) * 100) : 100
-  const usedFormatted = `$${used.toFixed(4)}`
-  const limitFormatted = `$${limit.toFixed(2)}`
-  const resetTimeStr = formatResetTime(resetAt)
+  const { used, limit, resetAt } = status;
+  const usedPct = limit > 0 ? Math.min(100, (used / limit) * 100) : 100;
+  const usedFormatted = `$${used.toFixed(4)}`;
+  const limitFormatted = `$${limit.toFixed(2)}`;
+  const resetTimeStr = formatResetTime(resetAt);
 
   return (
     // Outer div carries data-testid; Card does not spread unknown props.
@@ -42,8 +42,7 @@ export default function QuotaCard({ status }: QuotaCardProps) {
         <div className="quota-card__inner">
           <h2 className="quota-card__heading">Daily generation limit reached</h2>
           <p className="quota-card__body">
-            You&rsquo;ve used{' '}
-            <strong>{usedFormatted}</strong> of your{' '}
+            You&rsquo;ve used <strong>{usedFormatted}</strong> of your{" "}
             <strong>{limitFormatted}</strong> daily allowance.
           </p>
           <Meter
@@ -57,5 +56,5 @@ export default function QuotaCard({ status }: QuotaCardProps) {
         </div>
       </Card>
     </div>
-  )
+  );
 }

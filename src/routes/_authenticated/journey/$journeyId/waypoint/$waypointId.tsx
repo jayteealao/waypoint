@@ -14,14 +14,12 @@
  * Recorded as plan deviation PD-1.
  */
 
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute(
-  '/_authenticated/journey/$journeyId/waypoint/$waypointId',
-)({
+export const Route = createFileRoute("/_authenticated/journey/$journeyId/waypoint/$waypointId")({
   component: WaypointLayout,
-})
+});
 
 function WaypointLayout() {
-  return <Outlet />
+  return <Outlet />;
 }

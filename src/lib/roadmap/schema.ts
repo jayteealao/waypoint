@@ -9,9 +9,9 @@
  * malformed output before throwing GenerationError.
  */
 
-import type { CapturedRecord } from '#/types/interview'
-import type { SourceContent } from '#/lib/source-fetch'
-import { buildSourceMaterialBlock } from '#/lib/interview/prompts'
+import type { CapturedRecord } from "#/types/interview";
+import type { SourceContent } from "#/lib/source-fetch";
+import { buildSourceMaterialBlock } from "#/lib/interview/prompts";
 
 // ── Output type ────────────────────────────────────────────────────────────────
 
@@ -21,11 +21,11 @@ import { buildSourceMaterialBlock } from '#/lib/interview/prompts'
  */
 export interface WaypointOutput {
   /** Short, action-oriented milestone title (≤ 60 chars). */
-  title: string
+  title: string;
   /** What the learner can DO after completing this waypoint. */
-  goal: string
+  goal: string;
   /** 2–5 concept names taught in this waypoint; no duplicates. */
-  concepts: string[]
+  concepts: string[];
 }
 
 // ── Validation ─────────────────────────────────────────────────────────────────
@@ -35,8 +35,8 @@ export interface WaypointOutput {
  */
 export class GenerationError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = 'GenerationError'
+    super(message);
+    this.name = "GenerationError";
   }
 }
 
@@ -52,31 +52,31 @@ export class GenerationError extends Error {
  */
 export function validateRoadmap(value: unknown): WaypointOutput[] {
   if (!Array.isArray(value)) {
-    throw new GenerationError('Roadmap response is not a JSON array')
+    throw new GenerationError("Roadmap response is not a JSON array");
   }
   if (value.length < 1 || value.length > 20) {
-    throw new GenerationError(`Roadmap must have 1–20 waypoints; got ${value.length}`)
+    throw new GenerationError(`Roadmap must have 1–20 waypoints; got ${value.length}`);
   }
   for (let i = 0; i < value.length; i++) {
-    const wp = value[i]
-    if (typeof wp !== 'object' || wp === null) {
-      throw new GenerationError(`Waypoint at index ${i} is not an object`)
+    const wp = value[i];
+    if (typeof wp !== "object" || wp === null) {
+      throw new GenerationError(`Waypoint at index ${i} is not an object`);
     }
-    const w = wp as Record<string, unknown>
-    if (typeof w.title !== 'string' || !w.title.trim()) {
-      throw new GenerationError(`Waypoint at index ${i} missing or empty title`)
+    const w = wp as Record<string, unknown>;
+    if (typeof w.title !== "string" || !w.title.trim()) {
+      throw new GenerationError(`Waypoint at index ${i} missing or empty title`);
     }
-    if (typeof w.goal !== 'string' || !w.goal.trim()) {
-      throw new GenerationError(`Waypoint at index ${i} missing or empty goal`)
+    if (typeof w.goal !== "string" || !w.goal.trim()) {
+      throw new GenerationError(`Waypoint at index ${i} missing or empty goal`);
     }
     if (!Array.isArray(w.concepts) || (w.concepts as unknown[]).length < 1) {
-      throw new GenerationError(`Waypoint at index ${i} must have at least one concept`)
+      throw new GenerationError(`Waypoint at index ${i} must have at least one concept`);
     }
-    if (!(w.concepts as unknown[]).every((c) => typeof c === 'string')) {
-      throw new GenerationError(`Waypoint at index ${i} concepts must all be strings`)
+    if (!(w.concepts as unknown[]).every((c) => typeof c === "string")) {
+      throw new GenerationError(`Waypoint at index ${i} concepts must all be strings`);
     }
   }
-  return value as WaypointOutput[]
+  return value as WaypointOutput[];
 }
 
 // ── Prompt assembly ────────────────────────────────────────────────────────────
@@ -89,39 +89,44 @@ export function validateRoadmap(value: unknown): WaypointOutput[] {
  * @param sourceContent - Optional array of fetched source content to inject as grounding.
  *   When provided and non-empty, a ## Source material block is appended (source-grounding slice).
  */
-export function buildRoadmapPrompt(capture: CapturedRecord, sourceContent?: SourceContent[]): string {
-  const parts: string[] = ['## Learner profile']
+export function buildRoadmapPrompt(
+  capture: CapturedRecord,
+  sourceContent?: SourceContent[],
+): string {
+  const parts: string[] = ["## Learner profile"];
 
   if (capture.mission) {
-    parts.push(`**Mission:** ${capture.mission}`)
+    parts.push(`**Mission:** ${capture.mission}`);
   } else {
-    parts.push('**Mission:** Not captured — use the stated goal as the mission.')
+    parts.push("**Mission:** Not captured — use the stated goal as the mission.");
   }
 
   if (capture.scope) {
-    parts.push(`**Scope / experience level:** ${capture.scope}`)
+    parts.push(`**Scope / experience level:** ${capture.scope}`);
   }
 
   if (capture.priorKnowledge) {
-    parts.push(`**Prior knowledge:** ${capture.priorKnowledge}`)
+    parts.push(`**Prior knowledge:** ${capture.priorKnowledge}`);
   }
 
   if (capture.sourceUrls.length > 0) {
-    parts.push(`**Preferred sources:** ${capture.sourceUrls.join(', ')}`)
+    parts.push(`**Preferred sources:** ${capture.sourceUrls.join(", ")}`);
   }
 
   if (capture.bestEffort) {
-    parts.push('**Note:** The learner declined detailed probing; generate the best roadmap from the available information.')
+    parts.push(
+      "**Note:** The learner declined detailed probing; generate the best roadmap from the available information.",
+    );
   }
 
-  parts.push('\nGenerate the learning roadmap now as a JSON array.')
+  parts.push("\nGenerate the learning roadmap now as a JSON array.");
 
-  const base = parts.join('\n')
+  const base = parts.join("\n");
 
   // Append fetched source content block when available (source-grounding slice)
   if (sourceContent && sourceContent.length > 0) {
-    return base + buildSourceMaterialBlock(sourceContent)
+    return base + buildSourceMaterialBlock(sourceContent);
   }
 
-  return base
+  return base;
 }
