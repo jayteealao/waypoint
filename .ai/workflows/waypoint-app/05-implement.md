@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T21:42:17Z"
-slices-implemented: 22
-slices-total: 22
-metric-total-files-changed: 408
-metric-total-lines-added: 39024
-metric-total-lines-removed: 9067
+updated-at: "2026-07-14T23:08:05Z"
+slices-implemented: 23
+slices-total: 23
+metric-total-files-changed: 411
+metric-total-lines-added: 39103
+metric-total-lines-removed: 9071
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app fsrs-scheduler-test-determinism"
+next-invocation: "/wf verify waypoint-app tutor-interview-ac-ti1-fix"
 ---
 
 # Implement Index
@@ -206,7 +206,7 @@ next-invocation: "/wf verify waypoint-app fsrs-scheduler-test-determinism"
 
 - **Tutor-interview: `STAGE_CHIPS` is the authoritative chip set** — exported from `src/types/interview.ts`. If the interview stage sequence changes, update `STAGE_CHIPS` and the `InterviewStateMachine.transition()` accordingly. Do not hardcode chip labels in route or component files.
 
-- **Tutor-interview: `?mock=1` on the interview route** — `validateSearch` in `interview.tsx` exposes `mock: boolean`. The `sendTurn` server function honors `mock: true` only when `NODE_ENV !== 'production'`. E2E tests use this seam; never use it in production configurations.
+- **Tutor-interview: `?mock=1` on the interview route** — `validateSearch` in `interview.tsx` exposes `mock: boolean` (now via the pure `parseMockFlag` helper in `src/lib/interview/mock-flag.ts`). The `sendTurn` server function honors `mock: true` only when `NODE_ENV !== 'production'`. E2E tests use this seam; never use it in production configurations. **CORRECTED by tutor-interview-ac-ti1-fix:** this seam was silently broken until round-6 — the validator accepted only `1`/`"1"`, but router-core canonicalizes `?mock=1` to the boolean `?mock=true` and re-validates it, so the flag was stripped by the canonicalizing redirect and every interview turn hit the live model. Any search-param validator that maps its input to a different serialized form (number→boolean, string→enum) MUST accept its own canonical output back, or the param is dropped on the round-trip. `parseMockFlag` now accepts `1`/`"1"`/`true`/`"true"`; unit-pinned in `tests/smoke/interview-mock-flag.test.ts`.
 
 - **Tutor-interview: `interview_records.turns` is JSON** — serialized `InterviewTurn[]`. Slices reading this column must call `JSON.parse(record.turns)` with a try/catch. `parseTurns()` in `src/server/interview.ts` provides the safe parser; import and reuse it if needed.
 
@@ -385,7 +385,18 @@ next-invocation: "/wf verify waypoint-app fsrs-scheduler-test-determinism"
 
 ## Recommended Next Stage
 
-- **(current) Option A (default):** `/wf verify waypoint-app fsrs-scheduler-test-determinism` — FSRS
+- **(current) Option A (default):** `/wf verify waypoint-app tutor-interview-ac-ti1-fix` — AC-TI1
+  chip-visibility fix (round-6 test/app slice). Diagnose-first proved the fault was an app-side
+  search-param defect, not the plan's expected hydration gate: the interview route's `validateSearch`
+  was not round-trip idempotent, so `?mock=1` was stripped by the router's canonicalizing redirect and
+  every interview turn silently called the live model (the source of the flaky 5 s-timeout failure).
+  Fix delegates to a round-trip-stable `parseMockFlag`. In-implement proof: `tutor-interview.spec.ts`
+  4/4 green, AC-TI1 3/3 under `--repeat-each`, curl confirms `?mock=1 → ?mock=true` retention, new
+  `parseMockFlag` unit suite 4/4, full Vitest 233-pass, typecheck + lint clean. verify should
+  independently re-drive the spec and confirm mock mode engages with zero live-model calls. Consider
+  `/compact` first — diagnostic context is noise for verification.
+
+- **(prior) Option A (default):** `/wf verify waypoint-app fsrs-scheduler-test-determinism` — FSRS
   scheduler test-determinism confirm-and-reconcile (round-5 test slice). No code change: the fixture
   fix landed on `4274839`. AC-FSD1 (11/11, no `Invalid delta_t`, date-independent) and AC-FSD2
   (other 10 tests green) proven by a real `pnpm test tests/smoke/fsrs-scheduler.test.ts` run;

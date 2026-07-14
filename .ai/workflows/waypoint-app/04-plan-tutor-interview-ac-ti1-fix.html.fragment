@@ -1,0 +1,143 @@
+<section class="fragment-plan" data-artifact="plan" data-slice="tutor-interview-ac-ti1-fix" data-rev="0">
+  <style>
+    .fragment-plan .pl-files-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-bottom: 1.5rem;
+    }
+    .fragment-plan .pl-files-table th {
+      text-align: left;
+      padding: 0.4rem 0.6rem;
+      border-bottom: 2px solid var(--border, #e0e0e0);
+      color: var(--ink-muted, #666);
+      font-weight: 600;
+    }
+    .fragment-plan .pl-files-table td {
+      padding: 0.35rem 0.6rem;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      vertical-align: top;
+    }
+    .fragment-plan .pl-files-table tr:last-child td { border-bottom: none; }
+    .fragment-plan .pl-badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .fragment-plan .pl-badge-mod { background: #fef9c3; color: #713f12; }
+    .fragment-plan .pl-badge-ext { background: #e0e7ff; color: #3730a3; }
+    .fragment-plan .pl-path { font-family: ui-monospace, monospace; font-size: 0.78rem; }
+    .fragment-plan .pl-change-row { cursor: pointer; }
+    .fragment-plan .pl-change-row:hover td { background: var(--surface, #f6f6f6); }
+    .fragment-plan .pl-change-detail {
+      display: none;
+      background: var(--surface, #fafafa);
+      padding: 0.5rem 0.8rem;
+      border-radius: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--ink-muted, #555);
+      white-space: pre-wrap;
+      margin-top: 0.3rem;
+    }
+    .fragment-plan .pl-change-detail.open { display: block; }
+    .fragment-plan .pl-delta-add { color: #166534; font-weight: 600; }
+    .fragment-plan .pl-delta-rem { color: #991b1b; font-weight: 600; }
+    .fragment-plan .pl-callouts { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.25rem; }
+    .fragment-plan .pl-callout {
+      border-left: 4px solid var(--border, #ccc);
+      padding: 0.55rem 0.85rem;
+      border-radius: 0 0.3rem 0.3rem 0;
+      background: var(--surface, #fafafa);
+      font-size: 0.83rem;
+    }
+    .fragment-plan .pl-callout-high { border-left-color: #dc2626; }
+    .fragment-plan .pl-callout-med  { border-left-color: #d97706; }
+    .fragment-plan .pl-callout-title { font-weight: 700; margin-bottom: 0.2rem; }
+    .fragment-plan .pl-callout-sev {
+      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+      font-weight: 700; margin-left: 0.4rem; opacity: 0.7;
+    }
+    .fragment-plan .pl-hint { font-size: 0.74rem; color: var(--ink-muted, #888); margin-bottom: 0.75rem; }
+    @media (prefers-color-scheme: dark) {
+      .fragment-plan .pl-badge-mod { background: #422006; color: #fde68a; }
+      .fragment-plan .pl-badge-ext { background: #1e1b4b; color: #c7d2fe; }
+    }
+  </style>
+
+  <p class="pl-hint">2 files expected to change (test-only, likely case); 3 read-only context files touched only if diagnose-first redirects. Click a row for the planned change.</p>
+
+  <table class="pl-files-table">
+    <thead>
+      <tr><th>File</th><th>Change</th><th>Δ</th></tr>
+    </thead>
+    <tbody>
+      <tr class="pl-change-row" data-detail="d0">
+        <td class="pl-path">tests/e2e/tutor-interview.spec.ts</td>
+        <td><span class="pl-badge pl-badge-mod">modified</span></td>
+        <td><span class="pl-delta-add">+8</span> / <span class="pl-delta-rem">-4</span></td>
+      </tr>
+      <tr><td colspan="3"><div class="pl-change-detail" id="d0">Primary suspected fix site. After diagnose-first confirms the stuck stage, apply the minimal test-only change so scope→prior_knowledge is observed reliably: Playwright-native auto-wait on the re-rendered chip bar / chip enabled-state over the fixed 5s timeout, and stop resizing the viewport to 768px immediately before actionable chip clicks (mirror the 375px reset-to-1280 pattern at lines 229-237).</div></td></tr>
+
+      <tr class="pl-change-row" data-detail="d1">
+        <td class="pl-path">tests/smoke/interview-state-machine.test.ts</td>
+        <td><span class="pl-badge pl-badge-mod">modified</span></td>
+        <td><span class="pl-delta-add">+6</span> / <span class="pl-delta-rem">-0</span></td>
+      </tr>
+      <tr><td colspan="3"><div class="pl-change-detail" id="d1">Conditional (AC-TI1F3). Add a focused transition/capture case ONLY if diagnosis proves a real state-machine/source regression. Already covers scope→prior_knowledge→sources (lines 128-130). Untouched on the test-only branch.</div></td></tr>
+
+      <tr class="pl-change-row" data-detail="d2">
+        <td class="pl-path">src/components/interview/InterviewView.tsx</td>
+        <td><span class="pl-badge pl-badge-ext">context</span></td>
+        <td>—</td>
+      </tr>
+      <tr><td colspan="3"><div class="pl-change-detail" id="d2">Read-only unless diagnose-first names a real client submit/chip-render defect (candidate 1, app-side). submitUserContent → setChips(result.chips) is logically correct; if the first post-mount chip click no-ops, fix the hydration seam here — do not loosen the assertion.</div></td></tr>
+
+      <tr class="pl-change-row" data-detail="d3">
+        <td class="pl-path">src/lib/interview/state-machine.ts</td>
+        <td><span class="pl-badge pl-badge-ext">context</span></td>
+        <td>—</td>
+      </tr>
+      <tr><td colspan="3"><div class="pl-change-detail" id="d3">Read-only context. scope→prior_knowledge is an unconditional linear transition (lines 93-95) and unit-proven; touched only if diagnose-first proves a genuine regression (candidate 3).</div></td></tr>
+
+      <tr class="pl-change-row" data-detail="d4">
+        <td class="pl-path">src/server/interview.ts</td>
+        <td><span class="pl-badge pl-badge-ext">context</span></td>
+        <td>—</td>
+      </tr>
+      <tr><td colspan="3"><div class="pl-change-detail" id="d4">Read-only context. MOCK_QUESTIONS is fully populated for every stage (lines 45-53) and mock mode returns STAGE_CHIPS[nextStage]; candidate 2 excluded unless the snapshot contradicts.</div></td></tr>
+    </tbody>
+  </table>
+
+  <div class="pl-callouts">
+    <div class="pl-callout pl-callout-high">
+      <div class="pl-callout-title">Misdiagnosis into the wrong layer<span class="pl-callout-sev">high</span></div>
+      <div>Three candidates produce the same symptom; two would be masked by a test-side timing patch. Diagnose-first is a hard gate — capture the runtime snapshot at line 267 before any edit. State-machine unit coverage and the fully-populated mock table corroborate, but the snapshot is authoritative.</div>
+    </div>
+    <div class="pl-callout pl-callout-med">
+      <div class="pl-callout-title">Test-only gate hiding a real client hydration defect<span class="pl-callout-sev">med</span></div>
+      <div>The mount-time gate (line 222) covers only the first interaction. If a mid-flow chip click genuinely no-ops, fix InterviewView — extend the hydration seam, don't loosen the assertion. Study-sources read of react-dom 19 + Playwright actionability precedes the mechanism choice (RIM-E3).</div>
+    </div>
+    <div class="pl-callout pl-callout-med">
+      <div class="pl-callout-title">Real source fix must not ship without unit proof<span class="pl-callout-sev">med</span></div>
+      <div>AC-TI1F3 requires a real app/state-machine fix to be unit-covered, not just e2e-green. Conditional case in interview-state-machine.test.ts is wired for the source-fix branch only.</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.currentScript.closest('.fragment-plan');
+      root.querySelectorAll('.pl-change-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          var el = root.querySelector('#' + row.getAttribute('data-detail'));
+          if (el) el.classList.toggle('open');
+        });
+      });
+      window.dispatchEvent(new CustomEvent('sdlc:fragment-ready', {
+        detail: { name: 'plan', artifact: 'plan', counts: { files: 5, modules: 4, risks: 3 } }
+      }));
+    })();
+  </script>
+</section>

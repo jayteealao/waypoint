@@ -16,14 +16,17 @@ import type { InterviewStage, InterviewTurn, TurnResponse } from "#/types/interv
 import { STAGE_CHIPS } from "#/types/interview";
 import { getInterviewState, sendTurn, completeInterview } from "#/server/interview";
 import { generateRoadmap } from "#/server/roadmap";
+import { parseMockFlag } from "#/lib/interview/mock-flag";
 import { InterviewView } from "#/components/interview/InterviewView";
 import { RoadmapPendingCard } from "#/components/generation/RoadmapPendingCard";
 
-/** Validate search params — `mock=1` enables scripted test responses. */
+/**
+ * Validate search params — `mock=1` enables scripted test responses.
+ * Delegates to the round-trip-idempotent `parseMockFlag` (see that module for
+ * why the boolean/`"true"` canonical forms must be accepted, not just `1`).
+ */
 function validateSearch(raw: Record<string, unknown>): { mock?: boolean } {
-  return {
-    mock: raw["mock"] === "1" || raw["mock"] === 1 ? true : undefined,
-  };
+  return { mock: parseMockFlag(raw["mock"]) ? true : undefined };
 }
 
 export const Route = createFileRoute("/_authenticated/journey/$journeyId/interview")({

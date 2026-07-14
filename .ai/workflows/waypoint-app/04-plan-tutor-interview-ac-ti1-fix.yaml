@@ -1,0 +1,100 @@
+artifact: plan
+slice: tutor-interview-ac-ti1-fix
+
+modules:
+  - id: e2e-tests
+    label: "E2E test harness"
+    role: infra
+  - id: unit-tests
+    label: "State-machine unit tests"
+    role: infra
+  - id: interview-client
+    label: "Interview chat client (conditional — only if diagnosis points here)"
+    role: ui
+  - id: interview-domain
+    label: "Interview state machine / mock (conditional — only if diagnosis points here)"
+    role: domain
+
+files:
+  - path: tests/e2e/tutor-interview.spec.ts
+    status: modified
+    role: infra
+    module: e2e-tests
+    loc: 354
+    delta: { add: 8, rem: 4 }
+    planned_change:
+      intent: "Primary suspected fix site. After diagnose-first confirms the stuck stage, apply the minimal test-only change so the scope->prior_knowledge transition is observed reliably: prefer Playwright-native auto-waiting on the re-rendered chip bar / chip enabled-state over the current fixed 5s timeout, and (if diagnosis shows it) stop resizing the viewport to 768px immediately before the actionable scope/prior_knowledge chip clicks — mirror the existing 375px pattern (screenshot, then reset to 1280 before interacting, lines 229-237)."
+      diff: "Adjust the AC-TI1 block (lines 240-284): interaction ordering vs. screenshot viewport resizes, and chip-visibility waits. No change to seeded data or assertions' intent."
+  - path: tests/smoke/interview-state-machine.test.ts
+    status: modified
+    role: infra
+    module: unit-tests
+    loc: 150
+    delta: { add: 6, rem: 0 }
+    planned_change:
+      intent: "AC-TI1F3 clause — ONLY if diagnosis proves a real state-machine/source regression. Add a unit case pinning the exact regressed transition. Already covers scope->prior_knowledge->sources (lines 128-130); a genuine source fix gets its own asserting case. If the fix is test-only, this file is untouched."
+      diff: "Conditional: +1 focused transition/capture case if source is the fault; otherwise no change."
+  - path: src/components/interview/InterviewView.tsx
+    status: external
+    role: ui
+    module: interview-client
+    loc: 206
+    delta: { add: 0, rem: 0 }
+    planned_change:
+      intent: "Read-only context unless diagnose-first points the fault at the client submit/chip-render path (candidate 1, app-side). submitUserContent -> setChips(result.chips) re-render is logically correct; touched only if the diagnosis shows a real client defect (e.g. a hydration/event-attach gap that a test gate cannot legitimately paper over)."
+      diff: "No change expected; conditional on diagnosis."
+  - path: src/lib/interview/state-machine.ts
+    status: external
+    role: domain
+    module: interview-domain
+    loc: 190
+    delta: { add: 0, rem: 0 }
+    planned_change:
+      intent: "Read-only context. scope->prior_knowledge is an unconditional linear transition (lines 93-95) and is unit-proven; only touched if diagnose-first proves a genuine regression here (candidate 3)."
+      diff: "No change expected; conditional on diagnosis."
+  - path: src/server/interview.ts
+    status: external
+    role: infra
+    module: interview-domain
+    loc: 450
+    delta: { add: 0, rem: 0 }
+    planned_change:
+      intent: "Read-only context. MOCK_QUESTIONS is fully populated for every stage (lines 45-53) and mock mode returns STAGE_CHIPS[nextStage]; candidate 2 (mock flow does not advance) is excluded unless diagnosis contradicts."
+      diff: "No change expected; conditional on diagnosis."
+
+edges:
+  - from: tests/e2e/tutor-interview.spec.ts
+    to: src/components/interview/InterviewView.tsx
+    kind: calls
+    label: "drives chip clicks"
+  - from: src/components/interview/InterviewView.tsx
+    to: src/server/interview.ts
+    kind: calls
+    label: "sendTurn"
+  - from: src/server/interview.ts
+    to: src/lib/interview/state-machine.ts
+    kind: calls
+    label: "transition"
+  - from: tests/smoke/interview-state-machine.test.ts
+    to: src/lib/interview/state-machine.ts
+    kind: calls
+    label: "unit-covers transitions"
+
+risks:
+  - id: risk-1
+    title: "Misdiagnosis into the wrong layer"
+    severity: high
+    body: "The three candidate causes need distinct fixes (test-only hydration/actionability gate vs. mock-flow fix vs. real state-machine regression). Jumping to the hydration gate without confirming the stuck stage could mask a genuine app regression, or a viewport-actionability fix could paper over a real client defect."
+    mitigation: "Diagnose-first is a hard gate (plan Step 1): capture screenshot + accessibility/text snapshot at the failing line 267 BEFORE any edit; only then pick the layer. State-machine unit coverage (lines 128-130) and the fully-populated MOCK_QUESTIONS table are corroborating evidence the fault is not in domain/mock, but the runtime snapshot is authoritative."
+  - id: risk-2
+    title: "Test-only gate hides a real client hydration defect"
+    severity: med
+    body: "If the true cause is a React 19 event-attach gap on the mid-flow chip interaction (not just the initial mount, which is already gated at line 222), a broader auto-wait in the spec could make the test pass while real users still hit a dead chip on the first post-mount click."
+    mitigation: "If diagnosis shows the initial-mount gate is insufficient for subsequent interactions, treat it as a client defect (candidate 1, app-side) and fix in InterviewView, not by loosening the assertion. Study-sources read of react-dom 19 + @playwright/test actionability precedes the mechanism choice (RIM-E3)."
+  - id: risk-3
+    title: "Real source fix must not ship without unit proof"
+    severity: med
+    body: "AC-TI1F3 requires that a real app/state-machine regression fix is covered by unit tests, not just the e2e green. Skipping this would leave the regression class undetected next time."
+    mitigation: "Conditional unit case in tests/smoke/interview-state-machine.test.ts wired into the plan; only exercised on the source-fix branch."
+
+history: []

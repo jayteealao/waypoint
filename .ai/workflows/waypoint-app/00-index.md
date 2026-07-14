@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: review
-stage-number: 7
+current-stage: implement
+stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T21:42:17Z"
-selected-slice: "tanstack-data-layer-unification"
+updated-at: "2026-07-14T23:08:05Z"
+selected-slice: "tutor-interview-ac-ti1-fix"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -194,8 +194,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app tutor-interview-ac-ti1-fix"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -940,6 +940,25 @@ workflow-files:
   - 04-plan-fsrs-scheduler-test-determinism.yaml
   - 04-plan-fsrs-scheduler-test-determinism.html.fragment
   - 05-implement-fsrs-scheduler-test-determinism.md
+  - 06-verify-fsrs-scheduler-test-determinism.md
+  - 07-review-fsrs-scheduler-test-determinism.md
+  - 07-review-fsrs-scheduler-test-determinism.yaml
+  - 07-review-fsrs-scheduler-test-determinism.html.fragment
+  - 07-review-fsrs-scheduler-test-determinism-correctness.md
+  - 07-review-fsrs-scheduler-test-determinism-correctness.yaml
+  - 07-review-fsrs-scheduler-test-determinism-security.md
+  - 07-review-fsrs-scheduler-test-determinism-security.yaml
+  - 07-review-fsrs-scheduler-test-determinism-code-simplification.md
+  - 07-review-fsrs-scheduler-test-determinism-code-simplification.yaml
+  - 07-review-fsrs-scheduler-test-determinism-intent-fidelity.md
+  - 07-review-fsrs-scheduler-test-determinism-intent-fidelity.yaml
+  - 07-review-fsrs-scheduler-test-determinism-testing.md
+  - 07-review-fsrs-scheduler-test-determinism-testing.yaml
+  - 03-slice-tutor-interview-ac-ti1-fix.md
+  - 04-plan-tutor-interview-ac-ti1-fix.md
+  - 04-plan-tutor-interview-ac-ti1-fix.yaml
+  - 04-plan-tutor-interview-ac-ti1-fix.html.fragment
+  - 05-implement-tutor-interview-ac-ti1-fix.md
 progress:
   intake: complete
   shape: complete
