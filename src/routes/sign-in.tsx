@@ -6,7 +6,7 @@ export const Route = createFileRoute('/sign-in')({
     // Redirect already-authenticated users away from sign-in.
     // The root loader in the _authenticated layout handles the canonical redirect
     // for protected routes; this guard handles the reverse (no sign-in flash).
-    const auth = (context as { auth?: { session: unknown } | null }).auth
+    const { auth } = context
     if (auth?.session) {
       throw redirect({ to: '/' })
     }

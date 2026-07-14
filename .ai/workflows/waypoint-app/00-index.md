@@ -4,10 +4,10 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T13:29:00Z"
+updated-at: "2026-07-14T14:26:42Z"
 selected-slice: "tanstack-ai-gateway-hygiene"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -180,8 +180,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tanstack-ai-gateway-hygiene"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -683,6 +683,7 @@ workflow-files:
   - 05-implement-model-refresh.md
   - 05-implement-tanstack-start-request-access.md
   - 05-implement-tanstack-ai-gateway-hygiene.md
+  - 06-verify-tanstack-ai-gateway-hygiene.md
   - 06-verify-tanstack-start-request-access.md
   - 06-verify-model-refresh.md
   - 07-review-model-refresh.md
@@ -731,6 +732,44 @@ workflow-files:
   - 07-review-tanstack-start-request-access-backend-concurrency.yaml
   - 07-review-tanstack-start-request-access-refactor-safety.md
   - 07-review-tanstack-start-request-access-refactor-safety.yaml
+  - 07-review-tanstack-ai-gateway-hygiene.md
+  - 07-review-tanstack-ai-gateway-hygiene.yaml
+  - 07-review-tanstack-ai-gateway-hygiene.html.fragment
+  - 07-review-tanstack-ai-gateway-hygiene-correctness.md
+  - 07-review-tanstack-ai-gateway-hygiene-correctness.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-security.md
+  - 07-review-tanstack-ai-gateway-hygiene-security.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-code-simplification.md
+  - 07-review-tanstack-ai-gateway-hygiene-code-simplification.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-intent-fidelity.md
+  - 07-review-tanstack-ai-gateway-hygiene-intent-fidelity.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-testing.md
+  - 07-review-tanstack-ai-gateway-hygiene-testing.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-testing.html.fragment
+  - 07-review-tanstack-ai-gateway-hygiene-maintainability.md
+  - 07-review-tanstack-ai-gateway-hygiene-maintainability.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-reliability.md
+  - 07-review-tanstack-ai-gateway-hygiene-reliability.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-reliability.html.fragment
+  - 07-review-tanstack-ai-gateway-hygiene-refactor-safety.md
+  - 07-review-tanstack-ai-gateway-hygiene-refactor-safety.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-backend-concurrency.md
+  - 07-review-tanstack-ai-gateway-hygiene-backend-concurrency.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-architecture.md
+  - 07-review-tanstack-ai-gateway-hygiene-architecture.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-data-integrity.md
+  - 07-review-tanstack-ai-gateway-hygiene-data-integrity.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-cost.md
+  - 07-review-tanstack-ai-gateway-hygiene-cost.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-cost.html.fragment
+  - 07-review-tanstack-ai-gateway-hygiene-observability.md
+  - 07-review-tanstack-ai-gateway-hygiene-observability.yaml
+  - 07-review-tanstack-ai-gateway-hygiene-supply-chain.md
+  - 07-review-tanstack-ai-gateway-hygiene-supply-chain.yaml
+  - 04-plan-tanstack-router-typed-context.md
+  - 04-plan-tanstack-router-typed-context.yaml
+  - 04-plan-tanstack-router-typed-context.html.fragment
+  - 05-implement-tanstack-router-typed-context.md
 progress:
   intake: complete
   shape: complete

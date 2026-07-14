@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T13:29:00Z"
-slices-implemented: 15
-slices-total: 15
-metric-total-files-changed: 239
-metric-total-lines-added: 30001
-metric-total-lines-removed: 1439
+updated-at: "2026-07-14T14:26:42Z"
+slices-implemented: 16
+slices-total: 16
+metric-total-files-changed: 243
+metric-total-lines-added: 30014
+metric-total-lines-removed: 1443
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tanstack-ai-gateway-hygiene"
+next-invocation: "/wf verify waypoint-app tanstack-router-typed-context"
 ---
 
 # Implement Index
@@ -294,9 +294,26 @@ next-invocation: "/wf verify waypoint-app tanstack-ai-gateway-hygiene"
   `model-stream.ts`) is the sole LLM entry point; unit tests use inline mocks, not a shared wrapper.
   `@tanstack/ai-openai` is no longer a dependency (−188 transitive packages).
 
+- **Tanstack-router-typed-context: `RouterContext` is the one router-context type** —
+  `src/routes/__root.tsx` now exports `type RouterContext = { auth: Awaited<ReturnType<typeof getSession>> }`
+  and the root route uses `createRootRouteWithContext<RouterContext>()`. `src/router.tsx`'s `getRouter()`
+  seeds the now-**required** initial `context: { auth: null } satisfies RouterContext` (concrete context
+  type flips `createRouter`'s `context` option to mandatory — `router-core/router.d.ts:461-465`). Every
+  route `beforeLoad`/`loader` reads `context.auth` typed; the `context as { auth?: … }` casts in
+  `_authenticated.tsx` and `sign-in.tsx` are deleted. **Any slice that adds a new router-context field
+  (e.g. `tanstack-data-layer-unification` adding a `queryClient`/collection handle) MUST extend
+  `RouterContext` in `__root.tsx` and update the `getRouter()` seed to match — do not redefine the type
+  or reintroduce a cast.** The `src/server/*.ts` `context as { session }` casts are a *different* DI chain
+  (server-fn middleware) and are intentionally untouched.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app tanstack-ai-gateway-hygiene` — behavior-preserving
+- **Option A (default):** `/wf verify waypoint-app tanstack-router-typed-context` — typing/DI change on
+  the root route (every navigation). AC1/AC2 are green via `pnpm typecheck` at implement; verify owns AC3
+  (seeded-session auth-redirect suite `tests/e2e/auth-flow.spec.ts` + a `pnpm dev` hydration smoke, RIM-E6
+  parity). The auth harness and `BETTER_AUTH_SECRET` already exist — no seam to build.
+
+- **(prior) Option A:** `/wf verify waypoint-app tanstack-ai-gateway-hygiene` — behavior-preserving
   F4+F5+F9 hygiene pass. RIM-E5 demands runtime before/after proof that the SSE path still flushes
   token-by-token and the zero-outbound-when-quota-exhausted invariant holds on both consumption modes.
   Typecheck/lint/Vitest (200 pass, incl. 4 new helper unit tests + F9 no-regress) + audit are green now;
