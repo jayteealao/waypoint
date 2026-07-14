@@ -102,6 +102,7 @@ async function drainStream(
   adapter: unknown,
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   tools?: Array<{ name: string; description: string }>,
+  reasoningEffort?: 'low' | 'medium' | 'high',
 ): Promise<{ toolUse?: { name: string; input: Record<string, unknown> }; text?: string; usage: StreamUsage }> {
   const toolDefs = tools?.map((t) =>
     toolDefinition({
@@ -116,6 +117,12 @@ async function drainStream(
   }
   if (toolDefs && toolDefs.length > 0) {
     streamOpts['tools'] = toolDefs as any
+  }
+  // Per-tier reasoning effort → OpenRouter `reasoning.effort`. The adapter spreads
+  // `modelOptions` into the ChatRequest (see @tanstack/ai-openrouter@0.15.8). Omitted
+  // entirely when unset so the model's own default applies (e.g. grok-4.5's `high`).
+  if (reasoningEffort) {
+    streamOpts['modelOptions'] = { reasoning: { effort: reasoningEffort } }
   }
 
   const stream = chat(streamOpts as any)
@@ -241,7 +248,7 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
       // @ts-expect-error — createOpenRouterText accepts a string model ID; the TS overloads
       // enumerate the known model names but the list is non-exhaustive at runtime.
       const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY)
-      const { toolUse, text, usage: rawUsage } = await drainStream(adapter, messages, tools)
+      const { toolUse, text, usage: rawUsage } = await drainStream(adapter, messages, tools, tier.reasoningEffort)
 
       const durationMs = Date.now() - startTime
 

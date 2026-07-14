@@ -5,7 +5,7 @@
  * All functions enforce per-user isolation via requireAuth + requireOwnership.
  *
  * Non-streaming: interview turns use a single callGateway() call (full response
- * then render). The interview model (gpt-4o-mini) is fast enough for the < 3s
+ * then render). The interview model (z-ai/glm-5.2 at reasoning effort `low`) is fast enough for the < 3s
  * turn NFR without SSE streaming, and streaming a single short question offers
  * no perceivable benefit. Explicit autonomous decision per plan assumptions #1.
  *
@@ -153,7 +153,7 @@ export const startInterview = createServerFn({ method: 'POST' })
       ? `My goal is: ${journey.goal}`
       : 'I\'d like to start a new learning journey.'
 
-    // Call the gateway — interview tier (gpt-4o-mini primary)
+    // Call the gateway — interview tier (z-ai/glm-5.2 primary)
     const gatewayResult = await callGateway({
       env: { DB: env.DB, OPENROUTER_API_KEY: env.OPENROUTER_API_KEY },
       userId: session.user.id,

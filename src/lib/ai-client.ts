@@ -77,7 +77,7 @@ async function collectFirstToolCall(
  * when the key is the empty string (useful in tests that skip live runs).
  */
 export function createOpenRouterClient(apiKey: string): AIClient {
-  const adapter = createOpenRouterText('openai/gpt-4o-mini', apiKey)
+  const adapter = createOpenRouterText('z-ai/glm-5.2', apiKey)
   return {
     complete: (messages, tools) =>
       collectFirstToolCall(adapter, messages, tools),
@@ -90,7 +90,11 @@ export function createOpenRouterClient(apiKey: string): AIClient {
  * Useful when the native OpenRouter adapter's tool-calling is broken (AC-PP3).
  */
 export function createOpenAIFallbackClient(apiKey: string): AIClient {
-  const adapter = createOpenaiChatCompletions('gpt-4o-mini', apiKey, {
+  // @ts-expect-error — the OpenAI adapter's model enum is narrower than OpenRouter's
+  // catalog; this client targets OpenRouter's base URL, where 'z-ai/glm-5.2' is valid at
+  // runtime (repro: tsc TS2345 lists only OpenAI ids — the enum is non-exhaustive).
+  // sdlc-debt: legacy adapter — full removal owned by the ai-gateway-hygiene slice; the cast retires with the file.
+  const adapter = createOpenaiChatCompletions('z-ai/glm-5.2', apiKey, {
     baseURL: 'https://openrouter.ai/api/v1',
   })
   return {

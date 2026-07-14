@@ -84,6 +84,9 @@ describe('AI tool-call smoke test', () => {
       expect(result.tool_use.name.length).toBeGreaterThan(0)
       expect(result.tool_use.input).toBeDefined()
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 
   // ── Gateway-tier live smoke (gateway slice) ─────────────────────────────
@@ -117,6 +120,9 @@ describe('AI tool-call smoke test', () => {
       expect(inserts.length).toBeGreaterThanOrEqual(1)
       expect(result.usage.model).toBeTruthy()
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 
   test.skipIf(!process.env['OPENROUTER_API_KEY'])(
@@ -140,6 +146,9 @@ describe('AI tool-call smoke test', () => {
       expect(inserts.length).toBeGreaterThanOrEqual(1)
       expect(result.usage.model).toBeTruthy()
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 
   test.skipIf(!process.env['OPENROUTER_API_KEY'])(
@@ -164,6 +173,9 @@ describe('AI tool-call smoke test', () => {
       expect(inserts.length).toBeGreaterThanOrEqual(1)
       expect(result.usage.model).toBeTruthy()
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 
   // ── Interview-tier live smoke (tutor-interview slice) ─────────────────────
@@ -197,6 +209,9 @@ describe('AI tool-call smoke test', () => {
       // Duration should be under 10s (budget is < 3s; allow headroom for CI latency)
       expect(result.usage.durationMs).toBeLessThan(10_000)
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 
   // ── Test 3: adapter-swap zero-callsite proof (AC-PP3) ────────────────────
@@ -267,6 +282,9 @@ describe('AI tool-call smoke test', () => {
       expect(grading.verdict).not.toBe('incorrect')
       expect(grading.score).toBeGreaterThanOrEqual(1)
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 
   // ── Live-model source-grounding smoke (source-grounding AC-4) ──────────────
@@ -299,5 +317,8 @@ describe('AI tool-call smoke test', () => {
       // The generated prose must reflect the distinctive marker from the source.
       expect(result.text).toContain(marker)
     },
+    // Reasoning-model tiers (glm-5.2 effort, grok-4.5 high) are slower than the
+    // prior non-reasoning models; the 5s default times out mid-generation.
+    180_000,
   )
 })

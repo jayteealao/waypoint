@@ -7,7 +7,7 @@
  * Auth: requireAuth(env, request) — 401 if unauthenticated.
  * Quota: checkQuota(env.DB, userId, 'lesson') — emits quota.rejected if over limit.
  * Resume: reads existing lesson sections from D1; emits them immediately if present.
- * Fallback: lesson tier (claude-3.5-haiku → gpt-4o). On all-fallbacks failure, emits
+ * Fallback: lesson tier (z-ai/glm-5.2 → google/gemini-3.5-flash). On all-fallbacks failure, emits
  *   {"type":"error","message":"..."} then closes.
  * D1 writes: fire-and-forget via ctx.waitUntil (non-blocking on the SSE stream).
  *
@@ -180,10 +180,15 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
                 // @ts-expect-error — createOpenRouterText accepts string model id
                 const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY)
 
-                // Use @tanstack/ai chat() for streaming — bypasses callGateway() drain
+                // Use @tanstack/ai chat() for streaming — bypasses callGateway() drain.
+                // Thread the lesson tier's reasoning effort so effort control holds on
+                // the SSE path too (the gateway drain path gets it independently).
                 const chatStream = chat({
                   adapter: adapter as any,
                   messages: messages as any,
+                  ...(tier.reasoningEffort
+                    ? { modelOptions: { reasoning: { effort: tier.reasoningEffort } } }
+                    : {}),
                 } as any)
 
                 // ── 7c. NDJSON line-buffer accumulator ───────────────────────

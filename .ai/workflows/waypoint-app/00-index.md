@@ -7,8 +7,8 @@ status: active
 current-stage: review
 stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-12T07:32:29Z"
-selected-slice: "source-grounding"
+updated-at: "2026-07-14T11:12:00Z"
+selected-slice: "model-refresh"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -16,6 +16,56 @@ review-scope: per-slice
 pr-url: ""
 pr-number: 0
 open-questions: []
+intent-risks:
+  - id: RIM-E1
+    risk: "tanstack-data-layer-unification narrows the PO's chosen 'TanStack DB everywhere' back to loaders / a single entity under pre-1.0 type friction and Cloudflare SSR pain (already happened once — AC-13 reverted off the DB collection)."
+    severity: high
+    status: adjudicated
+    adjudicated-by: "02-shape-tanstack-data-layer-unification.md"
+    decision: "Resolved by the scoped design pass: the PO ratified the FULL entity set (all 9, enumerated in the migration plan), so 'everywhere' cannot silently shrink to 'journeys only' — the narrowing risk is closed. usage_events flagged for keep-server-only confirm; the ratification inverted the risk toward over-reach, tracked as RIM-E7."
+    po-ratified: true
+  - id: RIM-E2
+    risk: "model-refresh silently degrades the PO's benchmarked tier selection to a weaker/costlier fallback when a days-old primary (grok-4.5, gpt-5.6-luna) is delisted — the exact silent-fallback failure that created the slice."
+    severity: high
+    status: adjudicated
+    adjudicated-by: "02-shape.md#extension-intent-risks-rim-ledger"
+    decision: "Model selection is PO-owned (round-1 answers); a persistent model.fallback_triggered is a dark path 04b-instrument must alarm as a config incident, not silent degradation; fallbacks stay pinned to different providers than primaries."
+    po-ratified: true
+  - id: RIM-E3
+    risk: "The round-2 TanStack fix slices repeat the assume-missing anti-pattern — written from recalled API shapes rather than installed source, they reintroduce the same class of defect the discover audit found."
+    severity: medium
+    status: adjudicated
+    adjudicated-by: "02-shape.md#extension-intent-risks-rim-ledger"
+    decision: "Every extension-round-2 slice's plan MUST read installed node_modules source via study-sources before choosing a fix mechanism; per-slice risk notes elevated to a standing wave constraint. Enforces PO round-2 intent; alters no PO directive."
+    po-ratified: not-required
+  - id: RIM-E4
+    risk: "/health presence-only secret check gives a false-green deploy gate — a wrong secret value passes, or the hard-coded asserted list drifts behind the app's real required-secret set."
+    severity: medium
+    status: adjudicated
+    adjudicated-by: "02-shape.md#extension-intent-risks-rim-ledger"
+    decision: "Presence-only + opaque body are PO-ratified (round-3 answers 1-2) with staging→production promotion as the value-correctness control; a shared REQUIRED_SECRETS constant reused by boot validation is MANDATED (not merely suggested) to stop list drift. Live validity probe refused on purpose (cost/latency/flakiness on a per-deploy gate)."
+    po-ratified: true
+  - id: RIM-E5
+    risk: "The F9 streaming-path consolidation regresses token-by-token SSE lesson UX or the zero-outbound-when-quota-exhausted invariant, under the banner of a DRY refactor."
+    severity: medium
+    status: adjudicated
+    adjudicated-by: "02-shape.md#extension-intent-risks-rim-ledger"
+    decision: "F9 is behavior-preserving; verify MUST prove both consumption modes (buffered drain unchanged; SSE still token-by-token) AND the pre-flight quota invariant with explicit before/after evidence. The shared helper parameterizes streaming vs. buffered; it does not unify them."
+    po-ratified: not-required
+  - id: RIM-E6
+    risk: "tanstack-router-typed-context breaks SSR/hydration or auth-gated navigation on the root route (a missing initial context is a common createRootRouteWithContext setup error), affecting every navigation."
+    severity: low
+    status: adjudicated
+    adjudicated-by: "02-shape.md#extension-intent-risks-rim-ledger"
+    decision: "Typing/DI-only change (auth mechanism unchanged); verify hydration + the _authenticated auth redirect against installed router-core source before commit; land before tanstack-data-layer-unification so the data layer extends an already-typed context."
+    po-ratified: not-required
+  - id: RIM-E7
+    risk: "The all-9, localStorage-primary local-first big-bang (PO-ratified over the narrower option) destabilizes SSR/hydration on Cloudflare or the read-consistency model — the inverse of RIM-E1's narrowing risk."
+    severity: high
+    status: adjudicated
+    adjudicated-by: "02-shape-tanstack-data-layer-unification.md#chosen-architecture"
+    decision: "Contained by design: collections are client-only so SSR renders from request-scoped D1 loaders (no server-side collection singleton → no cross-user isolate bleed) and the loader's D1 result seeds the collection (no hydration mismatch, no first-paint-from-empty-store); per-entity migration sequencing (D8) with per-entity SSR + no-regress gates (AC-DLU6/AC-DLU9); LWW-by-updated_at is the named consistency mechanism. Two dispositions (SSR-seed reconciliation; usage_events server-only) flagged for PO confirm at plan."
+    po-ratified: true
 runtime-evidence-deferrals:
   - ac: "AC-F4 — CI gates run on push (lint, typecheck, tests, pnpm audit)"
     slice: foundation
@@ -130,8 +180,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: handoff
-next-invocation: "/wf handoff waypoint-app"
+next-command: wf-verify
+next-invocation: "/wf verify waypoint-app model-refresh"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -139,9 +189,11 @@ augmentations:
     created-at: "2026-07-11T00:13:07Z"
 workflow-files:
   - 00-index.md
+  - 00-sync.md
   - 01-intake.md
   - po-answers.md
   - 02-shape.md
+  - 02-shape-tanstack-data-layer-unification.md
   - 02b-design.md
   - 03-slice.md
   - 03-slice-foundation.md
@@ -156,6 +208,14 @@ workflow-files:
   - 03-slice-quiz-fsrs.md
   - 03-slice-adaptation-progress.md
   - 03-slice-source-grounding.md
+  - 03-slice-model-refresh.md
+  - 03-slice-tanstack-start-request-access.md
+  - 03-slice-tanstack-ai-gateway-hygiene.md
+  - 03-slice-tanstack-router-typed-context.md
+  - 03-slice-tanstack-data-layer-unification.md
+  - 03-slice-health-endpoint.md
+  - 03-slice-cloudflare-ai-gateway.md
+  - skip-slice-cloudflare-ai-gateway.md
   - 04-plan.md
   - 04-plan-foundation.md
   - 04-plan-foundation.yaml
@@ -611,6 +671,10 @@ workflow-files:
   - 07-review-source-grounding.md
   - 07-review-source-grounding.yaml
   - 07-review-source-grounding.html.fragment
+  - 04-plan-model-refresh.md
+  - 04-plan-model-refresh.yaml
+  - 04-plan-model-refresh.html.fragment
+  - 05-implement-model-refresh.md
 progress:
   intake: complete
   shape: complete

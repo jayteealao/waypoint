@@ -257,6 +257,41 @@ describe('AI gateway', () => {
     )
   })
 
+  // ── Reasoning effort passthrough ───────────────────────────────────────
+
+  test('reasoning effort: interview tier sends modelOptions.reasoning.effort = low', async () => {
+    const db = makeMockDb({ quotaUsed: 0 })
+    const env = makeEnv(db)
+
+    vi.mocked(chat).mockReturnValueOnce(makeSuccessStream() as any)
+
+    await callGateway({ env, ...BASE_INPUT })
+
+    // The interview tier sets reasoningEffort: 'low' — it must ride on the chat() call.
+    const chatArg = vi.mocked(chat).mock.calls[0]?.[0] as Record<string, any>
+    expect(chatArg?.modelOptions?.reasoning?.effort).toBe('low')
+  })
+
+  test('reasoning effort: roadmap tier (unset) sends no reasoning field', async () => {
+    const db = makeMockDb({ quotaUsed: 0 })
+    const env = makeEnv(db)
+
+    vi.mocked(chat).mockReturnValueOnce(makeSuccessStream({ text: '{"waypoints":[]}' }) as any)
+
+    await callGateway({
+      env,
+      userId: 'user-123',
+      type: 'roadmap',
+      messages: [{ role: 'user', content: 'Plan a course' }],
+      responseFormat: { type: 'json_object' },
+    })
+
+    // Roadmap leaves reasoningEffort unset so grok-4.5's mandatory default applies —
+    // the gateway must emit NO reasoning/modelOptions.reasoning field.
+    const chatArg = vi.mocked(chat).mock.calls[0]?.[0] as Record<string, any>
+    expect(chatArg?.modelOptions?.reasoning).toBeUndefined()
+  })
+
   // ── Discriminated union / call-shape invariant ─────────────────────────
 
   test('structured+tool-call invariant: throws TypeError when both tools and responseFormat provided', async () => {

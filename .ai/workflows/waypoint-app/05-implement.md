@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-12T07:04:18Z"
-slices-implemented: 12
-slices-total: 12
-metric-total-files-changed: 209
-metric-total-lines-added: 29109
-metric-total-lines-removed: 676
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime]
+updated-at: "2026-07-14T11:12:00Z"
+slices-implemented: 13
+slices-total: 13
+metric-total-files-changed: 216
+metric-total-lines-added: 29218
+metric-total-lines-removed: 699
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app source-grounding"
+next-invocation: "/wf verify waypoint-app model-refresh"
 ---
 
 # Implement Index
@@ -256,7 +256,13 @@ next-invocation: "/wf verify waypoint-app source-grounding"
 
 - **Source-grounding: `fetchSourceUrl` type union** — Returns `SourceFetchResult` from `src/lib/source-fetch.ts`. Callers MUST check `result.ok` before accessing content fields. Reasons: `'timeout'`, `'network_error'`, `'bad_content_type'`, `'too_large'`. All failure modes are non-throwing.
 
+- **Model-refresh: `TierConfig.reasoningEffort` is the per-tier reasoning knob** — Optional `'low' | 'medium' | 'high'` on `src/lib/ai/tiers.ts`. When set, the gateway (`drainStream`) and the lesson SSE route both forward it as `modelOptions: { reasoning: { effort } }`; when unset, no reasoning field is sent (the model's own default applies, e.g. grok-4.5's mandatory `high`). Any new tier or new model-invocation path must honor the same conditional-passthrough pattern — do not hardcode an effort inline.
+
+- **Model-refresh: current tier table (2026-07-12 OpenRouter, PO-ratified)** — interview/lesson/quiz = `z-ai/glm-5.2` (fallbacks `openai/gpt-5.6-luna` / `google/gemini-3.5-flash` / `deepseek/deepseek-v4-pro`); roadmap = `x-ai/grok-4.5` (fallback `openai/gpt-5.6-luna`). Every fallback is a different provider than its primary. `pricingPer1MTokens` matches the primary's live figures. No consumer hardcodes model IDs — all resolve from `TIERS`.
+
+- **Model-refresh: live smoke needs a generous per-test timeout** — `tests/smoke/ai-tool-call.test.ts`'s gated live cases carry a `180_000` per-test timeout because reasoning-model tiers are slower than the prior non-reasoning models and time out under Vitest's 5 s default. Any new live-model smoke case must set its own timeout.
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app source-grounding` — 9 Vitest unit tests (all pass) + 2 Playwright E2E tests (citation rendering + fetch failure conversational path). All verification seams built. BETTER_AUTH_SECRET confirmed present in .dev.vars.
-- **Option B:** `/wf review waypoint-app source-grounding` — Skip verify if the Vitest+Playwright evidence above is treated as sufficient for the review gate on this final slice.
+- **Option A (default):** `/wf verify waypoint-app model-refresh` — model config + additive reasoning field; ACs verified by mocked assertions (AC-2), a grep (AC-4), typecheck + mocked suite (AC-5), and the tagged live smoke (AC-1/AC-3, 9/9 this round). Verify should independently re-run the live catalog gate and do the R3 lesson-prose spot-check.
+- **Option B:** `/wf review waypoint-app model-refresh` — skip verify only if the live-smoke evidence in `05-implement-model-refresh.md` is accepted as sufficient; not recommended.
