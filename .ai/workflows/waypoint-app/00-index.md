@@ -7,8 +7,8 @@ status: active
 current-stage: implement
 stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-14T12:18:24Z"
-selected-slice: "tanstack-start-request-access"
+updated-at: "2026-07-14T13:29:00Z"
+selected-slice: "tanstack-ai-gateway-hygiene"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -181,7 +181,7 @@ stack:
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tanstack-start-request-access"
+next-invocation: "/wf verify waypoint-app tanstack-ai-gateway-hygiene"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -677,8 +677,13 @@ workflow-files:
   - 04-plan-tanstack-start-request-access.md
   - 04-plan-tanstack-start-request-access.yaml
   - 04-plan-tanstack-start-request-access.html.fragment
+  - 04-plan-tanstack-ai-gateway-hygiene.md
+  - 04-plan-tanstack-ai-gateway-hygiene.yaml
+  - 04-plan-tanstack-ai-gateway-hygiene.html.fragment
   - 05-implement-model-refresh.md
   - 05-implement-tanstack-start-request-access.md
+  - 05-implement-tanstack-ai-gateway-hygiene.md
+  - 06-verify-tanstack-start-request-access.md
   - 06-verify-model-refresh.md
   - 07-review-model-refresh.md
   - 07-review-model-refresh.yaml
@@ -704,6 +709,28 @@ workflow-files:
   - 07-review-model-refresh-cost.md
   - 07-review-model-refresh-cost.yaml
   - 07-review-model-refresh-cost.html.fragment
+  - 07-review-tanstack-start-request-access.md
+  - 07-review-tanstack-start-request-access.yaml
+  - 07-review-tanstack-start-request-access.html.fragment
+  - 07-review-tanstack-start-request-access-correctness.md
+  - 07-review-tanstack-start-request-access-correctness.yaml
+  - 07-review-tanstack-start-request-access-security.md
+  - 07-review-tanstack-start-request-access-security.yaml
+  - 07-review-tanstack-start-request-access-code-simplification.md
+  - 07-review-tanstack-start-request-access-code-simplification.yaml
+  - 07-review-tanstack-start-request-access-code-simplification.html.fragment
+  - 07-review-tanstack-start-request-access-intent-fidelity.md
+  - 07-review-tanstack-start-request-access-intent-fidelity.yaml
+  - 07-review-tanstack-start-request-access-testing.md
+  - 07-review-tanstack-start-request-access-testing.yaml
+  - 07-review-tanstack-start-request-access-maintainability.md
+  - 07-review-tanstack-start-request-access-maintainability.yaml
+  - 07-review-tanstack-start-request-access-reliability.md
+  - 07-review-tanstack-start-request-access-reliability.yaml
+  - 07-review-tanstack-start-request-access-backend-concurrency.md
+  - 07-review-tanstack-start-request-access-backend-concurrency.yaml
+  - 07-review-tanstack-start-request-access-refactor-safety.md
+  - 07-review-tanstack-start-request-access-refactor-safety.yaml
 progress:
   intake: complete
   shape: complete

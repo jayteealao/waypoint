@@ -1,11 +1,12 @@
 /**
  * Roadmap schema — roadmap-lesson-generation slice.
  *
- * Defines the TypeScript shape, JSON Schema object (for callGateway responseFormat),
- * validation function, and prompt-assembly helper for the roadmap generation path.
+ * Defines the TypeScript shape, validation function, and prompt-assembly helper
+ * for the roadmap generation path.
  *
- * The model returns a JSON array of WaypointOutput objects; this module validates
- * that shape and provides one re-ask on malformed output before throwing GenerationError.
+ * The model returns a JSON array of WaypointOutput objects (shape mandated by the
+ * system prompt); this module validates that shape and provides one re-ask on
+ * malformed output before throwing GenerationError.
  */
 
 import type { CapturedRecord } from '#/types/interview'
@@ -25,35 +26,6 @@ export interface WaypointOutput {
   goal: string
   /** 2–5 concept names taught in this waypoint; no duplicates. */
   concepts: string[]
-}
-
-// ── JSON Schema for responseFormat ────────────────────────────────────────────
-
-/**
- * OpenAI-compatible JSON Schema for the roadmap array.
- * Passed to callGateway() as `responseFormat` to enable structured output.
- */
-export const WAYPOINT_JSON_SCHEMA: Record<string, unknown> = {
-  type: 'json_schema',
-  json_schema: {
-    name: 'waypoints',
-    strict: false,
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['title', 'goal', 'concepts'],
-        properties: {
-          title:    { type: 'string' },
-          goal:     { type: 'string' },
-          concepts: { type: 'array', items: { type: 'string' }, minItems: 1 },
-        },
-        additionalProperties: true,
-      },
-      minItems: 1,
-      maxItems: 20,
-    },
-  },
 }
 
 // ── Validation ─────────────────────────────────────────────────────────────────

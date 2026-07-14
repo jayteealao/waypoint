@@ -6,10 +6,9 @@
  * arithmetic directly — so model swaps require a single constant update here
  * rather than scattered changes in gateway logic.
  *
- * Invariant: structured-output calls (quiz, roadmap) NEVER combine responseFormat
- * with tools in the same request. This is enforced at the gateway level via a
- * TypeScript discriminated union + runtime TypeError. Tier config does not need
- * to encode this — it is a call-shape constraint, not a model constraint.
+ * The quiz and roadmap tiers produce JSON by instructing the model in their
+ * system prompts (see interview/prompts.ts), not via a provider structured-output
+ * parameter. Tier config carries no call-shape constraint — only model + pricing.
  */
 
 /** Generation types produced by AI calls in Waypoint. */
@@ -72,11 +71,9 @@ export const TIERS: Record<GenerationType, TierConfig> = {
   },
 
   /**
-   * Structured tier: structured-output (JSON schema) for roadmap generation.
+   * Roadmap tier: JSON planning output (shape mandated by the system prompt).
    * Low-volume, latency-tolerant planning — grok-4.5's mandatory reasoning default
    * (`high`) is desired here, so `reasoningEffort` is intentionally left unset.
-   * NOTE: responseFormat and tools are NEVER combined in one request — enforced
-   * at the gateway call-shape level (TypeScript discriminated union + TypeError).
    */
   roadmap: {
     primaryModel: 'x-ai/grok-4.5',
@@ -85,7 +82,7 @@ export const TIERS: Record<GenerationType, TierConfig> = {
   },
 
   /**
-   * Quiz tier: structured-output grading. Same invariant as roadmap.
+   * Quiz tier: JSON question generation + grading (shape mandated by the system prompt).
    */
   quiz: {
     primaryModel: 'z-ai/glm-5.2',

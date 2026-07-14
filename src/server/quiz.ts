@@ -21,8 +21,6 @@ import { requireAuth, requireOwnership } from '#/lib/auth-guard'
 import { callGateway } from '#/lib/ai/gateway'
 import { QUIZ_SYSTEM_PROMPT, GRADING_SYSTEM_PROMPT } from '#/lib/interview/prompts'
 import {
-  QUIZ_QUESTION_JSON_SCHEMA,
-  GRADING_JSON_SCHEMA,
   validateQuizQuestion,
   validateGrading,
   buildQuizPrompt,
@@ -52,7 +50,7 @@ const withSession = createMiddleware({ type: 'function' }).server(
  *  3. Upsert concept rows (INSERT OR IGNORE) and collect concept IDs.
  *  4. Initialise FSRS cards for new concepts (Rating.Manual sentinel).
  *  5. Append up to 2 due-resurfacing concepts from earlier waypoints.
- *  6. Call callGateway once per concept (quiz tier, structured output).
+ *  6. Call callGateway once per concept (quiz tier; JSON comes from the system prompt).
  *  7. Validate response; one re-ask on malformed JSON.
  *  8. Batch-insert quiz_questions rows.
  *  9. Return the inserted question list.
@@ -179,7 +177,6 @@ export const generateQuiz = createServerFn({ method: 'POST' })
             journeyId,
             type: 'quiz',
             messages,
-            responseFormat: QUIZ_QUESTION_JSON_SCHEMA,
           })
 
           const rawText = response.text ?? ''
@@ -285,11 +282,11 @@ export const getQuizQuestions = createServerFn()
 // ─── gradeAnswer ──────────────────────────────────────────────────────────────
 
 /**
- * Grade a free-response answer using the AI gateway (quiz tier, structured output).
+ * Grade a free-response answer using the AI gateway (quiz tier).
  *
  * Reads the quiz_questions row for context (question text + rubric), calls
- * callGateway with the grading system prompt, validates the response, and
- * returns the GradingOutput.
+ * callGateway with the grading system prompt (which mandates the JSON shape),
+ * validates the response, and returns the GradingOutput.
  *
  * MC answers are graded client-side and should NOT be sent here.
  *
@@ -326,7 +323,6 @@ export const gradeAnswer = createServerFn({ method: 'POST' })
       journeyId,
       type: 'quiz',
       messages,
-      responseFormat: GRADING_JSON_SCHEMA,
     })
 
     const rawText = gatewayResponse.text ?? ''

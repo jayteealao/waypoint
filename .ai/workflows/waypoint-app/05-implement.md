@@ -5,18 +5,18 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T12:18:24Z"
-slices-implemented: 14
-slices-total: 14
-metric-total-files-changed: 225
-metric-total-lines-added: 29264
-metric-total-lines-removed: 749
-tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter]
+updated-at: "2026-07-14T13:29:00Z"
+slices-implemented: 15
+slices-total: 15
+metric-total-files-changed: 239
+metric-total-lines-added: 30001
+metric-total-lines-removed: 1439
+tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
   plan-index: 04-plan.md
 next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tanstack-start-request-access"
+next-invocation: "/wf verify waypoint-app tanstack-ai-gateway-hygiene"
 ---
 
 # Implement Index
@@ -269,8 +269,39 @@ next-invocation: "/wf verify waypoint-app tanstack-start-request-access"
 
 - **Tanstack-start-request-access: `getRequest()` is the request-access primitive** — All server functions obtain the incoming `Request` via `getRequest()` from `@tanstack/react-start/server` (returns the raw `Request`; `getRequest().headers` for headers), inside a `type: 'function'` middleware. There is NO `createMiddleware({ type: 'request' })` request-capture shim anywhere in `src/` and NO comment claiming `getWebRequest()` is unavailable. Any new server function that needs the request must call `getRequest()` — do not resurrect the request-middleware workaround. Auth is still enforced by the shared `withSession` middleware calling `requireAuth(env, getRequest())`; `src/lib/get-session.ts` calls `getRequest().headers` inline (no middleware).
 
+- **Tanstack-ai-gateway-hygiene: `src/lib/ai/model-stream.ts` is the single AI streaming engine** —
+  `runModelWithFallback` (fallback loop + `@tanstack/ai` chunk parsing + usage accumulation),
+  `computeCost` (prefer `usage.total_cost`, else recompute from tier pricing), and `recordUsage`
+  (the `usage_events` INSERT) live here once. BOTH `src/lib/ai/gateway.ts` (buffered — `onTextDelta`
+  appends to a string) and `src/routes/api/journey/$journeyId/lesson.ts` (SSE — `onTextDelta` runs the
+  NDJSON line-buffer + `controller.enqueue`) consume it. Any new AI call path must route through this
+  helper, not re-implement the fallback/chunk/metering loop. This **supersedes** the earlier
+  Roadmap-lesson-generation note ("SSE route bypasses callGateway … calls `createOpenRouterText()` +
+  `chat()` directly") and the Model-refresh note referencing `drainStream` (removed): the SSE route no
+  longer imports `chat()`/`createOpenRouterText` directly, and `drainStream` no longer exists.
+
+- **Tanstack-ai-gateway-hygiene: no provider structured-output surface** — `GatewayInput` is now
+  `GatewayCallWithTools | GatewayCallText` (no `responseFormat` arm, no `TypeError` guard). Quiz and
+  roadmap produce JSON from their **system prompts** + a validate-and-one-re-ask loop, not a provider
+  `responseFormat`/`outputSchema` parameter. `@tanstack/ai@0.40` has no `responseFormat` param (real API
+  is `outputSchema`); do not reintroduce `responseFormat`. The `QUIZ_QUESTION_JSON_SCHEMA` /
+  `GRADING_JSON_SCHEMA` / `WAYPOINT_JSON_SCHEMA` constants were deleted (they never reached the model).
+
+- **Tanstack-ai-gateway-hygiene: `src/lib/ai-client.ts` deleted; `@tanstack/ai-openai` removed** —
+  This **supersedes** the Platform-proofs note naming `src/lib/ai-client.ts` / the `AIClient` interface
+  as the ai-gateway abstraction and the AI-gateway note referencing `createOpenRouterClient` /
+  `createOpenAIFallbackClient` / `createMockAIClient`. Those factories are gone. `callGateway()` (via
+  `model-stream.ts`) is the sole LLM entry point; unit tests use inline mocks, not a shared wrapper.
+  `@tanstack/ai-openai` is no longer a dependency (−188 transitive packages).
+
 ## Recommended Next Stage
 
-- **Option A (default):** `/wf verify waypoint-app tanstack-start-request-access` — behavior-preserving request-access refactor; AC1/AC2 by grep + `tsc --noEmit`, AC3/AC4 by Vitest (193 pass) and unchanged auth chains. Verify must adjudicate the runtime e2e leg: the branch's seeded-session Playwright suite is in a pre-existing app-rendering failure state (proven baseline-identical with the change stashed), so verify either fixes that rendering breakage to observe `getRequest()` end-to-end or accepts the static+typecheck+Vitest+baseline-identical evidence.
-- **Option B:** `/wf review waypoint-app tanstack-start-request-access` — viable if the pre-existing e2e wall (out of this slice's scope) is accepted and the static + typecheck + Vitest evidence is deemed sufficient for a pure server-side refactor.
-- Prior: `/wf verify waypoint-app model-refresh` (model-refresh implement was the previous slice; its verify/review is tracked separately).
+- **Option A (default):** `/wf verify waypoint-app tanstack-ai-gateway-hygiene` — behavior-preserving
+  F4+F5+F9 hygiene pass. RIM-E5 demands runtime before/after proof that the SSE path still flushes
+  token-by-token and the zero-outbound-when-quota-exhausted invariant holds on both consumption modes.
+  Typecheck/lint/Vitest (200 pass, incl. 4 new helper unit tests + F9 no-regress) + audit are green now;
+  verify owns the SSE e2e + tagged live-smoke legs (keys present in `.dev.vars`).
+- **Option B:** `/wf review waypoint-app tanstack-ai-gateway-hygiene` — only if the SSE-incrementality
+  and quota-invariant runtime evidence is judged already covered by the helper unit tests + the existing
+  `sse-streaming.wrangler.spec.ts`; a refactor of two live code paths generally warrants verify first.
+- Prior: `/wf verify waypoint-app tanstack-start-request-access` (the previous extension-round-2 slice; its verify/review is tracked separately).

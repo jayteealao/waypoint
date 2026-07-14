@@ -20,14 +20,12 @@
  * Proven by /api/demo-stream (platform-proofs). Extended with NDJSON line parsing.
  */
 
-// @ts-ignore — @tanstack/ai is in beta
-import { chat } from '@tanstack/ai'
-import { createOpenRouterText } from '@tanstack/ai-openrouter'
 import { createFileRoute } from '@tanstack/react-router'
 import { env } from 'cloudflare:workers'
 import { requireAuth } from '#/lib/auth-guard'
 import { checkQuota } from '#/lib/ai/quota'
 import { TIERS } from '#/lib/ai/tiers'
+import { runModelWithFallback, computeCost, recordUsage } from '#/lib/ai/model-stream'
 import { LESSON_SYSTEM_PROMPT, buildSourceMaterialBlock } from '#/lib/interview/prompts'
 import type { SourceContent } from '#/lib/source-fetch'
 import { upsertLesson } from '#/server/lessons'
@@ -156,185 +154,149 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
               )
             }
 
-            // ── 7b. Attempt streaming with fallback chain ────────────────────
+            // ── 7b. Per-model-attempt SSE state ──────────────────────────────
+            // The shared model-stream helper owns the fallback loop, chunk vocab,
+            // and usage accumulation; this closure owns the token-by-token SSE
+            // consumption. State resets on each fallback so a retried model starts
+            // from the resume baseline (preserving the original per-attempt reset).
             const startTime = Date.now()
-            let lastError: unknown
-            let succeeded = false
+            let lineBuffer = ''
+            let completedSections: LessonSectionType[] = [...resumeSections]
+            let sourcesPayload: { sources: LessonSource[]; recommended_primary_source: LessonSource | null } = {
+              sources: [],
+              recommended_primary_source: null,
+            }
+            const resetPerModelState = () => {
+              lineBuffer = ''
+              completedSections = [...resumeSections]
+              sourcesPayload = { sources: [], recommended_primary_source: null }
+            }
 
-            for (let i = 0; i < modelChain.length; i++) {
-              const model = modelChain[i]!
-              if (i > 0) {
-                console.log(
-                  JSON.stringify({
-                    event: 'model.fallback_triggered',
-                    user_id: userId,
-                    journey_id: journeyId,
-                    waypoint_id: waypointId,
-                    original_model: modelChain[i - 1],
-                    fallback_model: model,
-                  }),
-                )
-              }
+            // ── 7c. onTextDelta: NDJSON line-buffer → token-by-token SSE enqueue ─
+            const onTextDelta = (delta: string): void => {
+              lineBuffer += delta
 
-              try {
-                // @ts-expect-error — createOpenRouterText accepts string model id
-                const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY)
+              // Process all complete lines in the buffer
+              let newlineIndex: number
+              while ((newlineIndex = lineBuffer.indexOf('\n')) !== -1) {
+                const line = lineBuffer.slice(0, newlineIndex).trim()
+                lineBuffer = lineBuffer.slice(newlineIndex + 1)
 
-                // Use @tanstack/ai chat() for streaming — bypasses callGateway() drain.
-                // Thread the lesson tier's reasoning effort so effort control holds on
-                // the SSE path too (the gateway drain path gets it independently).
-                const chatStream = chat({
-                  adapter: adapter as any,
-                  messages: messages as any,
-                  ...(tier.reasoningEffort
-                    ? { modelOptions: { reasoning: { effort: tier.reasoningEffort } } }
-                    : {}),
-                } as any)
+                if (!line) continue
 
-                // ── 7c. NDJSON line-buffer accumulator ───────────────────────
-                let lineBuffer = ''
-                const completedSections: LessonSectionType[] = [...resumeSections]
-                let sourcesPayload: { sources: LessonSource[]; recommended_primary_source: LessonSource | null } = { sources: [], recommended_primary_source: null }
-                let promptTokens = 0
-                let completionTokens = 0
-                let totalCost: number | undefined
-                const MODEL_TIMEOUT_MS = 120_000 // 2 minutes per model attempt
-                const modelCallStart = Date.now()
+                // Skip markdown fence lines (defensive against model non-compliance)
+                if (line.startsWith('```') || line.startsWith('---')) continue
 
-                for await (const chunk of chatStream as AsyncIterable<Record<string, unknown>>) {
-                  if (Date.now() - modelCallStart > MODEL_TIMEOUT_MS) {
-                    throw new Error('lesson-sse: model stream timeout exceeded')
-                  }
-                  const chunkType = chunk['type'] as string | undefined
-
-                  if (chunkType === 'TEXT_MESSAGE_CONTENT' || chunkType === 'TEXT_DELTA') {
-                    const delta = (chunk['delta'] as string) ?? ''
-                    lineBuffer += delta
-
-                    // Process all complete lines in the buffer
-                    let newlineIndex: number
-                    while ((newlineIndex = lineBuffer.indexOf('\n')) !== -1) {
-                      const line = lineBuffer.slice(0, newlineIndex).trim()
-                      lineBuffer = lineBuffer.slice(newlineIndex + 1)
-
-                      if (!line) continue
-
-                      // Skip markdown fence lines (defensive against model non-compliance)
-                      if (line.startsWith('```') || line.startsWith('---')) continue
-
-                      let parsed: Record<string, unknown>
-                      try {
-                        parsed = JSON.parse(line) as Record<string, unknown>
-                      } catch {
-                        // Non-JSON line — skip with warn (R2 risk per plan)
-                        console.log(
-                          JSON.stringify({
-                            event: 'lesson.ndjson_skip',
-                            user_id: userId,
-                            waypoint_id: waypointId,
-                            reason: 'invalid JSON line',
-                            preview: line.slice(0, 80),
-                          }),
-                        )
-                        continue
-                      }
-
-                      const lineType = parsed['type'] as string | undefined
-
-                      if (lineType === 'header') {
-                        // Emit header event
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`))
-                      } else if (lineType === 'sources') {
-                        // Capture sources payload for the final D1 write
-                        sourcesPayload = {
-                          sources: (parsed['sources'] as LessonSource[]) ?? [],
-                          recommended_primary_source: (parsed['recommended_primary_source'] as LessonSource | null) ?? null,
-                        }
-                        // Emit sources event — signals completion to the client
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`))
-                      } else if (lineType != null) {
-                        // Section event — guard for resume duplicates
-                        const section = parsed as unknown as LessonSectionType
-                        const alreadyHave = completedSections.some((s) => s.id === section.id)
-                        if (!alreadyHave) {
-                          completedSections.push(section)
-                          controller.enqueue(
-                            encoder.encode(`data: ${JSON.stringify(section)}\n\n`),
-                          )
-                        }
-                      }
-                    }
-                  } else if (chunkType === 'RUN_FINISHED' || chunkType === 'USAGE') {
-                    // Token usage rides on the terminal RUN_FINISHED chunk
-                    // (camelCase promptTokens/completionTokens); legacy USAGE/
-                    // snake_case accepted for adapter-version resilience.
-                    const raw = chunk['usage'] as Record<string, unknown> | undefined
-                    if (raw) {
-                      const pt = raw['promptTokens'] ?? raw['prompt_tokens']
-                      const ct = raw['completionTokens'] ?? raw['completion_tokens']
-                      if (pt !== undefined) promptTokens = Number(pt)
-                      if (ct !== undefined) completionTokens = Number(ct)
-                      const tc = raw['total_cost'] ?? raw['totalCost'] ?? raw['cost']
-                      if (tc !== undefined) totalCost = Number(tc)
-                    }
-                  }
+                let parsed: Record<string, unknown>
+                try {
+                  parsed = JSON.parse(line) as Record<string, unknown>
+                } catch {
+                  // Non-JSON line — skip with warn (R2 risk per plan)
+                  console.log(
+                    JSON.stringify({
+                      event: 'lesson.ndjson_skip',
+                      user_id: userId,
+                      waypoint_id: waypointId,
+                      reason: 'invalid JSON line',
+                      preview: line.slice(0, 80),
+                    }),
+                  )
+                  continue
                 }
 
-                // ── 7d. Persist to D1 (fire-and-forget) ─────────────────────
-                const durationMs = Date.now() - startTime
-                const contentJson = JSON.stringify(completedSections)
-                const sourcesJson = JSON.stringify(sourcesPayload)
+                const lineType = parsed['type'] as string | undefined
 
-                // Record usage to D1 (non-blocking via best-effort)
-                const usageId = crypto.randomUUID()
-                const insertedAt = new Date().toISOString()
-                const costUsd = totalCost ?? (
-                  (promptTokens * tier.pricingPer1MTokens.input +
-                    completionTokens * tier.pricingPer1MTokens.output) / 1_000_000
-                )
-
-                Promise.all([
-                  upsertLesson(env.DB, waypointId, lessonId, contentJson, sourcesJson),
-                  env.DB.prepare(
-                    `INSERT INTO usage_events (id, user_id, journey_id, model, type, prompt_tokens, completion_tokens, cost_usd, duration_ms, outcome, at)
-                     VALUES (?, ?, ?, ?, 'lesson', ?, ?, ?, ?, 'success', ?)`,
-                  )
-                    .bind(usageId, userId, journeyId, model, promptTokens, completionTokens, costUsd, durationMs, insertedAt)
-                    .run(),
-                ]).catch((err) => {
-                  console.error('[lesson-sse] background D1 write failed:', err)
-                })
-
-                console.log(
-                  JSON.stringify({
-                    event: 'generation.completed',
-                    user_id: userId,
-                    journey_id: journeyId,
-                    waypoint_id: waypointId,
-                    model,
-                    generation_type: 'lesson',
-                    prompt_tokens: promptTokens,
-                    completion_tokens: completionTokens,
-                    cost_usd: costUsd,
-                    duration_ms: durationMs,
-                    outcome: 'success',
-                  }),
-                )
-
-                succeeded = true
-                break
-              } catch (err) {
-                lastError = err
-                // Continue to next model in fallback chain
+                if (lineType === 'header') {
+                  // Emit header event
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`))
+                } else if (lineType === 'sources') {
+                  // Capture sources payload for the final D1 write
+                  sourcesPayload = {
+                    sources: (parsed['sources'] as LessonSource[]) ?? [],
+                    recommended_primary_source: (parsed['recommended_primary_source'] as LessonSource | null) ?? null,
+                  }
+                  // Emit sources event — signals completion to the client
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`))
+                } else if (lineType != null) {
+                  // Section event — guard for resume duplicates
+                  const section = parsed as unknown as LessonSectionType
+                  const alreadyHave = completedSections.some((s) => s.id === section.id)
+                  if (!alreadyHave) {
+                    completedSections.push(section)
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify(section)}\n\n`),
+                    )
+                  }
+                }
               }
             }
 
-            // ── 7e. All models failed — emit terminal error event ────────────
-            if (!succeeded) {
+            // ── 7d. Run the model chain (streaming) via the shared helper ────
+            try {
+              const { model, usage } = await runModelWithFallback({
+                env,
+                modelChain,
+                messages,
+                reasoningEffort: tier.reasoningEffort,
+                modelTimeoutMs: 120_000, // 2 minutes per model attempt
+                handlers: { onTextDelta },
+                onFallback: (previousModel, model) => {
+                  console.log(
+                    JSON.stringify({
+                      event: 'model.fallback_triggered',
+                      user_id: userId,
+                      journey_id: journeyId,
+                      waypoint_id: waypointId,
+                      original_model: previousModel,
+                      fallback_model: model,
+                    }),
+                  )
+                  resetPerModelState()
+                },
+              })
+
+              // ── 7e. Persist to D1 (fire-and-forget, non-blocking) ──────────
+              const durationMs = Date.now() - startTime
+              const contentJson = JSON.stringify(completedSections)
+              const sourcesJson = JSON.stringify(sourcesPayload)
+              const { costUsd } = computeCost(usage, tier)
+
+              Promise.all([
+                upsertLesson(env.DB, waypointId, lessonId, contentJson, sourcesJson),
+                recordUsage(env.DB, {
+                  userId,
+                  journeyId,
+                  model,
+                  type: 'lesson',
+                  usage,
+                  costUsd,
+                  durationMs,
+                }),
+              ]).catch((err) => {
+                console.error('[lesson-sse] background D1 write failed:', err)
+              })
+
+              console.log(
+                JSON.stringify({
+                  event: 'generation.completed',
+                  user_id: userId,
+                  journey_id: journeyId,
+                  waypoint_id: waypointId,
+                  model,
+                  generation_type: 'lesson',
+                  prompt_tokens: usage.prompt_tokens,
+                  completion_tokens: usage.completion_tokens,
+                  cost_usd: costUsd,
+                  duration_ms: durationMs,
+                  outcome: 'success',
+                }),
+              )
+            } catch (err) {
+              // ── 7f. All models failed — emit terminal error event ──────────
               // Use a generic client-facing message; log the actual error server-side.
               const clientMsg = 'Lesson generation failed. Please try again.'
-              if (lastError instanceof Error) {
-                console.error('[lesson-sse] all models failed:', lastError.message)
+              if (err instanceof Error) {
+                console.error('[lesson-sse] all models failed:', err.message)
               }
               controller.enqueue(
                 encoder.encode(
@@ -351,7 +313,7 @@ export const Route = createFileRoute('/api/journey/$journeyId/lesson')({
                   model: modelChain[modelChain.length - 1],
                   generation_type: 'lesson',
                   outcome: 'failure',
-                  error_code: lastError instanceof Error ? lastError.message : 'unknown',
+                  error_code: err instanceof Error ? err.message : 'unknown',
                 }),
               )
             }

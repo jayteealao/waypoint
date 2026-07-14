@@ -186,8 +186,9 @@ describe('AI gateway', () => {
     })
 
     // Regression guard: the OpenRouter adapter streams text as
-    // TEXT_MESSAGE_CONTENT, not TEXT_DELTA. If drainStream matches the wrong
-    // event name, text is silently undefined and every generation breaks.
+    // TEXT_MESSAGE_CONTENT, not TEXT_DELTA. If the shared model-stream helper
+    // matches the wrong event name, text is silently undefined and every
+    // generation breaks.
     expect(result.text).toBe('What do you want to build?')
     expect(result.usage.promptTokens).toBe(10)
     expect(result.usage.completionTokens).toBe(20)
@@ -283,36 +284,12 @@ describe('AI gateway', () => {
       userId: 'user-123',
       type: 'roadmap',
       messages: [{ role: 'user', content: 'Plan a course' }],
-      responseFormat: { type: 'json_object' },
     })
 
     // Roadmap leaves reasoningEffort unset so grok-4.5's mandatory default applies —
     // the gateway must emit NO reasoning/modelOptions.reasoning field.
     const chatArg = vi.mocked(chat).mock.calls[0]?.[0] as Record<string, any>
     expect(chatArg?.modelOptions?.reasoning).toBeUndefined()
-  })
-
-  // ── Discriminated union / call-shape invariant ─────────────────────────
-
-  test('structured+tool-call invariant: throws TypeError when both tools and responseFormat provided', async () => {
-    const db = makeMockDb({ quotaUsed: 0 })
-    const env = makeEnv(db)
-
-    await expect(
-      callGateway({
-        env,
-        userId: 'user-123',
-        type: 'interview',
-        messages: [{ role: 'user', content: 'test' }],
-        tools: [{ name: 'echo_tool', description: 'echoes' }],
-        // Force both at runtime — TypeScript union prevents this at compile time.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        responseFormat: { type: 'json_object' } as any,
-      }),
-    ).rejects.toThrow(TypeError)
-
-    // No adapter or quota call should have been made.
-    expect(vi.mocked(createOpenRouterText)).not.toHaveBeenCalled()
   })
 
   // ── Fallback chain exhaustion ──────────────────────────────────────────
@@ -385,5 +362,39 @@ describe('AI gateway', () => {
     })
     const recomputeSignal = signals.find((s) => s?.event === 'generation.cost_recomputed')
     expect(recomputeSignal).toBeDefined()
+  })
+
+  // ── F9 no-regress: buffered path via the shared model-stream helper ──────
+
+  test('shared helper (F9): buffered gateway still returns text and records one usage row', async () => {
+    const insertArgs: unknown[] = []
+    let insertCount = 0
+    const db = makeMockDb({
+      quotaUsed: 0,
+      onInsert: (args) => {
+        insertCount++
+        insertArgs.push(...args)
+      },
+    })
+    const env = makeEnv(db)
+
+    vi.mocked(chat).mockReturnValueOnce(
+      makeSuccessStream({ text: 'A recursive function calls itself.', totalCost: 0.002 }) as any,
+    )
+
+    const result = await callGateway({
+      env,
+      userId: 'user-123',
+      type: 'lesson',
+      messages: [{ role: 'user', content: 'Teach me recursion' }],
+    })
+
+    // Text still drains through the shared helper's onTextDelta seam.
+    expect(result.text).toBe('A recursive function calls itself.')
+    // Exactly one usage_events row is written by recordUsage (no double metering).
+    expect(insertCount).toBe(1)
+    expect(insertArgs[4]).toBe('lesson') // type column
+    expect(insertArgs[7]).toBe(0.002) // cost_usd from total_cost
+    expect(result.usage.model).toBe(TIERS.lesson.primaryModel)
   })
 })

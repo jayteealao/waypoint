@@ -3,7 +3,6 @@
  *
  * This module is the single source of truth for:
  *  - TypeScript interfaces for model responses (QuizQuestionOutput, GradingOutput)
- *  - JSON Schema objects passed to callGateway as responseFormat
  *  - Pure validation functions (validateQuizQuestion, validateGrading)
  *  - MC equal-length lint gate (word count within 10% tolerance)
  *  - Prompt builder functions (buildQuizPrompt, buildGradingPrompt)
@@ -35,42 +34,6 @@ export interface GradingOutput {
   verdict: 'correct' | 'incorrect' | 'partial'
   score: 0 | 1 | 2
   feedback: string
-}
-
-// ─── JSON Schemas (passed to callGateway responseFormat) ─────────────────────
-
-/** JSON Schema for quiz question generation — used as callGateway responseFormat. */
-export const QUIZ_QUESTION_JSON_SCHEMA: Record<string, unknown> = {
-  type: 'object',
-  required: ['type', 'question', 'options', 'correct_answer', 'concept_tag', 'explanations'],
-  properties: {
-    type: { type: 'string', enum: ['mc', 'frq'] },
-    question: { type: 'string', minLength: 10 },
-    options: {
-      type: 'array',
-      items: { type: 'string' },
-    },
-    correct_answer: { type: ['string', 'null'] },
-    concept_tag: { type: 'string', minLength: 1 },
-    explanations: {
-      type: 'object',
-      additionalProperties: { type: 'string' },
-    },
-    rubric: { type: ['string', 'null'] },
-  },
-  additionalProperties: false,
-}
-
-/** JSON Schema for grading responses — used as callGateway responseFormat. */
-export const GRADING_JSON_SCHEMA: Record<string, unknown> = {
-  type: 'object',
-  required: ['verdict', 'score', 'feedback'],
-  properties: {
-    verdict: { type: 'string', enum: ['correct', 'incorrect', 'partial'] },
-    score: { type: 'integer', enum: [0, 1, 2] },
-    feedback: { type: 'string', minLength: 1 },
-  },
-  additionalProperties: false,
 }
 
 // ─── MC equal-length lint ─────────────────────────────────────────────────────

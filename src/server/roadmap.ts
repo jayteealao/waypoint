@@ -2,9 +2,9 @@
  * Roadmap generation server function — roadmap-lesson-generation slice.
  *
  * Reads the completed interview record, calls callGateway with the roadmap tier
- * (structured output via responseFormat), validates the model's JSON array,
- * and inserts waypoints atomically via D1 batch. On malformed JSON, one re-ask
- * is sent before throwing GenerationError.
+ * (JSON comes from the system prompt), validates the model's JSON array, and
+ * inserts waypoints atomically via D1 batch. On malformed JSON, one re-ask is
+ * sent before throwing GenerationError.
  *
  * Returns { firstWaypointId } so the interview route can navigate directly.
  *
@@ -18,7 +18,6 @@ import { requireAuth, requireOwnership } from '#/lib/auth-guard'
 import { callGateway } from '#/lib/ai/gateway'
 import { ROADMAP_SYSTEM_PROMPT } from '#/lib/interview/prompts'
 import {
-  WAYPOINT_JSON_SCHEMA,
   validateRoadmap,
   buildRoadmapPrompt,
   GenerationError,
@@ -203,7 +202,6 @@ async function attemptRoadmapCall(
     journeyId,
     type: 'roadmap',
     messages,
-    responseFormat: WAYPOINT_JSON_SCHEMA,
   })
 
   const text = response.text ?? ''
