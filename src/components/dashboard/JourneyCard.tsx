@@ -1,6 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import type { Journey } from "#/db/schema";
 import { Meter } from "../ui/Meter";
-import { Button } from "../ui/Button";
 import { ArrowRight } from "lucide-react";
 
 export interface JourneyCardProps {
@@ -52,10 +52,15 @@ export function JourneyCard({ journey, masteryPct = 0 }: JourneyCardProps) {
           {formatRelativeTime(journey.updated_at)}
         </time>
 
-        <Button variant="secondary" size="sm" aria-label={`Continue ${journey.title}`}>
+        <Link
+          to="/journey/$journeyId/progress"
+          params={{ journeyId: journey.id }}
+          className="btn-base btn-secondary btn-sm"
+          aria-label={`Continue ${journey.title}`}
+        >
           Continue
           <ArrowRight size={14} aria-hidden="true" />
-        </Button>
+        </Link>
       </div>
     </article>
   );

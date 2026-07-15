@@ -5,12 +5,12 @@ slug: waypoint-app
 status: in-progress
 stage-number: 5
 created-at: "2026-07-11T00:40:00Z"
-updated-at: "2026-07-14T23:08:05Z"
-slices-implemented: 23
-slices-total: 23
-metric-total-files-changed: 411
-metric-total-lines-added: 39103
-metric-total-lines-removed: 9071
+updated-at: "2026-07-15T21:30:02Z"
+slices-implemented: 24
+slices-total: 24
+metric-total-files-changed: 412
+metric-total-lines-added: 39111
+metric-total-lines-removed: 9074
 tags: [bootstrap, ci, supply-chain, greenfield, de-risking, workerd, tanstack-ai, d1, better-auth, auth, schema, tanstack-db, isolation, oauth, design-system, tokens, app-shell, oklch, responsive, dashboard, lesson-rendering, widget-registry, sanitization, progressive-rendering, trust-model, ai-gateway, quotas, model-tiering, fallback, instrumentation, cost-attribution, adaptation, progress-surfaces, mastery, streaks, fsrs, responsive-sweep, source-grounding, url-fetch, citations, prompt-injection, workers-runtime, model-refresh, reasoning-effort, openrouter, dead-code, streaming, metering, refactor]
 refs:
   index: 00-index.md
@@ -22,6 +22,10 @@ next-invocation: "/wf verify waypoint-app tutor-interview-ac-ti1-fix"
 # Implement Index
 
 ## Cross-Slice Integration Notes
+
+- **fix-continue-button (compressed fix slice)** — the dashboard journey card's "Continue" CTA
+  now navigates to `/journey/$journeyId/progress` (was a dead `<Button>`). Touches only
+  `src/components/dashboard/JourneyCard.tsx`; no conflict with other slices. Verify pending.
 
 - **Foundation is committed** — `src/` directory structure, `vite.config.ts`, exact-pinned
   `package.json`, and `wrangler.jsonc` are the baseline all subsequent slices build on.

@@ -5,8 +5,8 @@ slug: waypoint-app
 status: complete
 stage-number: 3
 created-at: "2026-07-10T22:43:12Z"
-updated-at: "2026-07-10T22:43:12Z"
-total-slices: 12
+updated-at: "2026-07-15T21:23:44Z"
+total-slices: 13
 best-first-slice: foundation
 tags: [greenfield, tanstack, ai-teaching, cloudflare-only, local-first, fsrs]
 slices:
@@ -58,6 +58,10 @@ slices:
     status: defined
     complexity: m
     depends-on: [tutor-interview, roadmap-lesson-generation]
+  - slug: fix-continue-button
+    status: defined
+    slice-type: fix
+    compressed: true
 refs:
   index: 00-index.md
   shape: 02-shape.md
