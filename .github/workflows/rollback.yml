@@ -8,15 +8,15 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to roll back'
+        description: "Environment to roll back"
         required: true
         type: choice
         options: [staging, production]
       version-id:
-        description: 'Cloudflare version ID to roll back to (blank = previous version)'
+        description: "Cloudflare version ID to roll back to (blank = previous version)"
         required: false
       reason:
-        description: 'Reason for rollback'
+        description: "Reason for rollback"
         required: true
 
 permissions:
@@ -32,14 +32,12 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: "22"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
