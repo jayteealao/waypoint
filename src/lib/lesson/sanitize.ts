@@ -3,8 +3,8 @@
  *
  * DOMPurify requires a browser DOM context. This module:
  *   1. Detects the SSR/Worker context (no `document`) and falls back to
- *      `escapeHtml` (plain tag-strip) — prose renders as plain text until
- *      hydration re-sanitizes.
+ *      `escapeHtml` (HTML-entity escaping) — prose renders as inert escaped
+ *      text until hydration re-sanitizes.
  *   2. Dynamically imports DOMPurify so it is never bundled into the Worker
  *      SSR path. The browser-side import is kicked off eagerly on module load.
  *   3. Exposes `sanitizerReady` — a Promise tests (and eager-init callers) can
@@ -26,15 +26,22 @@ const SANITIZE_CONFIG = {
 } as const;
 
 /**
- * Strip all HTML tags — used as SSR-safe fallback when DOMPurify is not
- * available. Prose displays as plain text; hydration upgrades to DOMPurify.
- * Does NOT preserve any markup — it is NOT a sanitizer, only an SSR guard.
+ * HTML-escape a string — used as SSR-safe fallback when DOMPurify is not
+ * available. Escaping (rather than stripping tags) renders any markup as
+ * inert visible text, so the output is genuinely safe to place in
+ * `dangerouslySetInnerHTML` even before DOMPurify upgrades on the client.
+ * Prose displays as plain (escaped) text; hydration upgrades to DOMPurify.
  *
  * Exported so ProseSection can use it as a stable initial value that always
  * matches what the SSR render produces (avoiding React 19 hydration mismatches).
  */
 export function escapeHtml(s: string): string {
-  return s.replace(/<[^>]*>/g, "");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ─── Lazy DOMPurify singleton ─────────────────────────────────────────────────
