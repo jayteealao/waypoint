@@ -14,7 +14,7 @@ metric-lines-added: 8
 metric-lines-removed: 3
 metric-deviations-from-plan: 0
 metric-review-fixes-applied: 0
-commit-sha: ""
+commit-sha: "8604e83"
 tags: [dashboard, navigation, journey-card]
 refs:
   index: 00-index.md

@@ -7,7 +7,7 @@ status: active
 current-stage: implement
 stage-number: 5
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-15T21:30:02Z"
+updated-at: "2026-07-15T21:59:33Z"
 selected-slice: "tutor-interview-ac-ti1-fix"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
@@ -235,6 +235,8 @@ workflow-files:
   - 03-slice-cloudflare-ai-gateway.md
   - 03-slice-fix-continue-button.md
   - 05-implement-fix-continue-button.md
+  - 06-verify-fix-continue-button.md
+  - src/components/dashboard/JourneyCard.test.ts
   - skip-slice-cloudflare-ai-gateway.md
   - 04-plan.md
   - 04-plan-health-endpoint.md
