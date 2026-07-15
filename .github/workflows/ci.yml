@@ -12,6 +12,10 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # OSV-Scanner uploads advisory SARIF to code scanning
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,8 +75,19 @@ jobs:
       - name: End-to-end tests
         run: pnpm test:e2e --project=chromium
 
-      - name: Supply-chain audit
-        run: pnpm audit --audit-level=high
+      # Advisory supply-chain scan (OSV-Scanner, maintained). Non-blocking:
+      # fail-on-vuln:false keeps a found vulnerability off the merge gate, and
+      # continue-on-error guarantees the step never fails CI. Replaces `pnpm audit`,
+      # whose npm quick-audit endpoint was retired (HTTP 410). Findings surface in
+      # the Actions log and the code-scanning Security tab.
+      - name: Supply-chain audit (advisory)
+        continue-on-error: true
+        uses: google/osv-scanner-action@v2.3.8
+        with:
+          scan-args: |-
+            --recursive
+            ./
+          fail-on-vuln: false
 
       - name: Pin-check (no floating ranges in package.json)
         run: |
