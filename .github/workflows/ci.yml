@@ -50,6 +50,24 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
+      # Placeholder runtime secrets for the local `vite dev`/miniflare app the E2E
+      # suite drives. /health does a presence-only check (never validates values),
+      # so placeholders make the all-present path reachable in CI. BETTER_AUTH_SECRET
+      # is intentionally NOT exported to the test runner's env, so the seeded-session
+      # specs (which gate on process.env.BETTER_AUTH_SECRET) keep skipping as before.
+      - name: Provision E2E dev vars
+        run: |
+          cat > .dev.vars <<'EOF'
+          BETTER_AUTH_SECRET=e2e-ci-placeholder-secret-0000000000000000
+          BETTER_AUTH_API_KEY=e2e-ci-placeholder
+          OPENROUTER_API_KEY=e2e-ci-placeholder
+          BETTER_AUTH_BASE_URL=http://localhost:3000
+          GOOGLE_CLIENT_ID=e2e-ci-placeholder
+          GOOGLE_CLIENT_SECRET=e2e-ci-placeholder
+          GITHUB_CLIENT_ID=e2e-ci-placeholder
+          GITHUB_CLIENT_SECRET=e2e-ci-placeholder
+          EOF
+
       - name: End-to-end tests
         run: pnpm test:e2e --project=chromium
 
