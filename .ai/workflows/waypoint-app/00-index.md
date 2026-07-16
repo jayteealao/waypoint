@@ -4,11 +4,11 @@ type: index
 slug: waypoint-app
 title: "Waypoint — AI teaching app (web + mobile + desktop native + PWA) on TanStack"
 status: active
-current-stage: implement
-stage-number: 5
+current-stage: review
+stage-number: 7
 created-at: "2026-07-10T21:00:44Z"
-updated-at: "2026-07-15T21:59:33Z"
-selected-slice: "tutor-interview-ac-ti1-fix"
+updated-at: "2026-07-16T17:43:28Z"
+selected-slice: "fix-continue-button"
 branch-strategy: dedicated
 branch: "feat/waypoint-app"
 base-branch: "main"
@@ -194,8 +194,8 @@ stack:
     - {name: zread, hint: "Read external GitHub repo structure/files"}
     - {name: cloudflare-api, hint: "Cloudflare code-mode MCP (docs/spec/execute) — PO-confirmed for hosting needs"}
   user-confirmed: true
-next-command: wf-verify
-next-invocation: "/wf verify waypoint-app tutor-interview-ac-ti1-fix"
+next-command: wf-handoff
+next-invocation: "/wf handoff waypoint-app"
 augmentations:
   - type: instrument
     artifact: 04b-instrument.md
@@ -236,6 +236,12 @@ workflow-files:
   - 03-slice-fix-continue-button.md
   - 05-implement-fix-continue-button.md
   - 06-verify-fix-continue-button.md
+  - 07-review-fix-continue-button.md
+  - 07-review-fix-continue-button-correctness.md
+  - 07-review-fix-continue-button-security.md
+  - 07-review-fix-continue-button-code-simplification.md
+  - 07-review-fix-continue-button-frontend-accessibility.md
+  - 07-review-fix-continue-button-intent-fidelity.md
   - src/components/dashboard/JourneyCard.test.ts
   - skip-slice-cloudflare-ai-gateway.md
   - 04-plan.md
