@@ -7,6 +7,10 @@ export interface JourneyCardProps {
   journey: Journey;
   /** Overall mastery 0–100 from FSRS retrievability. Defaults to 0 before any quiz activity. */
   masteryPct?: number;
+  /** True once the journey has a generated roadmap (i.e. at least one waypoint).
+   *  False means the journey is still stuck at the interview stage — "Continue"
+   *  must resume the interview instead of landing on an empty progress shell (IF-1). */
+  hasRoadmap?: boolean;
 }
 
 function formatRelativeTime(ms: number): string {
@@ -27,7 +31,11 @@ function formatRelativeTime(ms: number): string {
  * The masteryPct prop is supplied by the dashboard loader (getProgressForDashboard).
  * Cards rendered before any quiz activity default to 0.
  */
-export function JourneyCard({ journey, masteryPct = 0 }: JourneyCardProps) {
+export function JourneyCard({ journey, masteryPct = 0, hasRoadmap = false }: JourneyCardProps) {
+  // IF-1: a journey abandoned mid-interview has no waypoints yet, so "Continue"
+  // must resume the interview rather than land on the empty /progress shell.
+  const continueTo = hasRoadmap ? "/journey/$journeyId/progress" : "/journey/$journeyId/interview";
+
   return (
     <article className="wp-journey-card" data-testid="journey-card" aria-label={journey.title}>
       {/* Journey title — Fraunces display serif */}
@@ -53,7 +61,7 @@ export function JourneyCard({ journey, masteryPct = 0 }: JourneyCardProps) {
         </time>
 
         <Link
-          to="/journey/$journeyId/progress"
+          to={continueTo}
           params={{ journeyId: journey.id }}
           className="btn-base btn-secondary btn-sm"
           aria-label={`Continue ${journey.title}`}

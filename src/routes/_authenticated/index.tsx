@@ -14,21 +14,21 @@ export const Route = createFileRoute("/_authenticated/")({
     // longer re-fetches on mount.
     const journeys = await listJourneys();
     const ids = journeys.map((j) => j.id);
-    const masteryByJourneyId = ids.length > 0 ? await getProgressForDashboard({ data: ids }) : {};
+    const journeySummaryById = ids.length > 0 ? await getProgressForDashboard({ data: ids }) : {};
     // userId flows from the typed root context (auth is guaranteed on
     // _authenticated routes) and namespaces the client collection (AC-DLU7).
     const userId = context.auth?.user.id ?? "";
-    return { journeys, masteryByJourneyId, userId };
+    return { journeys, journeySummaryById, userId };
   },
   component: IndexPage,
 });
 
 function IndexPage() {
-  const { journeys, masteryByJourneyId, userId } = Route.useLoaderData();
+  const { journeys, journeySummaryById, userId } = Route.useLoaderData();
   return (
     <JourneysDashboard
       journeys={journeys}
-      masteryByJourneyId={masteryByJourneyId}
+      journeySummaryById={journeySummaryById}
       userId={userId}
     />
   );

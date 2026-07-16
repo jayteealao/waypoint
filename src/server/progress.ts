@@ -182,49 +182,82 @@ export const getJourneyProgress = createServerFn()
 
 // ─── getProgressForDashboard ─────────────────────────────────────────────────
 
+/** Per-journey dashboard summary: mastery percentage plus roadmap-completeness signal. */
+export interface DashboardJourneySummary {
+  masteryPct: number;
+  /** True once the journey has a generated roadmap (i.e. at least one waypoint).
+   *  False means the journey is still stuck at the interview stage (IF-1). */
+  hasRoadmap: boolean;
+}
+
 /**
- * Return per-journey mastery percentage for the dashboard JourneyCard list.
+ * Return per-journey mastery percentage AND roadmap-completeness for the dashboard
+ * JourneyCard list, in one bulk round trip (no per-card query — F8/AC-DLU1).
  *
  * @param journeyIds  IDs of the journeys to query (typically the full user list).
- * @returns           Map of journeyId → masteryPct 0–100. Returns 0 for journeys
- *                    with no FSRS cards yet.
+ * @returns           Map of journeyId → { masteryPct, hasRoadmap }. masteryPct is 0
+ *                    for journeys with no FSRS cards yet; hasRoadmap is false for
+ *                    journeys with zero waypoints (still mid-interview).
  */
 export const getProgressForDashboard = createServerFn()
   .middleware([withSession])
   .validator((journeyIds: string[]) => journeyIds)
-  .handler(async ({ data: journeyIds, context }): Promise<Record<string, number>> => {
-    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
-    const userId = session.user.id;
-    const nowMs = Date.now();
+  .handler(
+    async ({ data: journeyIds, context }): Promise<Record<string, DashboardJourneySummary>> => {
+      const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+      const userId = session.user.id;
+      const nowMs = Date.now();
 
-    if (journeyIds.length === 0) return {};
+      if (journeyIds.length === 0) return {};
 
-    // Fetch all FSRS cards for this user across the requested journeys
-    const placeholders = journeyIds.map(() => "?").join(", ");
-    const result = await env.DB.prepare(
-      `SELECT c.journey_id, fc.*
-       FROM concept_fsrs_cards fc
-       JOIN concepts c ON c.id = fc.concept_id
-       WHERE fc.user_id = ? AND c.journey_id IN (${placeholders})`,
-    )
-      .bind(userId, ...journeyIds)
-      .all<ConceptFsrsCard & { journey_id: string }>();
+      const placeholders = journeyIds.map(() => "?").join(", ");
 
-    // Group by journey and average retrievability
-    const sumByJourney: Record<string, number> = {};
-    const countByJourney: Record<string, number> = {};
+      // Fetch mastery inputs (FSRS cards) and roadmap-completeness inputs (waypoint
+      // counts) in parallel — still one bulk pair of queries, not one per card.
+      const [fsrsResult, waypointCountResult] = await Promise.all([
+        env.DB.prepare(
+          `SELECT c.journey_id, fc.*
+         FROM concept_fsrs_cards fc
+         JOIN concepts c ON c.id = fc.concept_id
+         WHERE fc.user_id = ? AND c.journey_id IN (${placeholders})`,
+        )
+          .bind(userId, ...journeyIds)
+          .all<ConceptFsrsCard & { journey_id: string }>(),
 
-    for (const row of result.results) {
-      const r = computeRetrievability(row, nowMs);
-      sumByJourney[row.journey_id] = (sumByJourney[row.journey_id] ?? 0) + r;
-      countByJourney[row.journey_id] = (countByJourney[row.journey_id] ?? 0) + 1;
-    }
+        env.DB.prepare(
+          `SELECT journey_id, COUNT(*) AS cnt
+         FROM waypoints
+         WHERE journey_id IN (${placeholders})
+         GROUP BY journey_id`,
+        )
+          .bind(...journeyIds)
+          .all<{ journey_id: string; cnt: number }>(),
+      ]);
 
-    const out: Record<string, number> = {};
-    for (const id of journeyIds) {
-      const cnt = countByJourney[id] ?? 0;
-      out[id] = cnt > 0 ? Math.round((sumByJourney[id]! / cnt) * 100) : 0;
-    }
+      // Group by journey and average retrievability
+      const sumByJourney: Record<string, number> = {};
+      const countByJourney: Record<string, number> = {};
 
-    return out;
-  });
+      for (const row of fsrsResult.results) {
+        const r = computeRetrievability(row, nowMs);
+        sumByJourney[row.journey_id] = (sumByJourney[row.journey_id] ?? 0) + r;
+        countByJourney[row.journey_id] = (countByJourney[row.journey_id] ?? 0) + 1;
+      }
+
+      const waypointCountByJourney: Record<string, number> = {};
+      for (const row of waypointCountResult.results) {
+        waypointCountByJourney[row.journey_id] = row.cnt;
+      }
+
+      const out: Record<string, DashboardJourneySummary> = {};
+      for (const id of journeyIds) {
+        const cnt = countByJourney[id] ?? 0;
+        out[id] = {
+          masteryPct: cnt > 0 ? Math.round((sumByJourney[id]! / cnt) * 100) : 0,
+          hasRoadmap: (waypointCountByJourney[id] ?? 0) > 0,
+        };
+      }
+
+      return out;
+    },
+  );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import type { Journey } from "#/db/schema";
+import type { DashboardJourneySummary } from "#/server/progress";
 import { getJourneysCollection, useJourneys } from "#/lib/store/journeys";
 import { JourneyCard } from "./JourneyCard";
 import { Compass } from "lucide-react";
@@ -70,8 +71,8 @@ export interface JourneysDashboardProps {
   /** Journeys from the route loader (D1). Seeds the collection and is the SSR /
    *  first-paint render source so hydration matches the server exactly. */
   journeys: Journey[];
-  /** Per-journey mastery percentages (0–100) from the route loader. */
-  masteryByJourneyId?: Record<string, number>;
+  /** Per-journey mastery pct + roadmap-completeness (IF-1) from the route loader. */
+  journeySummaryById?: Record<string, DashboardJourneySummary>;
   /** Signed-in user id — namespaces the client collection (AC-DLU7). */
   userId: string;
 }
@@ -80,10 +81,10 @@ export interface JourneysDashboardProps {
  *  Safe to render on the server (no `useLiveQuery`/`useSyncExternalStore`). */
 function DashboardView({
   journeys,
-  masteryByJourneyId,
+  journeySummaryById,
 }: {
   journeys: Journey[];
-  masteryByJourneyId: Record<string, number>;
+  journeySummaryById: Record<string, DashboardJourneySummary>;
 }) {
   return (
     <section
@@ -106,7 +107,8 @@ function DashboardView({
             <JourneyCard
               key={journey.id}
               journey={journey}
-              masteryPct={masteryByJourneyId[journey.id] ?? 0}
+              masteryPct={journeySummaryById[journey.id]?.masteryPct ?? 0}
+              hasRoadmap={journeySummaryById[journey.id]?.hasRoadmap ?? false}
             />
           ))}
         </div>
@@ -123,11 +125,11 @@ function DashboardView({
  */
 function LiveJourneysDashboard({
   seed,
-  masteryByJourneyId,
+  journeySummaryById,
   userId,
 }: {
   seed: Journey[];
-  masteryByJourneyId: Record<string, number>;
+  journeySummaryById: Record<string, DashboardJourneySummary>;
   userId: string;
 }) {
   const navigate = useNavigate();
@@ -150,7 +152,7 @@ function LiveJourneysDashboard({
     void navigate({ to: "/sample" });
   }, [journeys.length, navigate]);
 
-  return <DashboardView journeys={journeys} masteryByJourneyId={masteryByJourneyId} />;
+  return <DashboardView journeys={journeys} journeySummaryById={journeySummaryById} />;
 }
 
 /**
@@ -166,7 +168,7 @@ function LiveJourneysDashboard({
  */
 export function JourneysDashboard({
   journeys: seed,
-  masteryByJourneyId = {},
+  journeySummaryById = {},
   userId,
 }: JourneysDashboardProps) {
   // Render loader data until hydrated so SSR and first client paint agree, and
@@ -177,10 +179,10 @@ export function JourneysDashboard({
   }, []);
 
   if (!hydrated) {
-    return <DashboardView journeys={seed} masteryByJourneyId={masteryByJourneyId} />;
+    return <DashboardView journeys={seed} journeySummaryById={journeySummaryById} />;
   }
 
   return (
-    <LiveJourneysDashboard seed={seed} masteryByJourneyId={masteryByJourneyId} userId={userId} />
+    <LiveJourneysDashboard seed={seed} journeySummaryById={journeySummaryById} userId={userId} />
   );
 }

@@ -14,7 +14,10 @@ import type { Journey } from "#/db/schema";
 
 // Regression guard for the fix-continue-button slice: the journey card's
 // "Continue" control was a dead <Button> with no handler/link. It must now be a
-// real anchor that navigates to the journey overview (/journey/$journeyId/progress).
+// real anchor that navigates to the journey overview (/journey/$journeyId/progress)
+// — or, when the journey has no roadmap yet (abandoned mid-interview, IF-1),
+// resumes the interview (/journey/$journeyId/interview) instead of landing on an
+// empty progress shell with no way back.
 //
 // Evidence rung: headless (real component + real TanStack Router in jsdom,
 // memory history). Drives the actual click → navigation, not a mock.
@@ -29,23 +32,29 @@ const journey: Journey = {
   updated_at: 1_700_000_000_000,
 };
 
-/** Build a minimal router that mounts JourneyCard at "/" and exposes the
- *  progress overview route the Continue link targets. */
-function renderInRouter() {
+/** Build a minimal router that mounts JourneyCard at "/" and exposes both
+ *  destinations the Continue link can target: the progress overview
+ *  (roadmap present) and the interview (roadmap not generated yet, IF-1). */
+function renderInRouter(hasRoadmap: boolean) {
   const rootRoute = createRootRoute({
     component: () => React.createElement(Outlet),
   });
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
-    component: () => React.createElement(JourneyCard, { journey }),
+    component: () => React.createElement(JourneyCard, { journey, hasRoadmap }),
   });
   const progressRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/journey/$journeyId/progress",
     component: () => React.createElement("div", { "data-testid": "progress-page" }, "Progress"),
   });
-  const routeTree = rootRoute.addChildren([indexRoute, progressRoute]);
+  const interviewRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/journey/$journeyId/interview",
+    component: () => React.createElement("div", { "data-testid": "interview-page" }, "Interview"),
+  });
+  const routeTree = rootRoute.addChildren([indexRoute, progressRoute, interviewRoute]);
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: ["/"] }),
@@ -56,8 +65,8 @@ function renderInRouter() {
 }
 
 describe("JourneyCard — Continue control", () => {
-  it("renders Continue as a real link to the journey overview", async () => {
-    renderInRouter();
+  it("renders Continue as a real link to the journey overview when a roadmap exists", async () => {
+    renderInRouter(true);
 
     const link = await screen.findByRole("link", { name: `Continue ${journey.title}` });
 
@@ -69,8 +78,8 @@ describe("JourneyCard — Continue control", () => {
     expect(link).toHaveClass("btn-base", "btn-secondary", "btn-sm");
   });
 
-  it("navigates to the journey overview when Continue is clicked", async () => {
-    const router = renderInRouter();
+  it("navigates to the journey overview when Continue is clicked and a roadmap exists", async () => {
+    const router = renderInRouter(true);
 
     const link = await screen.findByRole("link", { name: `Continue ${journey.title}` });
     fireEvent.click(link);
@@ -78,5 +87,26 @@ describe("JourneyCard — Continue control", () => {
     // AC-1: clicking Continue lands on /journey/<id>/progress.
     expect(await screen.findByTestId("progress-page")).toBeInTheDocument();
     expect(router.state.location.pathname).toBe(`/journey/${journey.id}/progress`);
+  });
+
+  it("targets the interview (not progress) when the journey has no roadmap yet", async () => {
+    renderInRouter(false);
+
+    const link = await screen.findByRole("link", { name: `Continue ${journey.title}` });
+
+    // IF-1: an abandoned mid-interview journey has zero waypoints, so Continue
+    // must resume the interview instead of landing on an empty progress shell.
+    expect(link.getAttribute("href")).toBe(`/journey/${journey.id}/interview`);
+    expect(link).toHaveClass("btn-base", "btn-secondary", "btn-sm");
+  });
+
+  it("navigates to the interview when Continue is clicked and no roadmap exists", async () => {
+    const router = renderInRouter(false);
+
+    const link = await screen.findByRole("link", { name: `Continue ${journey.title}` });
+    fireEvent.click(link);
+
+    expect(await screen.findByTestId("interview-page")).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe(`/journey/${journey.id}/interview`);
   });
 });
