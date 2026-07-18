@@ -1,3 +1,0 @@
-# managed by sdlc-workflow — render output and locks stay out of git
-_view/
-workflows/*/.locks/
