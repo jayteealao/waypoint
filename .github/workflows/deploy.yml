@@ -94,9 +94,15 @@ jobs:
       - name: Generate route types
         run: pnpm generate-routes
 
+      # @cloudflare/vite-plugin bakes the target environment into the generated
+      # dist/server/wrangler.json at BUILD time via CLOUDFLARE_ENV — `wrangler deploy
+      # --env` does NOT retarget it (the generated config is already flattened to a
+      # single env). So select the env with CLOUDFLARE_ENV before build, then deploy
+      # the pre-resolved config with a bare `wrangler deploy`.
       - name: Deploy (${{ env.DEPLOY_ENV }})
-        run: pnpm run build && pnpm exec wrangler deploy --env ${{ env.DEPLOY_ENV }}
+        run: pnpm run build && pnpm exec wrangler deploy
         env:
+          CLOUDFLARE_ENV: ${{ env.DEPLOY_ENV }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
