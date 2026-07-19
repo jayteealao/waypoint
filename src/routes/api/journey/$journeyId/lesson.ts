@@ -9,7 +9,14 @@
  * Resume: reads existing lesson sections from D1; emits them immediately if present.
  * Fallback: lesson tier (z-ai/glm-5.2 → google/gemini-3.5-flash). On all-fallbacks failure, emits
  *   {"type":"error","message":"..."} then closes.
- * D1 writes: fire-and-forget via ctx.waitUntil (non-blocking on the SSE stream).
+ * D1 writes: AWAITED before controller.close(). The ReadableStream start() fn keeps the Worker
+ *   request alive while the stream is open, so awaiting the writes there guarantees they land on a
+ *   real Worker. (A prior un-awaited Promise.all — despite the "ctx.waitUntil" claim — was killed at
+ *   request teardown, so lessons never persisted and usage was never metered; local isolates masked
+ *   it. This handler has no access to the execution context, so await-before-close is the fix.)
+ * Terminal event: a {"type":"sources",...} event is always emitted before close (synthesised if the
+ *   model never produced one) so the client's EventSource receives a clean completion and does not
+ *   read the server-side close as a dropped connection and auto-reconnect into a regeneration loop.
  *
  * NDJSON line format produced by LESSON_SYSTEM_PROMPT:
  *   Line 1:   {"type":"header","title":"...","summary":"..."}
@@ -164,6 +171,9 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               sources: [],
               recommended_primary_source: null,
             };
+            // Whether a terminal `sources` event has been sent to the client. If the
+            // model never emits one, step 7e synthesises it so the client always closes.
+            let sourcesEmitted = false;
             const resetPerModelState = () => {
               lineBuffer = "";
               completedSections = [...resumeSections];
@@ -216,6 +226,7 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                   };
                   // Emit sources event — signals completion to the client
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`));
+                  sourcesEmitted = true;
                 } else if (lineType != null) {
                   // Section event — guard for resume duplicates
                   const section = parsed as unknown as LessonSectionType;
@@ -252,26 +263,48 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 },
               });
 
-              // ── 7e. Persist to D1 (fire-and-forget, non-blocking) ──────────
+              // ── 7e. Guarantee a terminal completion event ───────────────────
+              // If the model finished without emitting a `sources` line, synthesise a
+              // terminal `sources` event so the client's EventSource always receives a
+              // clean completion and closes — otherwise it treats the server-side stream
+              // close as a dropped connection and auto-reconnects into a regeneration loop.
+              if (!sourcesEmitted) {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
+                  ),
+                );
+                sourcesEmitted = true;
+              }
+
+              // ── 7f. Persist to D1 + record usage — AWAITED before close ─────
+              // Awaiting keeps the Worker request alive until the writes land. The prior
+              // un-awaited Promise.all (no execution-context ctx.waitUntil is reachable
+              // from this handler) was terminated at request teardown on a real Worker,
+              // so lessons never persisted and lesson usage was never metered — silently
+              // breaking the no-unmetered-generation invariant. A write failure logs but
+              // does not fail the stream (the client already has the rendered content).
               const durationMs = Date.now() - startTime;
               const contentJson = JSON.stringify(completedSections);
               const sourcesJson = JSON.stringify(sourcesPayload);
               const { costUsd } = computeCost(usage, tier);
 
-              Promise.all([
-                upsertLesson(env.DB, waypointId, lessonId, contentJson, sourcesJson),
-                recordUsage(env.DB, {
-                  userId,
-                  journeyId,
-                  model,
-                  type: "lesson",
-                  usage,
-                  costUsd,
-                  durationMs,
-                }),
-              ]).catch((err) => {
-                console.error("[lesson-sse] background D1 write failed:", err);
-              });
+              try {
+                await Promise.all([
+                  upsertLesson(env.DB, waypointId, lessonId, contentJson, sourcesJson),
+                  recordUsage(env.DB, {
+                    userId,
+                    journeyId,
+                    model,
+                    type: "lesson",
+                    usage,
+                    costUsd,
+                    durationMs,
+                  }),
+                ]);
+              } catch (err) {
+                console.error("[lesson-sse] D1 persist/meter failed:", err);
+              }
 
               console.log(
                 JSON.stringify({
