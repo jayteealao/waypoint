@@ -69,7 +69,25 @@ export function LessonGeneratingView({
     const url = `/api/journey/${journeyId}/lesson?waypointId=${encodeURIComponent(waypointId)}`;
     const es = new EventSource(url);
 
+    // Bound total (re)connections per mount. EventSource auto-reconnects when the
+    // server closes the stream; each reconnect re-runs a full (paid) generation. The
+    // server now always emits a terminal `sources` event so the normal path opens once
+    // and closes cleanly — this cap is the backstop against a pathological reconnect
+    // loop (e.g. a stream that closes without a completion signal).
+    const MAX_OPENS = 3;
+    let openCount = 0;
+
     es.onopen = () => {
+      openCount += 1;
+      if (openCount > MAX_OPENS) {
+        es.close();
+        setReconnecting(false);
+        setDoc((prev) => ({
+          ...prev,
+          error: prev.error ?? "Lesson generation kept restarting. Please try again.",
+        }));
+        return;
+      }
       setReconnecting(false);
     };
 
