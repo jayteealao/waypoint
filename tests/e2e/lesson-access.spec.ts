@@ -214,34 +214,52 @@ test("cross-user lesson request is refused and leaves the victim's lesson untouc
   await ctx.dispose();
 });
 
-test("a learner can still read their own lesson (AC-P1 control)", async ({
-  playwright,
-  baseURL,
-}) => {
+test("a learner can still read their own lesson (AC-P1 control)", async ({ browser, baseURL }) => {
   test.skip(
     !E2E_AUTH_SECRET,
     "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
   );
 
   const cookie = await signSessionToken(ATTACKER.token, E2E_AUTH_SECRET);
-  const ctx = await playwright.request.newContext({
-    baseURL,
-    extraHTTPHeaders: { Cookie: `__Secure-better-auth.session_token=${cookie}` },
-  });
+  const ctx = await browser.newContext();
+  await ctx.addCookies([
+    {
+      name: "__Secure-better-auth.session_token",
+      value: cookie,
+      domain: new URL(baseURL!).hostname,
+      path: "/",
+      httpOnly: false,
+      secure: true,
+    },
+  ]);
+  const page = await ctx.newPage();
+  await page.goto("/sign-in");
 
   // (b) Same caller, same journey, their OWN waypoint. Proves the 404 above is the gate
   // doing its job rather than the route being broken for everyone.
-  const allowed = await ctx.get(
-    `/api/journey/${ATTACKER.journeyId}/lesson?waypointId=${ATTACKER.waypointId}`,
-  );
+  //
+  // Only the FIRST stream chunk is read, then the reader is cancelled. This endpoint keeps
+  // the stream open while it generates the rest of the lesson against the live model, so
+  // draining it to completion would tie this assertion's runtime to model latency — which is
+  // how it once timed out at 30 s in a full-suite run. The stored lesson is replayed before
+  // generation begins, so the owner's own content is in that first chunk.
+  const observed = await page.evaluate(async (url) => {
+    const res = await fetch(url);
+    const reader = res.body!.getReader();
+    const { value } = await reader.read();
+    await reader.cancel();
+    return {
+      status: res.status,
+      lessonId: res.headers.get("x-lesson-id"),
+      firstChunk: new TextDecoder().decode(value),
+    };
+  }, `/api/journey/${ATTACKER.journeyId}/lesson?waypointId=${ATTACKER.waypointId}`);
 
-  expect(allowed.status()).toBe(200);
-  expect(allowed.headers()["x-lesson-id"]).toBe(ATTACKER.lessonId);
-  // The stream replays the stored lesson before attempting generation, so the owner's own
-  // content comes back. (Generation itself fails fast against the placeholder API key.)
-  expect(await allowed.text()).toContain(ATTACKER.body);
+  expect(observed.status).toBe(200);
+  expect(observed.lessonId).toBe(ATTACKER.lessonId);
+  expect(observed.firstChunk).toContain(ATTACKER.body);
 
-  await ctx.dispose();
+  await ctx.close();
 });
 
 // AC-P7 — no secret required: this is the anonymous path.

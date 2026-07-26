@@ -112,7 +112,13 @@ const JOURNEYS = {
   scripted: "e2e-journey-ti-scripted",
   resume: "e2e-journey-ti-resume",
   decline: "e2e-journey-ti-decline",
+  hold: "e2e-journey-ti-hold",
 };
+
+// Mirrors COMPLETION_HOLD_MS in src/routes/_authenticated/journey/$journeyId/interview.tsx.
+// The card's visible lifetime used to equal one server round-trip, so a fast reply meant the
+// learner never saw the confirmation at all.
+const COMPLETION_HOLD_MS = 1000;
 
 const CONSENT_TURNS = [
   { role: "user", content: "My goal is: learn Rust for systems programming", stage: "consent" },
@@ -135,6 +141,18 @@ const RESUME_TURNS = [
     role: "assistant",
     content: "What specifically do you want to be able to build or do when you're done?",
     stage: "mission",
+  },
+];
+
+// One chip away from the end: the sources question is pending, so a single click
+// drives the interview to its terminal stage and starts the completion hold.
+const SOURCES_TURNS = [
+  ...RESUME_TURNS,
+  { role: "user", content: "That's my goal", stage: "mission" },
+  {
+    role: "assistant",
+    content: "Do you have any preferred learning resources or URLs to include?",
+    stage: "sources",
   },
 ];
 
@@ -172,6 +190,11 @@ test.beforeAll(() => {
     "consent",
     CONSENT_TURNS,
   );
+
+  // Completion-hold journey — seeded one chip away from the terminal stage so the hold
+  // can be timed from the click that ends the interview.
+  seedJourney(JOURNEYS.hold, USER_TI.id, "learn Rust for systems programming");
+  seedInterviewRecord("e2e-record-ti-hold", JOURNEYS.hold, USER_TI.id, "sources", SOURCES_TURNS);
 });
 
 // ---------------------------------------------------------------------------
@@ -349,6 +372,84 @@ test("AC-TI4: declining consent shows best-effort completion card", async ({
   // Completion card should show — the message confirms best-effort framing
   await expect(page.getByTestId("interview-complete-card")).toBeVisible({ timeout: 5000 });
   await expect(page.getByTestId("interview-complete-card")).toContainText("stated goal");
+
+  await ctx.close();
+});
+
+// ---------------------------------------------------------------------------
+// AC-P5: the completion confirmation is held long enough to be seen
+// ---------------------------------------------------------------------------
+
+/** Drive the pending sources question to the terminal stage and time the hold. */
+async function driveCompletionHold(browser: Browser, baseURL: string, journeyId: string) {
+  const ctx = await makeAuthContext(browser, baseURL);
+  const page = await ctx.newPage();
+
+  await page.goto(`/journey/${journeyId}/interview?mock=1`);
+  await expect(page.getByTestId("interview-view")).toBeVisible();
+  // Hydration barrier (same idiom as AC-TI3/AC-TI4): the devtools button only exists once
+  // client JS has booted. Clicking a chip on server-rendered markup is a silent no-op.
+  await expect(page.getByRole("button", { name: "Open TanStack Devtools" })).toBeVisible({
+    timeout: 15000,
+  });
+
+  const chip = page.getByRole("button", { name: "No preferred sources" });
+  await expect(chip).toBeVisible({ timeout: 10000 });
+
+  const clickedAt = Date.now();
+  await chip.click();
+
+  return { ctx, page, clickedAt };
+}
+
+test("AC-P5: completion card is held with a working indicator before the roadmap view", async ({
+  browser,
+  baseURL,
+}) => {
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
+
+  const { ctx, page, clickedAt } = await driveCompletionHold(browser, baseURL!, JOURNEYS.hold);
+
+  // The confirmation paints, and it carries the working affordance that makes the
+  // held beat read as progress rather than a stall.
+  // Generous: roadmap generation from an earlier drive can still be occupying the dev
+  // server, and this assertion is about what renders, not how fast the turn returns.
+  await expect(page.getByTestId("interview-complete-card")).toBeVisible({ timeout: 45000 });
+  const cardShownAt = Date.now();
+  await expect(page.getByTestId("interview-complete-working")).toBeVisible();
+  await expect(page.getByTestId("interview-complete-working")).toContainText(
+    "Preparing your roadmap",
+  );
+
+  // Motion is gated behind prefers-reduced-motion: no-preference. Under `reduce` the
+  // spin stops but the affordance must stay — a suppressed animation must not take the
+  // status line with it. Emulated in-page so this costs no second interview run.
+  const spinnerAnimation = () =>
+    page
+      .locator(".wp-interview-complete-working__spinner")
+      .evaluate((el) => getComputedStyle(el).animationName);
+
+  expect(await spinnerAnimation()).not.toBe("none");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await spinnerAnimation()).toBe("none");
+  await expect(page.getByTestId("interview-complete-working")).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // It must still be on screen as the hold expires — server latency no longer decides
+  // whether the learner ever sees it. Measured from the card, not from the click: the
+  // defect was a card whose whole visible life was one server round-trip (~3 ms).
+  const remaining = COMPLETION_HOLD_MS - 200 - (Date.now() - cardShownAt);
+  if (remaining > 0) await page.waitForTimeout(remaining);
+  await expect(page.getByTestId("interview-complete-card")).toBeVisible();
+  await expect(page.getByTestId("roadmap-pending-card")).toBeHidden();
+
+  // ...and only then does the roadmap view take over.
+  await expect(page.getByTestId("roadmap-pending-card")).toBeVisible({ timeout: 30000 });
+  expect(Date.now() - clickedAt).toBeGreaterThanOrEqual(COMPLETION_HOLD_MS);
+  expect(Date.now() - cardShownAt).toBeGreaterThanOrEqual(COMPLETION_HOLD_MS - 200);
 
   await ctx.close();
 });

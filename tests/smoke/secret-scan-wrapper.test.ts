@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { tmpdir } from "node:os";
 // @ts-expect-error — .mjs script has no type declarations; it is plain ESM JS.
 // sdlc-debt: untyped local script import; upgrade path is a .d.ts alongside secret-scan.mjs if it grows a public API.
 import { secretScan } from "../../scripts/secret-scan.mjs";
@@ -10,10 +11,18 @@ const wrapperPath = resolve(fileURLToPath(import.meta.url), "../../../scripts/se
 
 describe("secret-scan wrapper resilience", () => {
   // AC-GLR1 — absent gitleaks binary → commit-time step succeeds with a visible skip warning.
-  // gitleaks is genuinely absent in this environment, so spawning the real wrapper exercises
-  // the true degrade path end-to-end (not a mock).
+  // Spawning the real wrapper exercises the true degrade path end-to-end (not a mock). The
+  // absence is *forced* rather than assumed: the child gets a PATH that resolves nothing, so
+  // `spawn("gitleaks", …)` raises ENOENT on every machine. The original assumption ("gitleaks
+  // is genuinely absent in this environment") made the test pass or fail based on what the
+  // developer happened to have installed — on a machine with gitleaks the wrapper really
+  // scanned and the skip warning never appeared.
   it("AC-GLR1: real spawn exits 0 with a skip warning when gitleaks is absent", () => {
-    const r = spawnSync("node", [wrapperPath], { encoding: "utf8" });
+    const noBinaries = resolve(tmpdir(), "waypoint-secret-scan-no-path");
+    const r = spawnSync(process.execPath, [wrapperPath], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: noBinaries, Path: noBinaries },
+    });
     expect(r.status).toBe(0);
     expect(r.stderr).toMatch(/not installed|skipping/i);
   });
