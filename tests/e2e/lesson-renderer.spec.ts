@@ -113,7 +113,10 @@ for (const vp of VIEWPORTS) {
     browser,
     baseURL,
   }) => {
-    test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+    test.skip(
+      !E2E_AUTH_SECRET,
+      "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+    );
 
     const ctx = await makeAuthContext(browser, baseURL!);
     const page = await ctx.newPage();
@@ -149,7 +152,10 @@ test("AC-LR2: checkpoint records answer and flipcard toggles flipped class", asy
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
@@ -206,7 +212,10 @@ test("AC-LR3: progressive rendering shows skeletons first then fills sections", 
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();

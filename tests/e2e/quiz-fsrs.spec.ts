@@ -204,7 +204,10 @@ test("AC-7: quiz walkthrough — MC answer, FRQ grading state, verdict display",
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!, USER.token);
   const page = await ctx.newPage();
@@ -298,7 +301,10 @@ test("Quiz gibberish/empty: verdict=incorrect, gentle feedback, single grading c
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!, USER.token);
   const page = await ctx.newPage();

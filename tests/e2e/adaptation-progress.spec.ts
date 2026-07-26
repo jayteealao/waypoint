@@ -251,7 +251,10 @@ test("AC-10: progress surfaces — streak, due count, pass rate, roadmap, quiz h
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!, USER.token);
   const page = await ctx.newPage();
@@ -291,7 +294,10 @@ test("AC-9 (empty state): fresh journey shows progress-empty, roadmap still visi
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   // Seed a fresh journey with no quiz attempts for this user
   const freshJourneyId = "e2e-ap-fresh-journey";
@@ -333,7 +339,10 @@ test("AC-9 (adapt-accept): adaptation card appears for weak quiz, accept navigat
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   // Seed a fresh user-session pair to avoid interference from seeded adaptation in main user
   const weakUser = {
@@ -458,7 +467,10 @@ test("AC-9 (adapt-decline): decline removes adapt card and proceeds normally", a
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   // Same seeded weak-quiz user (re-use if adaptation was declined or re-seed)
   const weakUser = {
@@ -556,7 +568,10 @@ test("AC-13: multiple journeys show independent mastery on dashboard", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!, USER.token);
   const page = await ctx.newPage();
@@ -609,7 +624,10 @@ test("AC-14: responsive sweep — 5 screens × 3 widths, no horizontal overflow"
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   for (const width of WIDTHS) {
     const ctx = await makeAuthContext(browser, baseURL!, USER.token);

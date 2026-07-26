@@ -52,9 +52,10 @@ jobs:
 
       # Placeholder runtime secrets for the local `vite dev`/miniflare app the E2E
       # suite drives. /health does a presence-only check (never validates values),
-      # so placeholders make the all-present path reachable in CI. BETTER_AUTH_SECRET
-      # is intentionally NOT exported to the test runner's env, so the seeded-session
-      # specs (which gate on process.env.BETTER_AUTH_SECRET) keep skipping as before.
+      # so placeholders make the all-present path reachable in CI. The Playwright config
+      # now loads this same file into the test runner's environment, so the seeded-session
+      # specs run here instead of skipping — the app and the runner sign session cookies
+      # with the identical secret because both read it from this file.
       - name: Provision E2E dev vars
         run: |
           cat > .dev.vars <<'EOF'
@@ -67,6 +68,13 @@ jobs:
           GITHUB_CLIENT_ID=e2e-ci-placeholder
           GITHUB_CLIENT_SECRET=e2e-ci-placeholder
           EOF
+
+      # The seeded-session specs insert users, journeys and waypoints into local D1 via
+      # `wrangler d1 execute waypoint-dev --local`. Nothing else in this workflow creates
+      # those tables (the dev server does not migrate on boot), so without this step every
+      # newly-running spec fails on a missing table rather than on its own behaviour.
+      - name: Apply D1 migrations (local)
+        run: pnpm exec wrangler d1 migrations apply waypoint-dev --local
 
       - name: End-to-end tests
         run: pnpm test:e2e --project=chromium

@@ -194,7 +194,10 @@ test("AC-SG-citation: lesson fixture renders citation section with source URL", 
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
@@ -233,7 +236,10 @@ test("AC-SG-fetch-failure: unfetchable URL is acknowledged in interview with fai
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();

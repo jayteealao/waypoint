@@ -4,7 +4,15 @@
  * Streams a lesson as Server-Sent Events (SSE) with NDJSON-parsed section events.
  * Each SSE event carries one NDJSON line from the model (header, section, sources, error).
  *
- * Auth: requireAuth(env, request) — 401 if unauthenticated.
+ * Auth: requireAuth(env, request) — 401 if unauthenticated. Authentication runs BEFORE
+ *   parameter validation so an anonymous caller cannot learn the endpoint's parameter
+ *   contract or tell malformed from unauthorized.
+ * Ownership: the caller must own the journey (403 otherwise) AND the requested waypoint must
+ *   belong to that journey (resolveOwnedWaypoint). A waypoint the caller does not own answers
+ *   404 — indistinguishable from not-found, so the endpoint cannot be used to probe which
+ *   waypoint ids exist. Every denial emits a server-side lesson.access_denied log. This gate
+ *   sits above every lesson read AND above the upsert, so a foreign waypoint id can neither
+ *   disclose nor overwrite another user's lesson.
  * Quota: checkQuota(env.DB, userId, 'lesson') — emits quota.rejected if over limit.
  * Resume: reads existing lesson sections from D1; emits them immediately if present.
  * Fallback: lesson tier (z-ai/glm-5.2 → google/gemini-3.5-flash). On all-fallbacks failure, emits
@@ -36,6 +44,7 @@ import { runModelWithFallback, computeCost, recordUsage } from "#/lib/ai/model-s
 import { LESSON_SYSTEM_PROMPT, buildSourceMaterialBlock } from "#/lib/interview/prompts";
 import type { SourceContent } from "#/lib/source-fetch";
 import { upsertLesson } from "#/server/lessons";
+import { resolveOwnedWaypoint } from "#/server/lesson-access";
 import type { LessonSection as LessonSectionType, LessonSource } from "#/types/lesson-document";
 
 export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
@@ -50,11 +59,9 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
         const journeyId = pathParts[3] ?? "";
         const waypointId = url.searchParams.get("waypointId") ?? "";
 
-        if (!journeyId || !waypointId) {
-          return new Response("Missing journeyId or waypointId", { status: 400 });
-        }
-
         // ── 2. Auth ──────────────────────────────────────────────────────────
+        // Before parameter validation: an anonymous caller gets 401, never a 400 that
+        // would spell out the parameter contract.
         let session: Awaited<ReturnType<typeof requireAuth>>;
         try {
           session = await requireAuth(env, request);
@@ -63,12 +70,23 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
         }
         const userId = session.user.id;
 
+        if (!journeyId || !waypointId) {
+          return new Response("Missing journeyId or waypointId", { status: 400 });
+        }
+
         // ── 2b. Verify journey ownership ──────────────────────────────────────
         const journeyRow = await env.DB.prepare("SELECT user_id FROM journeys WHERE id = ?")
           .bind(journeyId)
           .first<{ user_id: string }>();
         if (!journeyRow) return new Response(null, { status: 404 });
         if (journeyRow.user_id !== userId) return new Response(null, { status: 403 });
+
+        // ── 2c. Verify waypoint ownership ────────────────────────────────────
+        // Owning the journey is not owning the waypoint. Everything below reads or writes
+        // by waypoint id, so this gate has to clear before any of it runs. Doubles as the
+        // waypoint-context fetch the prompt needs — one query, not two.
+        const waypoint = await resolveOwnedWaypoint(env.DB, { waypointId, journeyId, userId });
+        if (!waypoint) return new Response(null, { status: 404 });
 
         // ── 3. Quota check ───────────────────────────────────────────────────
         const quotaStatus = await checkQuota(env.DB, userId, "lesson");
@@ -96,15 +114,10 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
           }
         }
 
-        // ── 5. Read waypoint context for concept-tagging prompt ──────────────
-        const waypoint = await env.DB.prepare(
-          "SELECT title, goal, concepts FROM waypoints WHERE id = ? AND journey_id = ?",
-        )
-          .bind(waypointId, journeyId)
-          .first<{ title: string; goal: string | null; concepts: string }>();
-
+        // ── 5. Waypoint context for the concept-tagging prompt ───────────────
+        // Already resolved by the ownership gate at 2c — no second round-trip.
         let concepts: string[] = [];
-        if (waypoint?.concepts) {
+        if (waypoint.concepts) {
           try {
             concepts = JSON.parse(waypoint.concepts) as string[];
           } catch {
@@ -129,9 +142,7 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
         }
 
         // ── 6. Build system message with waypoint context ────────────────────
-        const waypointContext = waypoint
-          ? `\n\n## Waypoint context\nTitle: ${waypoint.title}\nGoal: ${waypoint.goal ?? "Not specified"}\nConcepts to cover: ${concepts.join(", ")}`
-          : "";
+        const waypointContext = `\n\n## Waypoint context\nTitle: ${waypoint.title}\nGoal: ${waypoint.goal ?? "Not specified"}\nConcepts to cover: ${concepts.join(", ")}`;
 
         // Append source grounding block when available (source-grounding slice)
         const groundingBlock =

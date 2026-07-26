@@ -1,5 +1,6 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { NotFound } from "./components/NotFound";
 import type { RouterContext } from "./routes/__root";
 
 export function getRouter() {
@@ -15,6 +16,11 @@ export function getRouter() {
     // collection cache — long enough to make intent-preload cheap, short enough
     // that a returning navigation still re-seeds collections from fresh D1.
     defaultPreloadStaleTime: 30_000,
+    // Unknown routes render the app's own 404 surface instead of the library's bare
+    // `Not Found` text. Router-level is enough: resolution runs route `notFoundComponent`
+    // → router `defaultNotFoundComponent` → the library default, so no root-route change
+    // is needed (node_modules/@tanstack/react-router/src/renderRouteNotFound.tsx).
+    defaultNotFoundComponent: NotFound,
   });
 
   return router;

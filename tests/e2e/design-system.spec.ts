@@ -125,7 +125,7 @@ test("drawer transition is suppressed under prefers-reduced-motion (AC-DSS5)", a
 }) => {
   test.skip(
     !E2E_AUTH_SECRET,
-    "Skipped: BETTER_AUTH_SECRET not set in .dev.vars (accepted into ADL deferral)",
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
   );
 
   const ctx = await makeAuthContext(browser, baseURL!);
@@ -187,7 +187,7 @@ for (const vp of VIEWPORTS) {
   }) => {
     test.skip(
       !E2E_AUTH_SECRET,
-      "Skipped: BETTER_AUTH_SECRET not set in .dev.vars (accepted into ADL deferral)",
+      "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
     );
 
     const ctx = await makeAuthContext(browser, baseURL!);
@@ -229,7 +229,7 @@ for (const vp of VIEWPORTS) {
 test("empty state shown for user with zero journeys (AC-DSS3)", async ({ browser, baseURL }) => {
   test.skip(
     !E2E_AUTH_SECRET,
-    "Skipped: BETTER_AUTH_SECRET not set in .dev.vars (accepted into ADL deferral)",
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
   );
 
   // Note: DSS_USER has no journeys seeded (only the user + session rows exist).
@@ -265,7 +265,7 @@ test("keyboard navigation: all interactive elements reachable with visible focus
 }) => {
   test.skip(
     !E2E_AUTH_SECRET,
-    "Skipped: BETTER_AUTH_SECRET not set in .dev.vars (accepted into ADL deferral)",
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
   );
 
   const ctx = await makeAuthContext(browser, baseURL!);
