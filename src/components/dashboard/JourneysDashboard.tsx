@@ -92,11 +92,23 @@ function DashboardView({
       data-testid="journeys-dashboard"
       aria-label="Your learning journeys"
     >
-      <header className="mb-6">
-        <h1 className="display-title m-0 text-2xl font-bold text-[var(--ink)]">Journeys</h1>
-        <p className="mt-1 text-sm text-[var(--ink-muted)]">
-          Pick up where you left off, or start something new.
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="display-title m-0 text-2xl font-bold text-[var(--ink)]">Journeys</h1>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">
+            Pick up where you left off, or start something new.
+          </p>
+        </div>
+        {journeys.length > 0 && (
+          <Link
+            to="/journey/new"
+            className="btn-base btn-primary btn-md inline-flex shrink-0 items-center gap-2"
+            data-testid="new-journey-cta"
+          >
+            <Compass size={16} aria-hidden="true" />
+            New journey
+          </Link>
+        )}
       </header>
 
       {journeys.length === 0 ? (

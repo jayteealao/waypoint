@@ -50,7 +50,9 @@ function JourneyLayout() {
     const mapped = journeyData.waypoints.map((wp) => ({
       id: wp.id,
       label: wp.title,
-      href: `/_authenticated/journey/${journeyId}/waypoint/${wp.id}`,
+      // `_authenticated` is a PATHLESS layout route — it must NOT appear in the URL.
+      // Including it produced a non-existent path, so waypoint nav links 404'd.
+      href: `/journey/${journeyId}/waypoint/${wp.id}`,
       completed: false, // completion tracking is a future slice (quiz-fsrs)
     }));
 
