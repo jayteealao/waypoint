@@ -10,7 +10,7 @@
  * falls back to an empty interview starting at 'consent'.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { InterviewStage, InterviewTurn, TurnResponse } from "#/types/interview";
 import { STAGE_CHIPS } from "#/types/interview";
@@ -28,6 +28,16 @@ import { RoadmapPendingCard } from "#/components/generation/RoadmapPendingCard";
 function validateSearch(raw: Record<string, unknown>): { mock?: boolean } {
   return { mock: parseMockFlag(raw["mock"]) ? true : undefined };
 }
+
+/**
+ * Minimum time the completion card stays on screen after the final answer.
+ *
+ * Without it the card's visible lifetime is one server round-trip: a fast reply swaps in
+ * the roadmap-pending view before the confirmation ever paints, and the learner goes
+ * straight from answering a question to "Building your roadmap…". Roadmap generation is
+ * started before the hold begins, so this overlaps the work rather than adding to it.
+ */
+const COMPLETION_HOLD_MS = 1000;
 
 export const Route = createFileRoute("/_authenticated/journey/$journeyId/interview")({
   validateSearch,
@@ -49,6 +59,17 @@ function InterviewPage() {
 
   const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // Completion-hold timer. Cleared on unmount so navigating away mid-hold cannot resume
+  // into setState on an unmounted component.
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountedRef = useRef(false);
+  useEffect(() => {
+    return () => {
+      unmountedRef.current = true;
+      if (holdTimerRef.current !== null) clearTimeout(holdTimerRef.current);
+    };
+  }, []);
 
   // Parse existing turns for resume hydration
   let initialTurns: InterviewTurn[] = [];
@@ -74,18 +95,32 @@ function InterviewPage() {
   async function handleComplete(stage: "complete" | "declined") {
     if (stage !== "complete") return;
 
+    const holdUntil = Date.now() + COMPLETION_HOLD_MS;
+
     try {
       await completeInterview({ data: journeyId });
     } catch {
       // Best-effort: completion was already persisted by sendTurn's terminal stage handling
     }
 
-    // Show the roadmap pending card and trigger generation
+    // Start generation now but do not await it yet — the completion card holds while this
+    // runs, so the confirmation costs nothing when generation is slower than the hold.
+    const generation = generateRoadmap({ data: journeyId });
+    // Attach a no-op catch immediately: a rejection during the hold would otherwise be an
+    // unhandled rejection. The real handling is the awaited catch below.
+    generation.catch(() => {});
+
+    await new Promise<void>((resolve) => {
+      holdTimerRef.current = setTimeout(resolve, Math.max(0, holdUntil - Date.now()));
+    });
+    if (unmountedRef.current) return;
+
+    // Hold satisfied — swap in the roadmap pending card and wait out generation.
     setGeneratingRoadmap(true);
     setGenerationError(null);
 
     try {
-      const result = await generateRoadmap({ data: journeyId });
+      const result = await generation;
       // Navigate to the first waypoint lesson page
       await navigate({
         to: "/journey/$journeyId/waypoint/$waypointId",

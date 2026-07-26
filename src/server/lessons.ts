@@ -13,6 +13,7 @@ import { createServerFn, createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { env } from "cloudflare:workers";
 import { requireAuth } from "#/lib/auth-guard";
+import { resolveOwnedWaypoint } from "#/server/lesson-access";
 import type { Lesson } from "#/db/schema";
 
 const withSession = createMiddleware({ type: "function" }).server(async ({ next }) => {
@@ -21,14 +22,16 @@ const withSession = createMiddleware({ type: "function" }).server(async ({ next 
 });
 
 /**
- * Fetch a single lesson row by id, scoped to the owning waypoint.
+ * Fetch a single lesson row by id, scoped to a waypoint the caller owns.
  *
- * Ownership is enforced at the query level: `WHERE id = ? AND waypoint_id = ?`.
- * A lesson that exists but belongs to a different waypoint returns null — callers
- * cannot distinguish "not found" from "not yours", which is the correct security
- * posture (avoids leaking existence information).
+ * Ownership is enforced by `resolveOwnedWaypoint`, which walks
+ * `waypoints.journey_id → journeys.user_id` to the session user. The `WHERE id = ? AND
+ * waypoint_id = ?` clause below is a compound key, not an ownership check — no user
+ * participates in it — so on its own it let any signed-in caller read any lesson row.
  *
- * Returns null on not-found, ownership mismatch, or D1 error (logged).
+ * Returns null on not-found, ownership mismatch, or D1 error (logged). Callers cannot
+ * distinguish "not found" from "not yours", which is the correct posture: it avoids
+ * leaking which waypoint and lesson ids exist.
  * The `content` field is a JSON string — parse with
  * `JSON.parse(row.content) as LessonDocumentV1` in the calling route loader.
  *
@@ -40,7 +43,11 @@ const withSession = createMiddleware({ type: "function" }).server(async ({ next 
 export const getLesson = createServerFn()
   .middleware([withSession])
   .validator((input: { lessonId: string; waypointId: string }) => input)
-  .handler(async ({ data: { lessonId, waypointId } }): Promise<Lesson | null> => {
+  .handler(async ({ data: { lessonId, waypointId }, context }): Promise<Lesson | null> => {
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+    const owned = await resolveOwnedWaypoint(env.DB, { waypointId, userId: session.user.id });
+    if (!owned) return null;
+
     try {
       const row = await env.DB.prepare("SELECT * FROM lessons WHERE id = ? AND waypoint_id = ?")
         .bind(lessonId, waypointId)
@@ -55,13 +62,19 @@ export const getLesson = createServerFn()
 
 /**
  * Fetch the lesson row for a waypoint (by waypoint_id, not lesson id).
- * Returns null when no lesson has been generated yet.
+ * Returns null when no lesson has been generated yet, and equally when the waypoint
+ * belongs to someone else — this is a client-callable RPC, so the waypoint id arriving
+ * here is caller-supplied and gets the same ownership walk as every other lesson path.
  * Used by the waypoint route loader to decide whether to show LessonView or LessonGeneratingView.
  */
 export const getLessonByWaypointId = createServerFn()
   .middleware([withSession])
   .validator((waypointId: string) => waypointId)
-  .handler(async ({ data: waypointId }): Promise<Lesson | null> => {
+  .handler(async ({ data: waypointId, context }): Promise<Lesson | null> => {
+    const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
+    const owned = await resolveOwnedWaypoint(env.DB, { waypointId, userId: session.user.id });
+    if (!owned) return null;
+
     try {
       const row = await env.DB.prepare("SELECT * FROM lessons WHERE waypoint_id = ?")
         .bind(waypointId)

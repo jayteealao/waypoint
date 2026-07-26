@@ -42,8 +42,19 @@ export interface InterviewViewProps {
   mock?: boolean;
 }
 
-/** Completion card shown when stage reaches 'complete' or 'declined'. */
-function CompletionCard({ stage }: { stage: "complete" | "declined" }) {
+/**
+ * Completion card shown when stage reaches 'complete' or 'declined'.
+ *
+ * `working` adds the ember indicator and a status line so the beat the parent route holds
+ * this card for reads as the backend making progress, not as the app having paused.
+ */
+function CompletionCard({
+  stage,
+  working = false,
+}: {
+  stage: "complete" | "declined";
+  working?: boolean;
+}) {
   const message =
     stage === "declined"
       ? "No problem — your roadmap will be built from your stated goal. Check back shortly."
@@ -52,9 +63,20 @@ function CompletionCard({ stage }: { stage: "complete" | "declined" }) {
   const label = stage === "declined" ? "Journey started" : "Roadmap coming";
 
   return (
-    <div className="wp-interview-complete-card" data-testid="interview-complete-card">
+    <div
+      className="wp-interview-complete-card"
+      data-testid="interview-complete-card"
+      role="status"
+      aria-live="polite"
+    >
       <p className="wp-interview-complete-label">{label}</p>
       <p className="wp-interview-complete-message">{message}</p>
+      {working && (
+        <p className="wp-interview-complete-working" data-testid="interview-complete-working">
+          <span className="wp-interview-complete-working__spinner" aria-hidden="true" />
+          Preparing your roadmap…
+        </p>
+      )}
     </div>
   );
 }
@@ -167,8 +189,10 @@ export function InterviewView({
         {isWaiting && <TypingIndicator />}
       </div>
 
-      {/* Terminal state: show completion card */}
-      {isTerminal && <CompletionCard stage={stage} />}
+      {/* Terminal state: show completion card. A completed interview always has roadmap
+          generation running behind it, so the card carries the working affordance;
+          a declined one does not. */}
+      {isTerminal && <CompletionCard stage={stage} working={stage === "complete"} />}
 
       {/* Input area: hidden when terminal */}
       {!isTerminal && (

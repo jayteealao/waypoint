@@ -1510,6 +1510,35 @@ pre code {
   line-height: 1.55;
 }
 
+/* Working affordance on the held completion card. Same ember-ring vocabulary as
+   .wp-roadmap-pending__spinner (shared wp-spin keyframes), scaled down to sit inline
+   with a caption. Motion only under prefers-reduced-motion: no-preference; the ring and
+   its label stay legible either way, so suppressing motion never removes the signal. */
+.wp-interview-complete-working {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.wp-interview-complete-working__spinner {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+  border: 2px solid var(--ember-subtle);
+  border-top-color: var(--ember);
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wp-interview-complete-working__spinner {
+    animation: wp-spin 0.9s linear infinite;
+  }
+}
+
 /* New journey entry form */
 .wp-new-journey-form {
   display: flex;

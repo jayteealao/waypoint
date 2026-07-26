@@ -208,7 +208,10 @@ test("AC-TI1: scripted interview completes with chips at each stage", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
@@ -291,7 +294,10 @@ test("AC-TI1: scripted interview completes with chips at each stage", async ({
 // ---------------------------------------------------------------------------
 
 test("AC-TI3: resume restores interview at the pending question", async ({ browser, baseURL }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
@@ -322,7 +328,10 @@ test("AC-TI4: declining consent shows best-effort completion card", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "Skipped: BETTER_AUTH_SECRET not set in .dev.vars");
+  test.skip(
+    !E2E_AUTH_SECRET,
+    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
+  );
 
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
