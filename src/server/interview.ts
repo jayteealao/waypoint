@@ -9,8 +9,8 @@
  * turn NFR without SSE streaming, and streaming a single short question offers
  * no perceivable benefit. Explicit autonomous decision per plan assumptions #1.
  *
- * Mock seam: sendTurn honors { mock: true } only when NODE_ENV !== 'production'.
- * Gated by process.env.NODE_ENV check to prevent production bypass.
+ * Mock seam: sendTurn honors { mock: true } only when NODE_ENV is in an explicit
+ * allow-list (development/dev/test/ci), so staging or unset/unknown envs never engage it.
  * This is the same test-harness pattern as lesson/fixture.tsx.
  */
 import { createServerFn, createMiddleware } from "@tanstack/react-start";
@@ -40,6 +40,13 @@ const withSession = createMiddleware({ type: "function" }).server(async ({ next 
 });
 
 // ── Mock scripted questions (non-production only) ──────────────────────────
+
+/**
+ * NODE_ENV values where the mock seam is allowed to engage. An explicit allow-list
+ * (rather than `!== "production"`) so staging or any environment with an unset/unknown
+ * NODE_ENV falls through to the real gateway call instead of persisting canned data.
+ */
+const MOCK_ALLOWED_NODE_ENVS = new Set(["development", "dev", "test", "ci"]);
 
 /** Scripted question per stage for deterministic E2E testing. */
 const MOCK_QUESTIONS: Partial<Record<InterviewStage, string>> = {
@@ -200,7 +207,7 @@ export const startInterview = createServerFn({ method: "POST" })
  * the first question from the model response, captures any stage-specific
  * fields, and persists the updated record.
  *
- * Mock seam: when mock === true AND NODE_ENV !== 'production', returns scripted
+ * Mock seam: when mock === true AND NODE_ENV is on the allow-list, returns scripted
  * responses from MOCK_QUESTIONS without calling the gateway.
  */
 export const sendTurn = createServerFn({ method: "POST" })
@@ -301,7 +308,7 @@ export const sendTurn = createServerFn({ method: "POST" })
         nextStage === "declined"
           ? "No problem! I'll use your stated goal to build your personalised roadmap. It's on its way."
           : "Thank you! I have everything I need. Your personalised roadmap is being prepared.";
-    } else if (mock === true && process.env.NODE_ENV !== "production") {
+    } else if (mock === true && MOCK_ALLOWED_NODE_ENVS.has(process.env.NODE_ENV ?? "")) {
       // Mock mode: deterministic scripted response for E2E tests
       question = MOCK_QUESTIONS[nextStage] ?? `Tell me more about stage: ${nextStage}`;
     } else {

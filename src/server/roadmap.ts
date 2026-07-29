@@ -39,8 +39,15 @@ export interface GenerateRoadmapResult {
 }
 
 /**
+ * NODE_ENV values where the mock seam is allowed to engage. An explicit allow-list
+ * (rather than `!== "production"`) so staging or any environment with an unset/unknown
+ * NODE_ENV falls through to the real gateway call instead of persisting canned data.
+ */
+const MOCK_ALLOWED_NODE_ENVS = new Set(["development", "dev", "test", "ci"]);
+
+/**
  * Scripted roadmap for E2E runs (`?mock=1`), the counterpart to interview.ts's
- * MOCK_QUESTIONS. Gated on NODE_ENV !== 'production' at the call site, so the seam
+ * MOCK_QUESTIONS. Gated on an explicit NODE_ENV allow-list at the call site, so the seam
  * cannot leak to a real deployment.
  *
  * Deliberately shaped like a plausible model response — three waypoints with goals and
@@ -153,7 +160,7 @@ export const generateRoadmap = createServerFn({ method: "POST" })
     // which is how AC-P5 passed locally and failed on CI with "model returned invalid
     // JSON twice".
     let parsedRoadmap =
-      mock === true && process.env.NODE_ENV !== "production"
+      mock === true && MOCK_ALLOWED_NODE_ENVS.has(process.env.NODE_ENV ?? "")
         ? MOCK_ROADMAP
         : await attemptRoadmapCall(session.user.id, journeyId, messages);
 
