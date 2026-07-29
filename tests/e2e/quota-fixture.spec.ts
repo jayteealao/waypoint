@@ -170,11 +170,6 @@ for (const vp of VIEWPORTS) {
     browser,
     baseURL,
   }) => {
-    test.skip(
-      !E2E_AUTH_SECRET,
-      "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-    );
-
     // Track all requests to detect any unexpected LLM calls
     const openrouterCalls: string[] = [];
 
@@ -223,11 +218,6 @@ for (const vp of VIEWPORTS) {
 // ---------------------------------------------------------------------------
 
 test("AC-11: quota-ok shown for fresh user with no usage", async ({ browser, baseURL }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_FRESH);
   const page = await ctx.newPage();
   await page.goto("/quota-fixture");

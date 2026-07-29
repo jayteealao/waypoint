@@ -14,17 +14,35 @@
  *   sits above every lesson read AND above the upsert, so a foreign waypoint id can neither
  *   disclose nor overwrite another user's lesson.
  * Quota: checkQuota(env.DB, userId, 'lesson') — emits quota.rejected if over limit.
- * Resume: reads existing lesson sections from D1; emits them immediately if present.
+ * Resume: reads the existing lesson row from D1. If it already holds a complete lesson
+ *   (non-empty sections + a persisted sources payload), the stream replays that stored
+ *   content and emits the terminal event WITHOUT calling the model or metering again —
+ *   this is what makes revisiting an already-generated waypoint free and instant, and
+ *   what makes "Take Quiz" show up (the loader renders LessonView, not the generating
+ *   view, once the stored row is recognised as complete). If the row is missing or
+ *   incomplete, generation proceeds and any stored sections seed the resume baseline.
  * Fallback: lesson tier (z-ai/glm-5.2 → google/gemini-3.5-flash). On all-fallbacks failure, emits
  *   {"type":"error","message":"..."} then closes.
- * D1 writes: AWAITED before controller.close(). The ReadableStream start() fn keeps the Worker
- *   request alive while the stream is open, so awaiting the writes there guarantees they land on a
- *   real Worker. (A prior un-awaited Promise.all — despite the "ctx.waitUntil" claim — was killed at
- *   request teardown, so lessons never persisted and usage was never metered; local isolates masked
- *   it. This handler has no access to the execution context, so await-before-close is the fix.)
- * Terminal event: a {"type":"sources",...} event is always emitted before close (synthesised if the
- *   model never produced one) so the client's EventSource receives a clean completion and does not
- *   read the server-side close as a dropped connection and auto-reconnect into a regeneration loop.
+ * D1 writes: AWAITED before controller.close(), and ALSO handed to `waitUntil()` (imported
+ *   from 'cloudflare:workers') as defense-in-depth. That module exports a context-free
+ *   `waitUntil(promise): void` in this project's workerd version — no ExecutionContext needs
+ *   to be threaded through — so unlike a plain fire-and-forget Promise.all, the write is
+ *   registered with the platform even if something downstream stops awaiting it. The primary
+ *   guarantee is still the `await`: the ReadableStream start() fn keeps the Worker request
+ *   alive while the stream is open, so awaiting the writes there before enqueuing the
+ *   terminal event guarantees both that they land AND that the client is told "done" only
+ *   once the data is durable.
+ * Atomicity: the lesson upsert and the usage-metering insert commit together via
+ *   `env.DB.batch([...])` so a D1 failure can never leave one write applied without the
+ *   other (an unmetered generation, or a metered generation with no lesson to show for it).
+ *   If the batch throws, the client receives a terminal {"type":"error",...} event instead
+ *   of a {"type":"sources",...} completion — it is never told "complete" for content that
+ *   didn't actually get saved.
+ * Terminal event: on the generation path, the {"type":"sources",...} completion event is
+ *   enqueued only AFTER the D1 batch write above resolves — never before — so the client's
+ *   `es.close()` (fired the instant it sees that event) never races the persist. On the
+ *   resume-complete short-circuit path the terminal event is built directly from the stored
+ *   row instead.
  *
  * NDJSON line format produced by LESSON_SYSTEM_PROMPT:
  *   Line 1:   {"type":"header","title":"...","summary":"..."}
@@ -36,16 +54,20 @@
  */
 
 import { createFileRoute } from "@tanstack/react-router";
-import { env } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { requireAuth } from "#/lib/auth-guard";
 import { checkQuota } from "#/lib/ai/quota";
 import { TIERS } from "#/lib/ai/tiers";
-import { runModelWithFallback, computeCost, recordUsage } from "#/lib/ai/model-stream";
+import { runModelWithFallback, computeCost, recordUsageStatement } from "#/lib/ai/model-stream";
 import { LESSON_SYSTEM_PROMPT, buildSourceMaterialBlock } from "#/lib/interview/prompts";
 import type { SourceContent } from "#/lib/source-fetch";
-import { upsertLesson } from "#/server/lessons";
+import { upsertLessonStatement } from "#/server/lessons";
 import { resolveOwnedWaypoint } from "#/server/lesson-access";
-import type { LessonSection as LessonSectionType, LessonSource } from "#/types/lesson-document";
+import type {
+  LessonDocumentV1,
+  LessonSection as LessonSectionType,
+  LessonSource,
+} from "#/types/lesson-document";
 
 export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
   server: {
@@ -99,20 +121,68 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
 
         // ── 4. Read existing lesson for resume ───────────────────────────────
         const existingLesson = await env.DB.prepare(
-          "SELECT id, content FROM lessons WHERE waypoint_id = ?",
+          "SELECT id, content, sources FROM lessons WHERE waypoint_id = ?",
         )
           .bind(waypointId)
-          .first<{ id: string; content: string | null }>();
+          .first<{ id: string; content: string | null; sources: string | null }>();
 
         const lessonId = existingLesson?.id ?? crypto.randomUUID();
+
+        // Stored `content` may be the current full LessonDocumentV1 shape or the bare
+        // LessonSection[] array written before that shape existed — accept both.
         let resumeSections: LessonSectionType[] = [];
+        let resumeTitle: string | undefined;
+        let resumeSummary: string | undefined;
         if (existingLesson?.content) {
           try {
-            resumeSections = JSON.parse(existingLesson.content) as LessonSectionType[];
+            const parsedContent = JSON.parse(existingLesson.content) as unknown;
+            if (Array.isArray(parsedContent)) {
+              resumeSections = parsedContent as LessonSectionType[];
+            } else if (
+              parsedContent &&
+              typeof parsedContent === "object" &&
+              Array.isArray((parsedContent as { sections?: unknown }).sections)
+            ) {
+              const doc = parsedContent as LessonDocumentV1;
+              resumeSections = doc.sections;
+              resumeTitle = doc.title;
+              resumeSummary = doc.summary;
+            }
           } catch {
             resumeSections = [];
           }
         }
+
+        // Stored `sources` payload — present only once a generation has fully completed
+        // and persisted (upsertLesson always writes content + sources together, in the
+        // same statement batch). A parsed object here (not the column's un-touched '[]'
+        // default) is the signal that the stored lesson is complete, not partial.
+        let resumeSourcesPayload: {
+          sources: LessonSource[];
+          recommended_primary_source: LessonSource | null;
+        } | null = null;
+        if (existingLesson?.sources) {
+          try {
+            const parsedSources = JSON.parse(existingLesson.sources) as unknown;
+            if (
+              parsedSources &&
+              typeof parsedSources === "object" &&
+              !Array.isArray(parsedSources) &&
+              Array.isArray((parsedSources as { sources?: unknown }).sources)
+            ) {
+              resumeSourcesPayload = parsedSources as {
+                sources: LessonSource[];
+                recommended_primary_source: LessonSource | null;
+              };
+            }
+          } catch {
+            resumeSourcesPayload = null;
+          }
+        }
+
+        // A stored lesson with sections AND a persisted sources payload is a complete,
+        // already-billed generation — replay it instead of re-running the model.
+        const isResumedLessonComplete = resumeSections.length > 0 && resumeSourcesPayload !== null;
 
         // ── 5. Waypoint context for the concept-tagging prompt ───────────────
         // Already resolved by the ownership gate at 2c — no second round-trip.
@@ -162,7 +232,38 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
 
         const stream = new ReadableStream({
           async start(controller) {
-            // ── 7a. Emit any resume sections first ───────────────────────────
+            // ── 7a. Resume-complete short-circuit ────────────────────────────
+            // A stored lesson that already has sections AND a persisted sources payload
+            // was fully generated and metered on a prior request (upsertLesson only ever
+            // writes both together). Replay it verbatim — no model call, no re-metering —
+            // so revisiting a generated waypoint is free and instant, and the client sees
+            // the same event shape (header?, sections, terminal sources) it would after a
+            // fresh generation.
+            if (isResumedLessonComplete && resumeSourcesPayload) {
+              if (resumeTitle !== undefined) {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: "header",
+                      title: resumeTitle,
+                      summary: resumeSummary ?? "",
+                    })}\n\n`,
+                  ),
+                );
+              }
+              for (const section of resumeSections) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(section)}\n\n`));
+              }
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: "sources", ...resumeSourcesPayload })}\n\n`,
+                ),
+              );
+              controller.close();
+              return;
+            }
+
+            // ── 7a2. Emit any resume sections first (partial/prior-incomplete attempt) ─
             for (const section of resumeSections) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(section)}\n\n`));
             }
@@ -175,6 +276,8 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
             const startTime = Date.now();
             let lineBuffer = "";
             let completedSections: LessonSectionType[] = [...resumeSections];
+            let headerTitle = resumeTitle ?? "";
+            let headerSummary = resumeSummary ?? "";
             let sourcesPayload: {
               sources: LessonSource[];
               recommended_primary_source: LessonSource | null;
@@ -182,12 +285,14 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               sources: [],
               recommended_primary_source: null,
             };
-            // Whether a terminal `sources` event has been sent to the client. If the
-            // model never emits one, step 7e synthesises it so the client always closes.
-            let sourcesEmitted = false;
             const resetPerModelState = () => {
               lineBuffer = "";
               completedSections = [...resumeSections];
+              headerTitle = resumeTitle ?? "";
+              headerSummary = resumeSummary ?? "";
+              // Reset alongside everything else above — a failing attempt that emitted a
+              // sources-typed line before dying must not leak that payload into a
+              // successful fallback attempt's persisted/terminal payload (RV-11).
               sourcesPayload = { sources: [], recommended_primary_source: null };
             };
 
@@ -226,18 +331,21 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 const lineType = parsed["type"] as string | undefined;
 
                 if (lineType === "header") {
+                  headerTitle = (parsed["title"] as string) ?? headerTitle;
+                  headerSummary = (parsed["summary"] as string) ?? headerSummary;
                   // Emit header event
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`));
                 } else if (lineType === "sources") {
-                  // Capture sources payload for the final D1 write
+                  // Capture the sources payload for the final D1 write. Deliberately NOT
+                  // enqueued here — the terminal `sources` SSE event is deferred until
+                  // after the D1 persist below resolves (RV-2), so the client's
+                  // `es.close()` (fired the instant it sees that event type) can never
+                  // race the write that makes this generation durable.
                   sourcesPayload = {
                     sources: (parsed["sources"] as LessonSource[]) ?? [],
                     recommended_primary_source:
                       (parsed["recommended_primary_source"] as LessonSource | null) ?? null,
                   };
-                  // Emit sources event — signals completion to the client
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`));
-                  sourcesEmitted = true;
                 } else if (lineType != null) {
                   // Section event — guard for resume duplicates
                   const section = parsed as unknown as LessonSectionType;
@@ -274,36 +382,32 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 },
               });
 
-              // ── 7e. Guarantee a terminal completion event ───────────────────
-              // If the model finished without emitting a `sources` line, synthesise a
-              // terminal `sources` event so the client's EventSource always receives a
-              // clean completion and closes — otherwise it treats the server-side stream
-              // close as a dropped connection and auto-reconnects into a regeneration loop.
-              if (!sourcesEmitted) {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
-                  ),
-                );
-                sourcesEmitted = true;
-              }
-
-              // ── 7f. Persist to D1 + record usage — AWAITED before close ─────
-              // Awaiting keeps the Worker request alive until the writes land. The prior
-              // un-awaited Promise.all (no execution-context ctx.waitUntil is reachable
-              // from this handler) was terminated at request teardown on a real Worker,
-              // so lessons never persisted and lesson usage was never metered — silently
-              // breaking the no-unmetered-generation invariant. A write failure logs but
-              // does not fail the stream (the client already has the rendered content).
+              // ── 7e. Persist + meter atomically, AWAITED before the terminal event ──
+              // The lesson upsert and the usage-metering insert commit together via
+              // `env.DB.batch([...])` — a D1 failure can never apply one write without
+              // the other. The write is also handed to `waitUntil()` as defense-in-depth
+              // (still awaited directly below; waitUntil is additive insurance, not a
+              // replacement). Only once this settles does the client learn the outcome —
+              // `sources` on success, `error` if the persist failed — so `es.close()`
+              // never fires before the generation is actually durable.
               const durationMs = Date.now() - startTime;
-              const contentJson = JSON.stringify(completedSections);
+              const lessonDoc: LessonDocumentV1 = {
+                version: 1,
+                title: headerTitle,
+                summary: headerSummary,
+                sections: completedSections,
+                sources: sourcesPayload.sources,
+                recommended_primary_source: sourcesPayload.recommended_primary_source,
+              };
+              const contentJson = JSON.stringify(lessonDoc);
               const sourcesJson = JSON.stringify(sourcesPayload);
               const { costUsd } = computeCost(usage, tier);
 
+              let persistFailed = false;
               try {
-                await Promise.all([
-                  upsertLesson(env.DB, waypointId, lessonId, contentJson, sourcesJson),
-                  recordUsage(env.DB, {
+                const batchPromise = env.DB.batch([
+                  upsertLessonStatement(env.DB, waypointId, lessonId, contentJson, sourcesJson),
+                  recordUsageStatement(env.DB, {
                     userId,
                     journeyId,
                     model,
@@ -313,8 +417,32 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                     durationMs,
                   }),
                 ]);
+                waitUntil(batchPromise);
+                await batchPromise;
               } catch (err) {
+                persistFailed = true;
                 console.error("[lesson-sse] D1 persist/meter failed:", err);
+              }
+
+              if (persistFailed) {
+                // The learner must not be shown a "complete" lesson that was never
+                // actually saved — tell the client explicitly instead of the usual
+                // `sources` completion event.
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: "error",
+                      message:
+                        "Lesson generation finished but could not be saved. Please try again.",
+                    })}\n\n`,
+                  ),
+                );
+              } else {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
+                  ),
+                );
               }
 
               console.log(
@@ -329,7 +457,7 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                   completion_tokens: usage.completion_tokens,
                   cost_usd: costUsd,
                   duration_ms: durationMs,
-                  outcome: "success",
+                  outcome: persistFailed ? "persist_failed" : "success",
                 }),
               );
             } catch (err) {

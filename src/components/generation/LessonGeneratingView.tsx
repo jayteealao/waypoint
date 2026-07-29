@@ -161,7 +161,12 @@ export function LessonGeneratingView({
           className="btn-base btn-primary mt-4"
           aria-label="Retry lesson generation"
           onClick={() => {
-            setDoc({ ...INITIAL_DOC });
+            // Clear the error so a fresh EventSource can open, but keep whatever was
+            // already streamed (title/summary/sections/sources) — a retry should resume
+            // on top of what's rendered, not force the learner to watch a full paid
+            // regeneration from a blank skeleton. Duplicate sections from the new
+            // stream are already deduped by id in onmessage below.
+            setDoc((prev) => ({ ...prev, error: null, complete: false }));
             setRetryCount((c) => c + 1);
           }}
           style={{ marginTop: "1rem" }}

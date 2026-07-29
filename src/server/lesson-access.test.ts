@@ -6,17 +6,32 @@
  * code and jsdom's client resolver refuses to bundle Node built-ins.
  *
  * Driven against a REAL SQL engine (`node:sqlite`, Node stdlib — no new dependency)
- * with the journeys/waypoints shape copied from migrations/0000_schema_v1.sql, so the
- * JOIN that carries the ownership guarantee is actually executed rather than mocked.
- * A thin adapter presents it through the two D1 methods the helper uses
- * (`prepare().bind().first()`).
+ * executing the actual `migrations/0000_schema_v1.sql` file (RV-16) — not a hand-rolled
+ * subset — so the JOIN that carries the ownership guarantee runs against the same schema
+ * that ships to D1, and a future migration change that breaks the JOIN breaks this test
+ * too instead of silently drifting out of sync. A thin adapter presents it through the
+ * two D1 methods the helper uses (`prepare().bind().first()`).
+ *
+ * Adaptation: none needed. The migration file executes as-is under `node:sqlite`'s
+ * `DatabaseSync.exec()` — it accepts a multi-statement script directly (D1 SQL is
+ * SQLite, and `node:sqlite` is also SQLite under the hood), so no splitting on `;` or
+ * statement-by-statement execution was required. Verified by running the migration file
+ * standalone before wiring it in here.
  *
  * The cases below are the four ways a caller can miss, plus the one way they can hit.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DatabaseSync } from "node:sqlite";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { resolveOwnedWaypoint } from "./lesson-access";
+
+const MIGRATION_SQL = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "..", "..", "migrations", "0000_schema_v1.sql"),
+  "utf8",
+);
 
 /** Minimal D1 surface over node:sqlite. Cast at the call site — the helper only ever
  *  calls prepare/bind/first, so implementing the full D1Database interface would be
@@ -44,17 +59,18 @@ let db: DatabaseSync;
 
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
+  // Real schema, not a hand-rolled subset (RV-16) — also creates `user`, `lessons`, and
+  // every other domain table, so the journeys/waypoints FK references resolve exactly as
+  // they do against D1.
+  db.exec(MIGRATION_SQL);
   db.exec(`
-    CREATE TABLE journeys (id TEXT PRIMARY KEY, user_id TEXT NOT NULL);
-    CREATE TABLE waypoints (
-      id TEXT PRIMARY KEY,
-      journey_id TEXT NOT NULL,
-      position INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      goal TEXT,
-      concepts TEXT NOT NULL DEFAULT '[]'
-    );
-    INSERT INTO journeys (id, user_id) VALUES ('jrny-alice', 'alice'), ('jrny-alice-2', 'alice'), ('jrny-bob', 'bob');
+    INSERT INTO \`user\` (id, name, email, emailVerified, createdAt, updatedAt)
+      VALUES ('alice', 'Alice', 'alice@example.com', 1, 0, 0),
+             ('bob',   'Bob',   'bob@example.com',   1, 0, 0);
+    INSERT INTO journeys (id, user_id, title, status, created_at, updated_at)
+      VALUES ('jrny-alice',   'alice', 'Alice J1', 'active', 0, 0),
+             ('jrny-alice-2', 'alice', 'Alice J2', 'active', 0, 0),
+             ('jrny-bob',     'bob',   'Bob J1',   'active', 0, 0);
     INSERT INTO waypoints (id, journey_id, position, title, goal, concepts)
       VALUES ('wp-alice', 'jrny-alice', 0, 'Ownership', 'Understand it', '["a"]'),
              ('wp-bob',   'jrny-bob',   0, 'Bob''s waypoint', NULL, '["b"]');

@@ -5,14 +5,11 @@
 // AC-13: multiple journeys with independent progress.
 // AC-14: responsive sweep — 5 screens × 3 widths (375/768/1280px).
 //
-// constraint-resolution: proxy+deferral.
-//   Proxy: progress-metrics.test.ts unit tests cover all derivation math
-//   without authentication.
-//   Deferral: BETTER_AUTH_SECRET wall — absorbed into existing AC-ADL1+AC-ADL5
-//   deferral entry. Clearing event: same ("re-running E2E suite with
-//   BETTER_AUTH_SECRET set in .dev.vars").
-//
-// These tests skip gracefully when BETTER_AUTH_SECRET is absent.
+// These tests require a seeded auth session. BETTER_AUTH_SECRET is loaded from
+// .dev.vars by playwright.config.ts, and tests/e2e/global-setup.ts fails the whole
+// run when it is absent — so these specs always run, and there is no skip path.
+// (The former BETTER_AUTH_SECRET deferral is closed; a suite that cannot verify is
+// red, not green over skips.)
 
 import * as path from "path";
 import * as fs from "fs";
@@ -251,11 +248,6 @@ test("AC-10: progress surfaces — streak, due count, pass rate, roadmap, quiz h
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER.token);
   const page = await ctx.newPage();
   await page.goto(`/journey/${JOURNEY_ID}/progress`);
@@ -294,11 +286,6 @@ test("AC-9 (empty state): fresh journey shows progress-empty, roadmap still visi
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   // Seed a fresh journey with no quiz attempts for this user
   const freshJourneyId = "e2e-ap-fresh-journey";
   const freshWpId = "e2e-ap-fresh-wp";
@@ -339,11 +326,6 @@ test("AC-9 (adapt-accept): adaptation card appears for weak quiz, accept navigat
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   // Seed a fresh user-session pair to avoid interference from seeded adaptation in main user
   const weakUser = {
     id: "e2e-ap-weak-user",
@@ -467,11 +449,6 @@ test("AC-9 (adapt-decline): decline removes adapt card and proceeds normally", a
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   // Same seeded weak-quiz user (re-use if adaptation was declined or re-seed)
   const weakUser = {
     id: "e2e-ap-decline-user",
@@ -568,11 +545,6 @@ test("AC-13: multiple journeys show independent mastery on dashboard", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER.token);
   const page = await ctx.newPage();
 
@@ -624,11 +596,6 @@ test("AC-14: responsive sweep — 5 screens × 3 widths, no horizontal overflow"
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   for (const width of WIDTHS) {
     const ctx = await makeAuthContext(browser, baseURL!, USER.token);
 

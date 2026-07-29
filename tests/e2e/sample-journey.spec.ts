@@ -126,11 +126,6 @@ test("AC-SJ1: first-ever login redirects to /sample, zero LLM calls", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_FRESH.token);
   const page = await ctx.newPage();
 
@@ -163,11 +158,6 @@ test("AC-SJ1: first-ever login redirects to /sample, zero LLM calls", async ({
 // ---------------------------------------------------------------------------
 
 test("AC-SJ2: lessons render correctly at 3 breakpoints", async ({ browser, baseURL }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_FRESH.token);
   const page = await ctx.newPage();
 
@@ -201,11 +191,6 @@ test("AC-SJ3: quiz feedback appears immediately; results persist across reload",
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_FRESH.token);
   const page = await ctx.newPage();
 
@@ -260,11 +245,6 @@ test("AC-SJ3b: sidebar shows completion state after visiting a lesson", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   // Use 1280px viewport so the sidebar is visible (desktop)
   const ctx = await makeAuthContext(browser, baseURL!, USER_FRESH.token);
   const page = await ctx.newPage();
@@ -296,11 +276,6 @@ test("AC-SJ4: returning user (visited) lands on dashboard, not redirected to /sa
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_RETURN.token);
   const page = await ctx.newPage();
 

@@ -61,7 +61,7 @@ function EmptyState() {
         data-testid="create-journey-cta"
       >
         <Compass size={16} aria-hidden="true" />
-        Start a journey
+        New journey
       </Link>
     </div>
   );

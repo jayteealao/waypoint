@@ -58,23 +58,22 @@ function CompletionCard({
   const message =
     stage === "declined"
       ? "No problem — your roadmap will be built from your stated goal. Check back shortly."
-      : "Your roadmap is being prepared. Come back in a moment to start your first lesson.";
+      : "Your answers are in — come back in a moment to start your first lesson.";
 
   const label = stage === "declined" ? "Journey started" : "Roadmap coming";
 
+  // No role="status"/aria-live here: the chat transcript's own aria-live="polite"
+  // region already announces the assistant's terminal turn in the same commit this
+  // card mounts, so a second polite region here would talk over the first instead
+  // of adding information (RV-20).
   return (
-    <div
-      className="wp-interview-complete-card"
-      data-testid="interview-complete-card"
-      role="status"
-      aria-live="polite"
-    >
+    <div className="wp-interview-complete-card" data-testid="interview-complete-card">
       <p className="wp-interview-complete-label">{label}</p>
       <p className="wp-interview-complete-message">{message}</p>
       {working && (
         <p className="wp-interview-complete-working" data-testid="interview-complete-working">
           <span className="wp-interview-complete-working__spinner" aria-hidden="true" />
-          Preparing your roadmap…
+          Building your roadmap…
         </p>
       )}
     </div>

@@ -135,11 +135,6 @@ test("seeded session shows correct identity on /account (AC-ADL1, AC-ADL5)", asy
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const cookieValue = await signSessionToken(USER_A.token, E2E_AUTH_SECRET);
   const ctx = await browser.newContext();
   await ctx.addCookies([
@@ -167,11 +162,6 @@ test("two seeded sessions see separate identities (AC-ADL1 cross-user isolation)
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const [cookieA, cookieB] = await Promise.all([
     signSessionToken(USER_A.token, E2E_AUTH_SECRET),
     signSessionToken(USER_B.token, E2E_AUTH_SECRET),
@@ -223,11 +213,6 @@ test("two seeded sessions see separate identities (AC-ADL1 cross-user isolation)
 
 // AC-ADL5: Sign-out redirects to /sign-in.
 test("sign-out redirects to /sign-in (AC-ADL5)", async ({ browser, baseURL }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const cookieValue = await signSessionToken(USER_A.token, E2E_AUTH_SECRET);
   const ctx = await browser.newContext();
   await ctx.addCookies([

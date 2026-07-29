@@ -10,8 +10,9 @@
 //   AC-DLU7 — the client cache is namespaced per user (wp:<userId>:journeys) and
 //             a second identity never sees the first identity's namespace.
 //
-// Uses the proven __Secure- seeded-session harness (BETTER_AUTH_SECRET present in
-// .dev.vars). Skips gracefully when the secret is absent.
+// Uses the proven __Secure- seeded-session harness. BETTER_AUTH_SECRET is loaded
+// from .dev.vars by playwright.config.ts, and tests/e2e/global-setup.ts fails the
+// whole run when it is absent — so these specs always run, and there is no skip path.
 
 import * as path from "path";
 import * as os from "os";
@@ -136,8 +137,6 @@ test("AC-DLU6: journeys dashboard is server-rendered without hydration error", a
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "BETTER_AUTH_SECRET absent");
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_A.token);
 
   // Raw SSR HTML must already contain the dashboard + a journey marker — proof
@@ -185,8 +184,6 @@ test("AC-DLU1: a client-side navigation fetches journeys exactly once", async ({
   browser,
   baseURL,
 }) => {
-  test.skip(!E2E_AUTH_SECRET, "BETTER_AUTH_SECRET absent");
-
   const ctx = await makeAuthContext(browser, baseURL!, USER_A.token);
   const page = await ctx.newPage();
 
@@ -244,8 +241,6 @@ test("AC-DLU1: a client-side navigation fetches journeys exactly once", async ({
 // AC-DLU7 — per-user cache namespace; second identity never sees the first's.
 // ---------------------------------------------------------------------------
 test("AC-DLU7: client cache is namespaced per user", async ({ browser, baseURL }) => {
-  test.skip(!E2E_AUTH_SECRET, "BETTER_AUTH_SECRET absent");
-
   // Identity A populates its namespace.
   const ctxA = await makeAuthContext(browser, baseURL!, USER_A.token);
   const pageA = await ctxA.newPage();

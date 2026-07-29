@@ -59,16 +59,52 @@ function WaypointPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completionStatus]);
 
-  // Parse the stored lesson content if available
+  // Parse the stored lesson content if available. `content` holds a full
+  // LessonDocumentV1 for lessons persisted by the current SSE route, but older rows
+  // may still hold the bare LessonSection[] array that shape replaced — accept both.
+  // A non-empty array is a *complete* generation (the SSE route only ever wrote content
+  // once, after the model finished), so it is wrapped into a document (using the
+  // row's separate `sources` column) rather than treated as a stalled generation.
   let parsedDoc: LessonDocumentV1 | null = null;
   let resumeSections: LessonSection[] = [];
 
   if (lesson?.content) {
     try {
       const raw = JSON.parse(lesson.content) as unknown;
-      if (Array.isArray(raw)) {
+      if (Array.isArray(raw) && raw.length > 0) {
         resumeSections = raw as LessonSection[];
-      } else {
+        let sourcesPayload: {
+          sources: LessonDocumentV1["sources"];
+          recommended_primary_source: LessonDocumentV1["recommended_primary_source"];
+        } = { sources: [], recommended_primary_source: null };
+        if (lesson.sources) {
+          try {
+            const parsedSources = JSON.parse(lesson.sources) as unknown;
+            if (
+              parsedSources &&
+              typeof parsedSources === "object" &&
+              !Array.isArray(parsedSources)
+            ) {
+              sourcesPayload = parsedSources as typeof sourcesPayload;
+            }
+          } catch {
+            // fall back to empty sources
+          }
+        }
+        parsedDoc = {
+          version: 1,
+          title: "",
+          summary: "",
+          sections: resumeSections,
+          sources: sourcesPayload.sources ?? [],
+          recommended_primary_source: sourcesPayload.recommended_primary_source ?? null,
+        };
+      } else if (
+        raw &&
+        typeof raw === "object" &&
+        !Array.isArray(raw) &&
+        Array.isArray((raw as { sections?: unknown }).sections)
+      ) {
         parsedDoc = raw as LessonDocumentV1;
       }
     } catch {

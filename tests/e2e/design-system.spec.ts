@@ -2,13 +2,11 @@
  * Design system & app shell E2E tests (AC-DSS1 — AC-DSS5).
  *
  * AC-DSS1 (responsive layout), AC-DSS3 (empty state), AC-DSS4 (keyboard nav),
- * AC-DSS5 (reduced-motion drawer) all require a seeded auth session and are
- * gated behind the same BETTER_AUTH_SECRET wall as AC-ADL1/ADL5.
- * They skip gracefully when the secret is absent; proxy evidence (sign-in page
- * renders new ember tokens, contrast test passes) covers automated CI.
- *
- * Constraint resolution: accepted-into-existing-ADL-deferral.
- * Clearing event: re-run with BETTER_AUTH_SECRET set in .dev.vars.
+ * AC-DSS5 (reduced-motion drawer) all require a seeded auth session.
+ * BETTER_AUTH_SECRET is loaded from .dev.vars by playwright.config.ts, and
+ * tests/e2e/global-setup.ts fails the whole run when it is absent — so these specs
+ * always run, and there is no skip path. (The former BETTER_AUTH_SECRET deferral is
+ * closed.)
  *
  * Deviation from plan: AC-DSS5 (reduced-motion) was originally planned as
  * auth-free. In the implementation, the `.wp-drawer` element lives inside the
@@ -123,11 +121,6 @@ test("drawer transition is suppressed under prefers-reduced-motion (AC-DSS5)", a
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
 
@@ -185,11 +178,6 @@ for (const vp of VIEWPORTS) {
     browser,
     baseURL,
   }) => {
-    test.skip(
-      !E2E_AUTH_SECRET,
-      "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
-    );
-
     const ctx = await makeAuthContext(browser, baseURL!);
     const page = await ctx.newPage();
     await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -227,11 +215,6 @@ for (const vp of VIEWPORTS) {
 // ─── AC-DSS3: empty state for zero-journey user ───────────────────────── //
 
 test("empty state shown for user with zero journeys (AC-DSS3)", async ({ browser, baseURL }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
-  );
-
   // Note: DSS_USER has no journeys seeded (only the user + session rows exist).
   // The dashboard should render the empty state.
   const ctx = await makeAuthContext(browser, baseURL!);
@@ -263,11 +246,6 @@ test("keyboard navigation: all interactive elements reachable with visible focus
   browser,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent (accepted into ADL deferral)",
-  );
-
   const ctx = await makeAuthContext(browser, baseURL!);
   const page = await ctx.newPage();
   await page.setViewportSize({ width: 1280, height: 800 });
