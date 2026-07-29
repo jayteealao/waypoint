@@ -44,6 +44,9 @@ jobs:
       - name: Format check
         run: pnpm exec oxfmt --check .
 
+      - name: Lesson ownership gate check (no raw `FROM lessons` outside lesson-access.ts callers)
+        run: node scripts/lesson-query-guard.mjs
+
       - name: Unit tests
         run: pnpm test
 

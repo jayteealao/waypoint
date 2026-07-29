@@ -4,9 +4,12 @@
  * Follows the exact same createServerFn + withSession pattern established in
  * src/server/journeys.ts (AC-accounts-data-layer, already implemented).
  *
- * The `content` column stores a serialized LessonDocumentV1 (JSON string).
- * Parse it on read; return null if absent so the route can render a skeleton
- * or empty state while generation is pending.
+ * The `content` column stores a serialized LessonDocumentV1 (JSON string) — title,
+ * summary, sections, sources, and recommended_primary_source — written once a
+ * generation completes. Older rows (written before this document shape existed) may
+ * still hold a bare `LessonSection[]` array; callers that read `content` must accept
+ * both shapes. Parse it on read; return null if absent so the route can render a
+ * skeleton or empty state while generation is pending.
  */
 
 import { createServerFn, createMiddleware } from "@tanstack/react-start";
@@ -87,22 +90,22 @@ export const getLessonByWaypointId = createServerFn()
   });
 
 /**
- * Upsert a lesson row for a waypoint (INSERT OR REPLACE).
- * Used by the SSE lesson route to persist completed sections progressively.
- * The content column stores JSON.stringify(LessonSection[]) — accumulated sections.
+ * Build (without executing) the prepared statement that upserts a lesson row for a
+ * waypoint. Used by the SSE lesson route to persist a completed lesson atomically
+ * alongside its usage-metering write via `D1Database.batch([...])`.
+ * The content column stores JSON.stringify(LessonDocumentV1) — the full document.
  *
  * NOT a createServerFn — called directly from the SSE route handler (not a client RPC call).
- * Exported as a plain async function so the SSE handler can call it with the D1 binding it has.
  */
-export async function upsertLesson(
+export function upsertLessonStatement(
   db: D1Database,
   waypointId: string,
   lessonId: string,
-  content: string, // JSON.stringify(sections[])
-  sources: string, // JSON.stringify(LessonSource[])
-): Promise<void> {
+  content: string, // JSON.stringify(LessonDocumentV1)
+  sources: string, // JSON.stringify({ sources: LessonSource[], recommended_primary_source: LessonSource | null })
+): D1PreparedStatement {
   const now = Date.now();
-  await db
+  return db
     .prepare(
       `INSERT INTO lessons (id, waypoint_id, content, sources, created_at)
        VALUES (?, ?, ?, ?, ?)
@@ -110,6 +113,22 @@ export async function upsertLesson(
          content = excluded.content,
          sources = excluded.sources`,
     )
-    .bind(lessonId, waypointId, content, sources, now)
-    .run();
+    .bind(lessonId, waypointId, content, sources, now);
+}
+
+/**
+ * Upsert a lesson row for a waypoint (INSERT OR REPLACE). See `upsertLessonStatement`
+ * for the statement this executes and the shape it expects.
+ *
+ * Exported as a plain async function so callers that don't need batching can call it
+ * directly with the D1 binding they have.
+ */
+export async function upsertLesson(
+  db: D1Database,
+  waypointId: string,
+  lessonId: string,
+  content: string,
+  sources: string,
+): Promise<void> {
+  await upsertLessonStatement(db, waypointId, lessonId, content, sources).run();
 }

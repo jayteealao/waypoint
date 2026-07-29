@@ -162,14 +162,6 @@ async function makeAuthContext(browser: Browser, baseURL: string) {
 test("AC-5: seeded waypoints appear in sidebar and persist on reload", async ({
   browser,
 }, testInfo) => {
-  if (!E2E_AUTH_SECRET) {
-    testInfo.skip(
-      true,
-      "BETTER_AUTH_SECRET not set — seeded-session tests deferred (AC-ADL1 deferral)",
-    );
-    return;
-  }
-
   const ctx = await makeAuthContext(
     browser,
     testInfo.project.use.baseURL ?? "http://localhost:3000",
@@ -205,14 +197,6 @@ test("AC-5: seeded waypoints appear in sidebar and persist on reload", async ({
 test("AC-6: lesson streams progressively and checkpoint widget is interactive", async ({
   browser,
 }, testInfo) => {
-  if (!E2E_AUTH_SECRET) {
-    testInfo.skip(
-      true,
-      "BETTER_AUTH_SECRET not set — seeded-session tests deferred (AC-ADL1 deferral)",
-    );
-    return;
-  }
-
   const ctx = await makeAuthContext(
     browser,
     testInfo.project.use.baseURL ?? "http://localhost:3000",
@@ -271,14 +255,6 @@ test("AC-6: lesson streams progressively and checkpoint widget is interactive", 
 test("AC-12: reconnecting banner appears on SSE error, content preserved on retry", async ({
   browser,
 }, testInfo) => {
-  if (!E2E_AUTH_SECRET) {
-    testInfo.skip(
-      true,
-      "BETTER_AUTH_SECRET not set — seeded-session tests deferred (AC-ADL1 deferral)",
-    );
-    return;
-  }
-
   const ctx = await makeAuthContext(
     browser,
     testInfo.project.use.baseURL ?? "http://localhost:3000",
@@ -335,14 +311,6 @@ test("AC-12: reconnecting banner appears on SSE error, content preserved on retr
 // ---------------------------------------------------------------------------
 
 test("all-fallbacks-fail: friendly error message shown", async ({ browser }, testInfo) => {
-  if (!E2E_AUTH_SECRET) {
-    testInfo.skip(
-      true,
-      "BETTER_AUTH_SECRET not set — seeded-session tests deferred (AC-ADL1 deferral)",
-    );
-    return;
-  }
-
   const ctx = await makeAuthContext(
     browser,
     testInfo.project.use.baseURL ?? "http://localhost:3000",

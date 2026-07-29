@@ -15,6 +15,8 @@ pre-commit:
       run: pnpm exec oxfmt --check .
     secret-scan:
       run: node scripts/secret-scan.mjs
+    lesson-query-guard:
+      run: node scripts/lesson-query-guard.mjs
 
 commit-msg:
   commands:

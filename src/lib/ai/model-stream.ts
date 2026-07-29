@@ -190,7 +190,10 @@ export interface RecordUsageInput {
 }
 
 /**
- * INSERT one `usage_events` row for a successful generation.
+ * Build (without executing) the prepared statement that INSERTs one `usage_events`
+ * row for a successful generation. Split out from `recordUsage` so callers that need
+ * to commit this write atomically alongside another write (e.g. the lesson persist +
+ * meter pair in the lesson SSE route) can pass it to `D1Database.batch([...])`.
  *
  * IMPORTANT: Supply `at` explicitly as an ISO-8601 string so the quota query
  * (which filters `at >= 'YYYY-MM-DDTHH:MM:SSZ'`) sees a consistent format. Omitting
@@ -198,11 +201,11 @@ export interface RecordUsageInput {
  * separated, no Z), which sorts before any 'YYYY-MM-DDTHH:MM:SSZ' bound and makes
  * the quota SUM always return 0.
  */
-export async function recordUsage(db: D1Database, input: RecordUsageInput): Promise<void> {
+export function recordUsageStatement(db: D1Database, input: RecordUsageInput): D1PreparedStatement {
   const { userId, journeyId = null, model, type, usage, costUsd, durationMs } = input;
   const usageId = crypto.randomUUID();
   const insertedAt = new Date().toISOString();
-  await db
+  return db
     .prepare(
       `INSERT INTO usage_events (id, user_id, journey_id, model, type, prompt_tokens, completion_tokens, cost_usd, duration_ms, outcome, at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'success', ?)`,
@@ -218,6 +221,10 @@ export async function recordUsage(db: D1Database, input: RecordUsageInput): Prom
       costUsd,
       durationMs,
       insertedAt,
-    )
-    .run();
+    );
+}
+
+/** INSERT one `usage_events` row for a successful generation. See `recordUsageStatement`. */
+export async function recordUsage(db: D1Database, input: RecordUsageInput): Promise<void> {
+  await recordUsageStatement(db, input).run();
 }

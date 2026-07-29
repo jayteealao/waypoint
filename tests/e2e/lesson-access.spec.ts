@@ -184,11 +184,6 @@ test("cross-user lesson request is refused and leaves the victim's lesson untouc
   playwright,
   baseURL,
 }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const before = readVictimLesson();
   expect(before, "victim lesson must be seeded for this test to mean anything").toBeTruthy();
 
@@ -215,11 +210,6 @@ test("cross-user lesson request is refused and leaves the victim's lesson untouc
 });
 
 test("a learner can still read their own lesson (AC-P1 control)", async ({ browser, baseURL }) => {
-  test.skip(
-    !E2E_AUTH_SECRET,
-    "Unreachable: global setup fails the run when BETTER_AUTH_SECRET is absent",
-  );
-
   const cookie = await signSessionToken(ATTACKER.token, E2E_AUTH_SECRET);
   const ctx = await browser.newContext();
   await ctx.addCookies([
@@ -238,26 +228,50 @@ test("a learner can still read their own lesson (AC-P1 control)", async ({ brows
   // (b) Same caller, same journey, their OWN waypoint. Proves the 404 above is the gate
   // doing its job rather than the route being broken for everyone.
   //
-  // Only the FIRST stream chunk is read, then the reader is cancelled. This endpoint keeps
-  // the stream open while it generates the rest of the lesson against the live model, so
-  // draining it to completion would tie this assertion's runtime to model latency — which is
-  // how it once timed out at 30 s in a full-suite run. The stored lesson is replayed before
-  // generation begins, so the owner's own content is in that first chunk.
-  const observed = await page.evaluate(async (url) => {
-    const res = await fetch(url);
-    const reader = res.body!.getReader();
-    const { value } = await reader.read();
-    await reader.cancel();
-    return {
-      status: res.status,
-      lessonId: res.headers.get("x-lesson-id"),
-      firstChunk: new TextDecoder().decode(value),
-    };
-  }, `/api/journey/${ATTACKER.journeyId}/lesson?waypointId=${ATTACKER.waypointId}`);
+  // Reads accumulate chunk-by-chunk until the owner's stored content shows up (or a
+  // bounded timeout elapses), then the reader is cancelled — RV-21. A single
+  // `reader.read()` call is NOT guaranteed by the Streams spec to return the entire
+  // resume-section body in one chunk; that only ever held empirically. Accumulating
+  // across reads makes the assertion robust to that chunking without reintroducing a
+  // full-stream drain: this endpoint keeps the stream open while it generates the rest
+  // of the lesson against the live model, and draining to completion is what once timed
+  // out at 30s in a full-suite run. The stored lesson is replayed before generation
+  // begins, so the owner's own content arrives within the first few chunks — well inside
+  // the bounded wait below.
+  const observed = await page.evaluate(
+    async ({ url, marker, timeoutMs }) => {
+      const res = await fetch(url);
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      const deadline = Date.now() + timeoutMs;
+
+      try {
+        while (!accumulated.includes(marker) && Date.now() < deadline) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+        }
+      } finally {
+        await reader.cancel();
+      }
+
+      return {
+        status: res.status,
+        lessonId: res.headers.get("x-lesson-id"),
+        accumulated,
+      };
+    },
+    {
+      url: `/api/journey/${ATTACKER.journeyId}/lesson?waypointId=${ATTACKER.waypointId}`,
+      marker: ATTACKER.body,
+      timeoutMs: 10_000,
+    },
+  );
 
   expect(observed.status).toBe(200);
   expect(observed.lessonId).toBe(ATTACKER.lessonId);
-  expect(observed.firstChunk).toContain(ATTACKER.body);
+  expect(observed.accumulated).toContain(ATTACKER.body);
 
   await ctx.close();
 });
@@ -273,4 +287,97 @@ test("an unauthenticated request is rejected before parameters are validated (AC
 
   expect(res.status()).toBe(401);
   expect(await res.text()).not.toContain("waypointId");
+});
+
+// ---------------------------------------------------------------------------
+// Resume-complete short-circuit (RV-5 / RV-21) — the direct regression test for
+// this workflow's namesake BLOCKER: a waypoint whose lesson row already holds a
+// complete document (sections + a persisted sources payload) must be replayed
+// verbatim, with NO model call and NO additional usage_events row. Seeding the
+// "already complete" row directly (rather than driving a real generation first)
+// keeps this cheap and fast — it needs no model call at all — while still
+// exercising the real route end-to-end over HTTP.
+// ---------------------------------------------------------------------------
+
+const RESUME = {
+  id: "e2e-user-lesson-resume",
+  name: "Resume User",
+  email: "resume@e2e.test",
+  token: "e2e-session-token-lesson-resume",
+  journeyId: "e2e-journey-lesson-resume",
+  waypointId: "e2e-wp-lesson-resume",
+  lessonId: "e2e-lesson-resume",
+};
+
+function seedCompleteLesson() {
+  const now = Date.now();
+  runD1(
+    `INSERT OR REPLACE INTO journeys (id, user_id, title, goal, status, created_at, updated_at) VALUES ('${sqlEsc(RESUME.journeyId)}', '${sqlEsc(RESUME.id)}', 'Resume E2E', 'Short-circuit regression', 'active', ${now}, ${now});`,
+  );
+  runD1(
+    `INSERT OR REPLACE INTO waypoints (id, journey_id, position, title, goal, concepts) VALUES ('${sqlEsc(RESUME.waypointId)}', '${sqlEsc(RESUME.journeyId)}', 0, 'Resume Waypoint', 'Stay resumed', '["Resumption"]');`,
+  );
+  // A complete LessonDocumentV1 (sections present) PLUS a persisted `sources` object —
+  // upsertLesson always writes both together, so this shape is exactly what a real
+  // completed generation leaves behind. That combination is what the route's
+  // isResumedLessonComplete check keys on.
+  const content = sqlEsc(
+    JSON.stringify({
+      version: 1,
+      title: "Stored Lesson Title",
+      summary: "Stored summary",
+      sections: [{ id: "s1", type: "prose", html: "<p>RESUME-STORED-SECTION</p>" }],
+      sources: [],
+      recommended_primary_source: null,
+    }),
+  );
+  const sources = sqlEsc(JSON.stringify({ sources: [], recommended_primary_source: null }));
+  runD1(
+    `INSERT OR REPLACE INTO lessons (id, waypoint_id, content, sources, created_at) VALUES ('${sqlEsc(RESUME.lessonId)}', '${sqlEsc(RESUME.waypointId)}', '${content}', '${sources}', ${now});`,
+  );
+}
+
+function countLessonUsageEvents(userId: string): number {
+  const rows = queryD1<{ n: number }>(
+    `SELECT COUNT(*) as n FROM usage_events WHERE user_id = '${sqlEsc(userId)}' AND type = 'lesson';`,
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
+test.describe("resume-complete short-circuit (RV-5, RV-21)", () => {
+  test.beforeAll(() => {
+    seedUser(RESUME.id, RESUME.name, RESUME.email, RESUME.token);
+    seedCompleteLesson();
+  });
+
+  test("a waypoint with an already-complete lesson is replayed without calling the model or metering again", async ({
+    playwright,
+    baseURL,
+  }) => {
+    expect(countLessonUsageEvents(RESUME.id), "no generation has run for this user yet").toBe(0);
+
+    const cookie = await signSessionToken(RESUME.token, E2E_AUTH_SECRET);
+    const ctx = await playwright.request.newContext({
+      baseURL,
+      extraHTTPHeaders: { Cookie: `__Secure-better-auth.session_token=${cookie}` },
+    });
+
+    // Safe to await the full body here (unlike the live-generation control test below):
+    // the short-circuit path never calls the model, so the stream closes immediately.
+    const res = await ctx.get(
+      `/api/journey/${RESUME.journeyId}/lesson?waypointId=${RESUME.waypointId}`,
+    );
+
+    expect(res.status()).toBe(200);
+    expect(res.headers()["x-lesson-id"]).toBe(RESUME.lessonId);
+    const body = await res.text();
+    expect(body).toContain("RESUME-STORED-SECTION");
+    expect(body).toContain('"type":"sources"');
+
+    // The direct regression assertion for the persistence/metering BLOCKER this round
+    // fixed: replaying a stored-complete lesson must not add a second usage_events row.
+    expect(countLessonUsageEvents(RESUME.id)).toBe(0);
+
+    await ctx.dispose();
+  });
 });

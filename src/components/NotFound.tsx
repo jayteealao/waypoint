@@ -11,9 +11,18 @@
  * Verification seam: data-testid="not-found".
  */
 
+import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 
 export function NotFound() {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Move focus to the heading on mount so keyboard/screen-reader users get a
+  // perceivable signal that the navigation landed on a 404, not silence.
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
     <main
       className="min-h-screen bg-[var(--paper)] px-4 py-8"
@@ -27,7 +36,11 @@ export function NotFound() {
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--ember)]">
                 404
               </p>
-              <h1 className="display-title m-0 text-2xl font-bold text-[var(--ink)]">
+              <h1
+                ref={headingRef}
+                tabIndex={-1}
+                className="display-title m-0 text-2xl font-bold text-[var(--ink)]"
+              >
                 This page isn&rsquo;t on the map
               </h1>
               <p className="mt-2 m-0 text-sm leading-6 text-[var(--ink-muted)]">
