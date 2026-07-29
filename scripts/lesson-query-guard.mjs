@@ -84,12 +84,17 @@ function matchOffsets(content) {
   return offsets;
 }
 
-/** 1-based line number for a character offset, and the trimmed source line. */
-function locate(content, offset) {
+/**
+ * 1-based line number for a character offset, and the trimmed source line(s).
+ * `matchLength` is the length of the matched text at `offset`; the reported text spans
+ * through the end of the match's last line, so a multiline match like `FROM\n  lessons`
+ * isn't truncated to just its first line.
+ */
+function locate(content, offset, matchLength = 0) {
   const before = content.slice(0, offset);
   const line = before.split("\n").length;
   const lineStart = before.lastIndexOf("\n") + 1;
-  const lineEnd = content.indexOf("\n", offset);
+  const lineEnd = content.indexOf("\n", offset + matchLength);
   const text = content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd).trim();
   return { line, text };
 }
@@ -173,8 +178,8 @@ export function findViolations(rootDir) {
     if (offsets.length === 0) continue;
 
     if (!ALLOWLIST.has(rel)) {
-      for (const { index } of offsets) {
-        const { line, text } = locate(content, index);
+      for (const { index, text: matchText } of offsets) {
+        const { line, text } = locate(content, index, matchText.length);
         violations.push({ file: rel, line, text, kind: "membership" });
       }
       continue;
@@ -183,7 +188,7 @@ export function findViolations(rootDir) {
     if (ORDERING_EXEMPT.has(rel)) continue;
 
     const { ownershipCalls, enclosing } = analyzeOrdering(content, rel, offsets);
-    for (const { index } of offsets) {
+    for (const { index, text: matchText } of offsets) {
       const fns = enclosing.get(index) ?? [];
       // Satisfied when some ownership call starts earlier in the file AND shares a
       // function with this occurrence (same function, or one that encloses it).
@@ -191,7 +196,7 @@ export function findViolations(rootDir) {
         (call) => call.start < index && call.fns.some((fn) => fns.includes(fn)),
       );
       if (!guarded) {
-        const { line, text } = locate(content, index);
+        const { line, text } = locate(content, index, matchText.length);
         violations.push({ file: rel, line, text, kind: "ordering" });
       }
     }
