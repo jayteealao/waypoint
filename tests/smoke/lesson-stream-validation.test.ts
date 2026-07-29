@@ -164,6 +164,41 @@ describe("lesson stream validation — AC-2: an incomplete stream is neither sav
       chunks: [HEADER, SECTION, `{"type":"sources","sourc`],
       reason: "missing_sources",
     },
+    {
+      // Array.isArray alone accepts [null] — every element must actually be shaped
+      // like a LessonSource, or LessonView's unconditional `source.url` throws on a
+      // lesson that was persisted and billed.
+      name: "a sources array containing a null element",
+      chunks: [
+        HEADER,
+        SECTION,
+        `{"type":"sources","sources":[null],"recommended_primary_source":null}\n`,
+      ],
+      reason: "missing_sources",
+    },
+    {
+      name: "a sources array containing a non-object element",
+      chunks: [
+        HEADER,
+        SECTION,
+        `{"type":"sources","sources":[42],"recommended_primary_source":null}\n`,
+      ],
+      reason: "missing_sources",
+    },
+    {
+      // A valid sources line is supposed to be the terminal record. A section arriving
+      // after it means the stream did not actually end where it claimed to.
+      name: "a valid sources line followed by a section event",
+      chunks: [HEADER, SECTION, SOURCES, `{"type":"prose","id":"s2","html":"<p>Late</p>"}\n`],
+      reason: "missing_sources",
+    },
+    {
+      // Same idea, but the trailing content is a truncated line instead of a
+      // well-formed section — the residual flush must still un-claim `sawSources`.
+      name: "a valid sources line followed by a truncated JSON line",
+      chunks: [HEADER, SECTION, SOURCES, `{"type":"prose","id":"s2`],
+      reason: "missing_sources",
+    },
   ];
 
   for (const { name, chunks, reason } of refusals) {
@@ -234,6 +269,20 @@ describe("lesson stream validation — the legitimate paths still commit", () =>
 
   it("still commits a well-formed generation (happy path regression)", async () => {
     scriptStream([HEADER, SECTION, SOURCES]);
+
+    const body = await callRoute();
+
+    expect(body).toContain('"type":"sources"');
+    expect(count("lessons")).toBe(1);
+    expect(count("usage_events")).toBe(1);
+    expect(incompleteLog()).toBeUndefined();
+  });
+
+  it("does not over-refuse trailing whitespace-only content after a valid sources line", async () => {
+    // Guard against the terminal-record check being too eager: blank/whitespace-only
+    // residue after a valid sources line is not "more stream", so it must not
+    // un-claim `sawSources`.
+    scriptStream([HEADER, SECTION, SOURCES, "   \n"]);
 
     const body = await callRoute();
 

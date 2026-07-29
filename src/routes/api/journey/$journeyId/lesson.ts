@@ -78,6 +78,22 @@ import type {
   LessonSource,
 } from "#/types/lesson-document";
 
+/**
+ * A candidate `sources` array element (or `recommended_primary_source`) is only a
+ * LessonSource if it survives this check — `Array.isArray` alone accepts `[null]`,
+ * `[42]`, or `["x"]`, and a cast over those would persist and bill a payload that
+ * `source.url` in LessonView then throws on. `title` must be a real, non-empty
+ * string; `url` may be absent or null but must be a string when it IS present.
+ */
+function isLessonSource(value: unknown): value is LessonSource {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate["title"] !== "string" || candidate["title"].trim() === "") return false;
+  const url = candidate["url"];
+  if (url !== undefined && url !== null && typeof url !== "string") return false;
+  return true;
+}
+
 export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
   server: {
     handlers: {
@@ -345,6 +361,16 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                     preview: line.slice(0, 80),
                   }),
                 );
+                // A non-blank line that fails to parse AFTER a valid sources line already
+                // fired is still more stream than the protocol declared — the residual
+                // flush (7d2) hits this exact path for a truncated final line, and a
+                // sources line is only the terminal record if nothing follows it. Blank
+                // lines never reach here (the `if (!line) return;` above filters them),
+                // so trailing whitespace-only content cannot trip this.
+                if (sawSources) {
+                  sawSources = false;
+                  sourcesPayload = { sources: [], recommended_primary_source: null };
+                }
                 return;
               }
 
@@ -367,18 +393,30 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 // so the next visit regenerates and bills again — the same double-bill
                 // loop from the other end. Only a structurally sound payload counts as
                 // the protocol having completed.
+                //
+                // Every element of `sources`, and `recommended_primary_source` itself when
+                // it is a non-null object, must actually be a LessonSource — an array of
+                // `[null]` or `[42]` passes `Array.isArray` just as well as a real payload,
+                // and casting that through persists a lesson LessonView cannot render
+                // (it dereferences `source.url` unconditionally). `isLessonSource` is the
+                // single predicate both checks share, so the array and the primary can
+                // never disagree about what counts as a source.
                 const rawSources = parsed["sources"];
                 const rawPrimary = parsed["recommended_primary_source"];
                 const primaryOk =
-                  rawPrimary === undefined ||
-                  rawPrimary === null ||
-                  (typeof rawPrimary === "object" && !Array.isArray(rawPrimary));
-                if (Array.isArray(rawSources) && primaryOk) {
+                  rawPrimary === undefined || rawPrimary === null || isLessonSource(rawPrimary);
+                if (Array.isArray(rawSources) && rawSources.every(isLessonSource) && primaryOk) {
                   sourcesPayload = {
                     sources: rawSources as LessonSource[],
                     recommended_primary_source: (rawPrimary as LessonSource | null) ?? null,
                   };
                   sawSources = true;
+                } else if (sawSources) {
+                  // A second `sources` line — this one malformed — arrived after a valid
+                  // one already completed the protocol. That is more stream than the
+                  // protocol allows for; see the terminal-record note below.
+                  sawSources = false;
+                  sourcesPayload = { sources: [], recommended_primary_source: null };
                 }
               } else if (lineType != null) {
                 // Section event — guard for resume duplicates
@@ -387,6 +425,17 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 if (!alreadyHave) {
                   completedSections.push(section);
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(section)}\n\n`));
+                }
+                // A valid `sources` line is supposed to be the LAST thing the protocol
+                // emits (see NDJSON line format at the top of this file). A section
+                // arriving after one means the stream kept going past what it declared
+                // its terminal line to be — that is not the completed protocol the sources
+                // line claimed to be, so un-claim it and let the stream-incomplete gate
+                // below refuse the whole generation rather than bill a payload that was
+                // never actually final.
+                if (sawSources) {
+                  sawSources = false;
+                  sourcesPayload = { sources: [], recommended_primary_source: null };
                 }
               }
             };
