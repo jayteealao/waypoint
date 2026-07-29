@@ -95,17 +95,21 @@ function InterviewPage() {
   async function handleComplete(stage: "complete" | "declined") {
     if (stage !== "complete") return;
 
-    const holdUntil = Date.now() + COMPLETION_HOLD_MS;
-
     try {
       await completeInterview({ data: journeyId });
     } catch {
       // Best-effort: completion was already persisted by sendTurn's terminal stage handling
     }
 
+    // The hold starts HERE, not before the await: the card the hold exists to make visible is
+    // only on screen once completion has persisted. Starting the clock earlier meant a slow
+    // round-trip spent the whole budget before the card painted, so the confirmation could be
+    // replaced almost immediately — the exact defect the hold was added to prevent.
+    const holdUntil = Date.now() + COMPLETION_HOLD_MS;
+
     // Start generation now but do not await it yet — the completion card holds while this
     // runs, so the confirmation costs nothing when generation is slower than the hold.
-    const generation = generateRoadmap({ data: journeyId });
+    const generation = generateRoadmap({ data: { journeyId, mock: mock === true } });
     // Attach a no-op catch immediately: a rejection during the hold would otherwise be an
     // unhandled rejection. The real handling is the awaited catch below.
     generation.catch(() => {});

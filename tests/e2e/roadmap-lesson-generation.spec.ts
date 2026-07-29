@@ -131,6 +131,20 @@ test.beforeAll(() => {
   );
 });
 
+/**
+ * Remove any stored lesson for a waypoint.
+ *
+ * The specs that assert on the *generating* view need there to be nothing to replay. That became
+ * load-bearing once the lesson route learned to short-circuit on an already-complete lesson: AC-5
+ * runs first and visits WAYPOINT_ID_1 with the *real* lesson route, so wherever generation
+ * succeeds it persists a lesson, and the next spec then replays it instead of streaming — never
+ * rendering the generating view it asserts on. A `beforeAll` clear cannot fix this, because the
+ * polluting write happens *between* tests; each spec has to assert its own precondition.
+ */
+function clearLesson(waypointId: string) {
+  runD1(`DELETE FROM lessons WHERE waypoint_id = '${sqlEsc(waypointId)}';`);
+}
+
 async function makeAuthContext(browser: Browser, baseURL: string) {
   const cookieValue = await signSessionToken(USER.token, E2E_AUTH_SECRET);
   const ctx = await browser.newContext();
@@ -202,6 +216,9 @@ test("AC-6: lesson streams progressively and checkpoint widget is interactive", 
     testInfo.project.use.baseURL ?? "http://localhost:3000",
   );
   const page = await ctx.newPage();
+
+  // This spec asserts on the generating view, so there must be nothing to replay.
+  clearLesson(WAYPOINT_ID_1);
 
   // Intercept the SSE endpoint and serve mock SSE events with realistic cadence
   await page.route(`**/api/journey/${JOURNEY_ID}/lesson**`, async (route) => {
@@ -290,6 +307,7 @@ test("AC-12: reconnecting banner appears on SSE error, content preserved on retr
     }
   });
 
+  clearLesson(WAYPOINT_ID_2);
   await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_2}`);
 
   // Wait for initial sections to render
@@ -328,6 +346,7 @@ test("all-fallbacks-fail: friendly error message shown", async ({ browser }, tes
     });
   });
 
+  clearLesson(WAYPOINT_ID_2);
   await page.goto(`/journey/${JOURNEY_ID}/waypoint/${WAYPOINT_ID_2}`);
 
   // Error state should render
