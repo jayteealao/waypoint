@@ -54,29 +54,38 @@ function sqlEsc(s: string): string {
   return s.replace(/'/g, "''");
 }
 
-/** Run a statement against local D1 via a temp .sql file (avoids shell quoting hazards). */
-function runD1(command: string) {
+/**
+ * Execute SQL against local D1 via a temp .sql file.
+ *
+ * The file is the point: passing SQL as `--command="..."` means hand-escaping it into a shell
+ * argument, and any such escape is one unhandled metacharacter away from being wrong (CodeQL
+ * `js/incomplete-sanitization` caught exactly that here — quotes were escaped, backslashes were
+ * not). `--file` carries the statement verbatim, so there is no quoting to get right.
+ */
+function execD1(sql: string, extraArgs = ""): string {
   const tmpFile = path.join(
     os.tmpdir(),
     `wrangler-d1-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`,
   );
-  fs.writeFileSync(tmpFile, command, "utf8");
+  fs.writeFileSync(tmpFile, sql, "utf8");
   try {
-    execSync(`pnpm exec wrangler d1 execute waypoint-dev --local --file="${tmpFile}"`, {
-      cwd: process.cwd(),
-      stdio: "pipe",
-    });
+    return execSync(
+      `pnpm exec wrangler d1 execute waypoint-dev --local ${extraArgs} --file="${tmpFile}"`,
+      { cwd: process.cwd(), stdio: "pipe", encoding: "utf8" },
+    );
   } finally {
     fs.unlinkSync(tmpFile);
   }
 }
 
+/** Run a statement against local D1. */
+function runD1(command: string) {
+  execD1(command);
+}
+
 /** Read rows out of local D1 as JSON. */
 function queryD1<T>(sql: string): T[] {
-  const out = execSync(
-    `pnpm exec wrangler d1 execute waypoint-dev --local --json --command="${sql.replace(/"/g, '\\"')}"`,
-    { cwd: process.cwd(), stdio: "pipe", encoding: "utf8" },
-  );
+  const out = execD1(sql, "--json");
   const parsed = JSON.parse(out) as Array<{ results: T[] }>;
   return parsed[0]?.results ?? [];
 }
