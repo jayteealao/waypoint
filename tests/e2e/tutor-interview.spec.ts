@@ -391,6 +391,15 @@ test("AC-P5: completion card is held with a working indicator before the roadmap
   browser,
   baseURL,
 }) => {
+  // This spec waits up to 45s for the completion card and another 30s for the roadmap view,
+  // but playwright.config.ts sets no top-level `timeout`, so the per-test budget is Playwright's
+  // 30s default — both inner waits are unreachable the moment the interview drive is slow. On a
+  // fast local machine the drive finishes in a second and it never bites; on CI it did, failing
+  // in both directions (the roadmap card never appearing within the budget on one attempt, the
+  // 1s hold expiring before the assertions caught up on the retry). Raise the budget past the
+  // inner waits rather than shortening them: the hold is still measured and still asserted.
+  test.setTimeout(120_000);
+
   const { ctx, page, clickedAt } = await driveCompletionHold(browser, baseURL!, JOURNEYS.hold);
 
   // The confirmation paints, and it carries the working affordance that makes the
