@@ -18,6 +18,7 @@ import { requireAuth, requireOwnership } from "#/lib/auth-guard";
 import { callGateway } from "#/lib/ai/gateway";
 import { ROADMAP_SYSTEM_PROMPT } from "#/lib/interview/prompts";
 import { validateRoadmap, buildRoadmapPrompt, GenerationError } from "#/lib/roadmap/schema";
+import type { WaypointOutput } from "#/lib/roadmap/schema";
 import type { InterviewRecord } from "#/types/interview";
 import type { Journey } from "#/db/schema";
 
@@ -37,6 +38,33 @@ export interface GenerateRoadmapResult {
   waypointCount: number;
 }
 
+/**
+ * Scripted roadmap for E2E runs (`?mock=1`), the counterpart to interview.ts's
+ * MOCK_QUESTIONS. Gated on NODE_ENV !== 'production' at the call site, so the seam
+ * cannot leak to a real deployment.
+ *
+ * Deliberately shaped like a plausible model response — three waypoints with goals and
+ * concepts — so the specs that read the roadmap surface exercise real rendering rather
+ * than a degenerate one-item list.
+ */
+const MOCK_ROADMAP: WaypointOutput[] = [
+  {
+    title: "Orient: what this topic is for",
+    goal: "Explain the problem the topic solves and when to reach for it.",
+    concepts: ["Scope", "Motivation"],
+  },
+  {
+    title: "Work the core mechanics",
+    goal: "Apply the central technique to a worked example end to end.",
+    concepts: ["Core technique", "Worked example", "Common pitfalls"],
+  },
+  {
+    title: "Extend and check yourself",
+    goal: "Adapt the technique to an unfamiliar case and verify the result.",
+    concepts: ["Generalisation", "Self-check"],
+  },
+];
+
 // ── Server function ───────────────────────────────────────────────────────────
 
 /**
@@ -55,8 +83,9 @@ export interface GenerateRoadmapResult {
  */
 export const generateRoadmap = createServerFn({ method: "POST" })
   .middleware([withSession])
-  .validator((journeyId: string) => journeyId)
-  .handler(async ({ data: journeyId, context }): Promise<GenerateRoadmapResult> => {
+  .validator((input: { journeyId: string; mock?: boolean }) => input)
+  .handler(async ({ data, context }): Promise<GenerateRoadmapResult> => {
+    const { journeyId, mock = false } = data;
     const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
     const startTime = Date.now();
 
@@ -118,7 +147,15 @@ export const generateRoadmap = createServerFn({ method: "POST" })
     ];
 
     // ── 5. Call gateway — first attempt ───────────────────────────────────────
-    let parsedRoadmap = await attemptRoadmapCall(session.user.id, journeyId, messages);
+    // Mock seam, mirroring sendTurn's: scripted output for E2E, never reachable in
+    // production. Without it the roadmap path is the one E2E flow that still needs a
+    // live, paid model call, so it fails on any runner without a real OPENROUTER key —
+    // which is how AC-P5 passed locally and failed on CI with "model returned invalid
+    // JSON twice".
+    let parsedRoadmap =
+      mock === true && process.env.NODE_ENV !== "production"
+        ? MOCK_ROADMAP
+        : await attemptRoadmapCall(session.user.id, journeyId, messages);
 
     // ── 6. One re-ask on failure ───────────────────────────────────────────────
     if (parsedRoadmap === null) {

@@ -110,16 +110,8 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
         const waypoint = await resolveOwnedWaypoint(env.DB, { waypointId, journeyId, userId });
         if (!waypoint) return new Response(null, { status: 404 });
 
-        // ── 3. Quota check ───────────────────────────────────────────────────
-        const quotaStatus = await checkQuota(env.DB, userId, "lesson");
-        if (!quotaStatus.allowed) {
-          return new Response(JSON.stringify({ error: "Daily generation quota exhausted" }), {
-            status: 429,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-
-        // ── 4. Read existing lesson for resume ───────────────────────────────
+        // ── 3. Read existing lesson for resume ───────────────────────────────
+        // NOTE: the quota gate deliberately runs *after* this read — see step 4.
         const existingLesson = await env.DB.prepare(
           "SELECT id, content, sources FROM lessons WHERE waypoint_id = ?",
         )
@@ -183,6 +175,22 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
         // A stored lesson with sections AND a persisted sources payload is a complete,
         // already-billed generation — replay it instead of re-running the model.
         const isResumedLessonComplete = resumeSections.length > 0 && resumeSourcesPayload !== null;
+
+        // ── 4. Quota check — only for work that will actually call the model ──
+        // This runs after the resume read, not before it. Quota meters *generation*, and a
+        // replay generates nothing: it re-serves a lesson the learner has already been billed
+        // for. Gating it here too would make an exhausted quota retroactively revoke access to
+        // finished work, contradicting the free-and-instant revisit guarantee this route's
+        // short-circuit exists to provide.
+        if (!isResumedLessonComplete) {
+          const quotaStatus = await checkQuota(env.DB, userId, "lesson");
+          if (!quotaStatus.allowed) {
+            return new Response(JSON.stringify({ error: "Daily generation quota exhausted" }), {
+              status: 429,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+        }
 
         // ── 5. Waypoint context for the concept-tagging prompt ───────────────
         // Already resolved by the ownership gate at 2c — no second round-trip.

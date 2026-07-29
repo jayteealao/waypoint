@@ -91,9 +91,14 @@ function WaypointPage() {
             // fall back to empty sources
           }
         }
+        // The legacy array shape carried no title or summary, but this path now renders
+        // through LessonView rather than the generating skeleton, so an empty string paints
+        // a blank <h1>. Fall back to the waypoint's own title — it is what the lesson is
+        // about, and it is already on screen in the sidebar, so the page reads as coherent
+        // rather than headless.
         parsedDoc = {
           version: 1,
-          title: "",
+          title: waypoints.find((wp) => wp.id === waypointId)?.label ?? "Lesson",
           summary: "",
           sections: resumeSections,
           sources: sourcesPayload.sources ?? [],

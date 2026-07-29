@@ -25,11 +25,23 @@ describe("lesson-query-guard", () => {
     expect(runGuard(REPO_ROOT, () => {})).toBe(0);
   });
 
+  // Allowlist membership alone is no longer sufficient — the occurrence must also follow an
+  // ownership check in its function, so these fixtures carry one. (They previously did not:
+  // bare top-level string constants passed when the guard only checked the file path.)
   it("allows `FROM lessons` inside the allowlisted call sites", () => {
     const root = makeFixture({
-      "src/server/lessons.ts": 'const sql = "SELECT * FROM lessons WHERE id = ?";',
-      "src/routes/api/journey/$journeyId/lesson.ts":
-        'const sql = "SELECT id FROM lessons WHERE waypoint_id = ?";',
+      "src/server/lessons.ts": `
+        export async function read(db, ids) {
+          const wp = await resolveOwnedWaypoint(db, ids);
+          return db.prepare("SELECT * FROM lessons WHERE id = ?").bind(wp.id);
+        }
+      `,
+      "src/routes/api/journey/$journeyId/lesson.ts": `
+        export async function handler(db, ids) {
+          const wp = await resolveOwnedWaypoint(db, ids);
+          return db.prepare("SELECT id FROM lessons WHERE waypoint_id = ?").bind(wp.id);
+        }
+      `,
     });
     try {
       expect(findViolations(root)).toEqual([]);
@@ -61,6 +73,112 @@ describe("lesson-query-guard", () => {
     });
     try {
       expect(findViolations(root)).toHaveLength(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  // ── Bypass forms the line-at-a-time matcher used to miss ────────────────────
+
+  it("catches `FROM lessons` split across a line break", () => {
+    const root = makeFixture({
+      "src/routes/api/sneaky.ts": ["const sql = `SELECT *", "  FROM", "  lessons", "`;"].join("\n"),
+    });
+    try {
+      const violations = findViolations(root);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]!.kind).toBe("membership");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ["double-quoted", "const sql = 'SELECT * FROM \"lessons\" WHERE id = ?';"],
+    ["bracketed", "const sql = 'SELECT * FROM [lessons] WHERE id = ?';"],
+    ["backticked", 'const sql = "SELECT * FROM `lessons` WHERE id = ?";'],
+  ])("catches a quoted table identifier (%s)", (_label, source) => {
+    const root = makeFixture({ "src/routes/api/quoted.ts": source });
+    try {
+      expect(findViolations(root)).toHaveLength(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  // ── Ordering: allowlist membership is necessary but not sufficient ──────────
+
+  it("allows a query that follows an ownership check in the same function", () => {
+    const root = makeFixture({
+      "src/server/lessons.ts": `
+        export async function readLesson(db, ids) {
+          const wp = await resolveOwnedWaypoint(db, ids);
+          if (!wp) return null;
+          return db.prepare("SELECT * FROM lessons WHERE waypoint_id = ?").bind(ids.waypointId);
+        }
+      `,
+    });
+    try {
+      expect(findViolations(root)).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("catches a query placed BEFORE the ownership check in an allowlisted file", () => {
+    const root = makeFixture({
+      "src/server/lessons.ts": `
+        export async function readLesson(db, ids) {
+          const row = await db.prepare("SELECT * FROM lessons WHERE waypoint_id = ?").first();
+          const wp = await resolveOwnedWaypoint(db, ids);
+          return wp ? row : null;
+        }
+      `,
+    });
+    try {
+      const violations = findViolations(root);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]!.kind).toBe("ordering");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("catches a query in an UNGATED function of an allowlisted file", () => {
+    const root = makeFixture({
+      "src/server/lessons.ts": `
+        export async function gated(db, ids) {
+          const wp = await resolveOwnedWaypoint(db, ids);
+          return db.prepare("SELECT * FROM lessons WHERE waypoint_id = ?").bind(wp.id);
+        }
+        export async function ungated(db, waypointId) {
+          return db.prepare("SELECT * FROM lessons WHERE waypoint_id = ?").bind(waypointId);
+        }
+      `,
+    });
+    try {
+      const violations = findViolations(root);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]!.kind).toBe("ordering");
+      expect(violations[0]!.text).toContain("SELECT");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts an ownership check in an ENCLOSING function", () => {
+    const root = makeFixture({
+      "src/server/lessons.ts": `
+        export async function outer(db, ids) {
+          const wp = await resolveOwnedWaypointScoped(db, ids);
+          const run = async () =>
+            db.prepare("SELECT * FROM lessons WHERE waypoint_id = ?").bind(wp.id);
+          return run();
+        }
+      `,
+    });
+    try {
+      expect(findViolations(root)).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
