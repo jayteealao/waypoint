@@ -8,9 +8,9 @@
  * Level: unit/integration. This drives `upsertLessonStatement` (src/server/lessons.ts)
  * and `recordUsageStatement` (src/lib/ai/model-stream.ts) — the exact prepared
  * statements the route batches — through a real SQL engine (`node:sqlite`) executing
- * the actual `migrations/0000_schema_v1.sql`, via a minimal `D1Database.batch()`
- * adapter that commits both statements inside one transaction, mirroring how D1's
- * batch API is documented to behave (all-or-nothing).
+ * the actual `migrations/0000_schema_v1.sql`, via the minimal `D1Database.batch()`
+ * adapter in `./_helpers/d1-sqlite.ts` that commits both statements inside one
+ * transaction, mirroring how D1's batch API is documented to behave (all-or-nothing).
  *
  * What this DOES catch: a revert of the statement pairing (e.g. only the lesson
  * upsert being batched, or the usage insert being dropped), a broken SQL string in
@@ -24,7 +24,9 @@
  * the cheap, no-model-call regression test of the metering guarantee on the resume
  * path). Driving a full live model generation through the SSE route was judged too
  * slow/flaky for a spec, so this file covers the persistence/metering guarantee at
- * the statement level instead.
+ * the statement level instead. `./lesson-stream-validation.test.ts` covers the other
+ * half — it loads the route module itself and runs the real GET handler over this
+ * same adapter with a scripted model stream.
  *
  * Lives under tests/smoke/ (not src/server/) so its `SELECT ... FROM lessons`
  * assertions don't need an entry in scripts/lesson-query-guard.mjs's ALLOWLIST — that
@@ -33,9 +35,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DatabaseSync } from "node:sqlite";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { createD1 as d1, seedSchema } from "./_helpers/d1-sqlite";
 
 // `#/server/lessons` imports `env` from `cloudflare:workers` at module scope (used
 // only by its createServerFn handlers, which this file never calls) — that module
@@ -49,57 +49,11 @@ import { upsertLessonStatement } from "#/server/lessons";
 import { recordUsageStatement } from "#/lib/ai/model-stream";
 import type { LessonDocumentV1 } from "#/types/lesson-document";
 
-const MIGRATION_SQL = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "..", "..", "migrations", "0000_schema_v1.sql"),
-  "utf8",
-);
-
-/**
- * Minimal D1 surface: prepare/bind (as in src/server/lesson-access.test.ts) plus
- * batch(), which commits every statement in the array inside one transaction —
- * matching D1's documented all-or-nothing semantics for `D1Database.batch()`.
- */
-function d1(db: DatabaseSync): D1Database {
-  function prepare(sql: string) {
-    const compiled = db.prepare(sql);
-    let bound: unknown[] = [];
-    const api = {
-      bind(...args: unknown[]) {
-        bound = args;
-        return api;
-      },
-      run(): Promise<unknown> {
-        compiled.run(...(bound as never[]));
-        return Promise.resolve({ success: true });
-      },
-      _run(): unknown {
-        return compiled.run(...(bound as never[]));
-      },
-    };
-    return api;
-  }
-
-  return {
-    prepare,
-    async batch(statements: Array<ReturnType<typeof prepare>>) {
-      db.exec("BEGIN");
-      try {
-        const results = statements.map((s) => (s as unknown as { _run(): unknown })._run());
-        db.exec("COMMIT");
-        return results;
-      } catch (err) {
-        db.exec("ROLLBACK");
-        throw err;
-      }
-    },
-  } as unknown as D1Database;
-}
-
 let db: DatabaseSync;
 
 beforeEach(() => {
   db = new DatabaseSync(":memory:");
-  db.exec(MIGRATION_SQL);
+  seedSchema(db);
   db.exec(`
     INSERT INTO \`user\` (id, name, email, emailVerified, createdAt, updatedAt)
       VALUES ('carol', 'Carol', 'carol@example.com', 1, 0, 0);
