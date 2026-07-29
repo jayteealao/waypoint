@@ -59,13 +59,21 @@ jobs:
       # now loads this same file into the test runner's environment, so the seeded-session
       # specs run here instead of skipping — the app and the runner sign session cookies
       # with the identical secret because both read it from this file.
+      #
+      # BETTER_AUTH_BASE_URL must be **https**, even though the dev server serves http on
+      # localhost. better-auth derives the `__Secure-` cookie prefix from this URL's protocol
+      # (better-auth/dist/cookies/index.mjs: secureCookiePrefix), and every seeded-session spec
+      # injects `__Secure-better-auth.session_token` by name. Under `http` the server looks for
+      # the unprefixed name instead, silently ignores the injected cookie, and all 22
+      # seeded-session specs fail as anonymous. Playwright still navigates via BASE_URL
+      # (http://localhost:3000); this value only decides the cookie name.
       - name: Provision E2E dev vars
         run: |
           cat > .dev.vars <<'EOF'
           BETTER_AUTH_SECRET=e2e-ci-placeholder-secret-0000000000000000
           BETTER_AUTH_API_KEY=e2e-ci-placeholder
           OPENROUTER_API_KEY=e2e-ci-placeholder
-          BETTER_AUTH_BASE_URL=http://localhost:3000
+          BETTER_AUTH_BASE_URL=https://localhost:3000
           GOOGLE_CLIENT_ID=e2e-ci-placeholder
           GOOGLE_CLIENT_SECRET=e2e-ci-placeholder
           GITHUB_CLIENT_ID=e2e-ci-placeholder
