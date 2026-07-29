@@ -32,6 +32,15 @@
  *   alive while the stream is open, so awaiting the writes there before enqueuing the
  *   terminal event guarantees both that they land AND that the client is told "done" only
  *   once the data is durable.
+ * Stream validation: a stream that ends without throwing is not yet a lesson. Before the
+ *   batch below runs, the generation must have produced a non-empty title, at least one
+ *   structurally real section (non-empty string `id` + string `type`), and a terminal
+ *   `sources` line whose payload is actually shaped like one. If any of those is missing
+ *   the batch is skipped entirely — no lesson row, no usage row — and the client gets the
+ *   existing {"type":"error",...} event. This is what keeps the billing invariant honest:
+ *   a usage row is only ever recorded against a lesson a learner can actually open.
+ *   Which guard failed is logged as lesson.stream_incomplete (reason + model) so the rate
+ *   is measurable rather than inferred.
  * Atomicity: the lesson upsert and the usage-metering insert commit together via
  *   `env.DB.batch([...])` so a D1 failure can never leave one write applied without the
  *   other (an unmetered generation, or a metered generation with no lesson to show for it).
@@ -293,6 +302,13 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               sources: [],
               recommended_primary_source: null,
             };
+            // `sourcesPayload` is born structurally valid, so it cannot distinguish "the
+            // model sent an empty sources list" from "the model never reached its terminal
+            // line". This flag can: it is set only by a `sources` line whose payload is
+            // actually shaped like one. It is the only completion signal a resume baseline
+            // cannot fake, which is what makes the pre-persist gate meaningful on a resumed
+            // generation (title and sections can both come from the stored row).
+            let sawSources = false;
             const resetPerModelState = () => {
               lineBuffer = "";
               completedSections = [...resumeSections];
@@ -302,67 +318,88 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               // sources-typed line before dying must not leak that payload into a
               // successful fallback attempt's persisted/terminal payload (RV-11).
               sourcesPayload = { sources: [], recommended_primary_source: null };
+              sawSources = false;
             };
 
-            // ── 7c. onTextDelta: NDJSON line-buffer → token-by-token SSE enqueue ─
+            // ── 7c. handleLine: one NDJSON line → state update + SSE enqueue ──
+            // Hoisted out of the read loop so the post-stream residual flush (7d2) runs
+            // the SAME parser rather than a second copy that could drift from it.
+            const handleLine = (raw: string): void => {
+              const line = raw.trim();
+              if (!line) return;
+
+              // Skip markdown fence lines (defensive against model non-compliance)
+              if (line.startsWith("```") || line.startsWith("---")) return;
+
+              let parsed: Record<string, unknown>;
+              try {
+                parsed = JSON.parse(line) as Record<string, unknown>;
+              } catch {
+                // Non-JSON line — skip with warn (R2 risk per plan)
+                console.log(
+                  JSON.stringify({
+                    event: "lesson.ndjson_skip",
+                    user_id: userId,
+                    waypoint_id: waypointId,
+                    reason: "invalid JSON line",
+                    preview: line.slice(0, 80),
+                  }),
+                );
+                return;
+              }
+
+              const lineType = parsed["type"] as string | undefined;
+
+              if (lineType === "header") {
+                headerTitle = (parsed["title"] as string) ?? headerTitle;
+                headerSummary = (parsed["summary"] as string) ?? headerSummary;
+                // Emit header event
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`));
+              } else if (lineType === "sources") {
+                // Capture the sources payload for the final D1 write. Deliberately NOT
+                // enqueued here — the terminal `sources` SSE event is deferred until
+                // after the D1 persist below resolves (RV-2), so the client's
+                // `es.close()` (fired the instant it sees that event type) can never
+                // race the write that makes this generation durable.
+                //
+                // Saying "sources" is not being sources: a line carrying a string where
+                // the array belongs would persist a payload the resume reader rejects,
+                // so the next visit regenerates and bills again — the same double-bill
+                // loop from the other end. Only a structurally sound payload counts as
+                // the protocol having completed.
+                const rawSources = parsed["sources"];
+                const rawPrimary = parsed["recommended_primary_source"];
+                const primaryOk =
+                  rawPrimary === undefined ||
+                  rawPrimary === null ||
+                  (typeof rawPrimary === "object" && !Array.isArray(rawPrimary));
+                if (Array.isArray(rawSources) && primaryOk) {
+                  sourcesPayload = {
+                    sources: rawSources as LessonSource[],
+                    recommended_primary_source: (rawPrimary as LessonSource | null) ?? null,
+                  };
+                  sawSources = true;
+                }
+              } else if (lineType != null) {
+                // Section event — guard for resume duplicates
+                const section = parsed as unknown as LessonSectionType;
+                const alreadyHave = completedSections.some((s) => s.id === section.id);
+                if (!alreadyHave) {
+                  completedSections.push(section);
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(section)}\n\n`));
+                }
+              }
+            };
+
             const onTextDelta = (delta: string): void => {
               lineBuffer += delta;
 
               // Process all complete lines in the buffer
               let newlineIndex: number;
               while ((newlineIndex = lineBuffer.indexOf("\n")) !== -1) {
-                const line = lineBuffer.slice(0, newlineIndex).trim();
+                const line = lineBuffer.slice(0, newlineIndex);
                 lineBuffer = lineBuffer.slice(newlineIndex + 1);
-
-                if (!line) continue;
-
-                // Skip markdown fence lines (defensive against model non-compliance)
-                if (line.startsWith("```") || line.startsWith("---")) continue;
-
-                let parsed: Record<string, unknown>;
-                try {
-                  parsed = JSON.parse(line) as Record<string, unknown>;
-                } catch {
-                  // Non-JSON line — skip with warn (R2 risk per plan)
-                  console.log(
-                    JSON.stringify({
-                      event: "lesson.ndjson_skip",
-                      user_id: userId,
-                      waypoint_id: waypointId,
-                      reason: "invalid JSON line",
-                      preview: line.slice(0, 80),
-                    }),
-                  );
-                  continue;
-                }
-
-                const lineType = parsed["type"] as string | undefined;
-
-                if (lineType === "header") {
-                  headerTitle = (parsed["title"] as string) ?? headerTitle;
-                  headerSummary = (parsed["summary"] as string) ?? headerSummary;
-                  // Emit header event
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed)}\n\n`));
-                } else if (lineType === "sources") {
-                  // Capture the sources payload for the final D1 write. Deliberately NOT
-                  // enqueued here — the terminal `sources` SSE event is deferred until
-                  // after the D1 persist below resolves (RV-2), so the client's
-                  // `es.close()` (fired the instant it sees that event type) can never
-                  // race the write that makes this generation durable.
-                  sourcesPayload = {
-                    sources: (parsed["sources"] as LessonSource[]) ?? [],
-                    recommended_primary_source:
-                      (parsed["recommended_primary_source"] as LessonSource | null) ?? null,
-                  };
-                } else if (lineType != null) {
-                  // Section event — guard for resume duplicates
-                  const section = parsed as unknown as LessonSectionType;
-                  const alreadyHave = completedSections.some((s) => s.id === section.id);
-                  if (!alreadyHave) {
-                    completedSections.push(section);
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(section)}\n\n`));
-                  }
-                }
+                handleLine(line);
               }
             };
 
@@ -390,6 +427,38 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 },
               });
 
+              // ── 7d2. Flush the residual, unterminated line ───────────────────
+              // `runModelWithFallback` has no end-of-stream callback — its chunk loop
+              // forwards deltas and returns (src/lib/ai/model-stream.ts:130-133) — so a
+              // model whose last line lacks a trailing newline would otherwise leave that
+              // line stranded in `lineBuffer`, silently losing it. Run it through the same
+              // parser once. A *truncated* line stays a failure: it hits `handleLine`'s
+              // catch, sets no flag, and the gate below refuses. End-of-stream is not
+              // permission to salvage malformed JSON.
+              const flushedResidual = lineBuffer.trim() !== "";
+              if (flushedResidual) {
+                handleLine(lineBuffer);
+                lineBuffer = "";
+              }
+
+              // ── 7d3. Did the stream actually deliver a lesson? ───────────────
+              // Billing on "the stream ended without throwing" persists and meters an
+              // empty generation, which the waypoint loader then judges incomplete and
+              // regenerates — billing twice for a lesson nobody can open. Three
+              // independent signals decide whether there is anything worth committing.
+              const hasRealSection = completedSections.some(
+                (s) =>
+                  typeof (s as { id?: unknown }).id === "string" &&
+                  (s as { id: string }).id.trim() !== "" &&
+                  typeof (s as { type?: unknown }).type === "string",
+              );
+              const failedGuards: string[] = [];
+              if (typeof headerTitle !== "string" || headerTitle.trim() === "")
+                failedGuards.push("missing_header");
+              if (!hasRealSection) failedGuards.push("no_sections");
+              if (!sawSources) failedGuards.push("missing_sources");
+              const invalidReason = failedGuards[0] ?? null;
+
               // ── 7e. Persist + meter atomically, AWAITED before the terminal event ──
               // The lesson upsert and the usage-metering insert commit together via
               // `env.DB.batch([...])` — a D1 failure can never apply one write without
@@ -399,58 +468,92 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               // `sources` on success, `error` if the persist failed — so `es.close()`
               // never fires before the generation is actually durable.
               const durationMs = Date.now() - startTime;
-              const lessonDoc: LessonDocumentV1 = {
-                version: 1,
-                title: headerTitle,
-                summary: headerSummary,
-                sections: completedSections,
-                sources: sourcesPayload.sources,
-                recommended_primary_source: sourcesPayload.recommended_primary_source,
-              };
-              const contentJson = JSON.stringify(lessonDoc);
-              const sourcesJson = JSON.stringify(sourcesPayload);
               const { costUsd } = computeCost(usage, tier);
+              let outcome: "success" | "persist_failed" | "invalid_stream";
 
-              let persistFailed = false;
-              try {
-                const batchPromise = env.DB.batch([
-                  upsertLessonStatement(env.DB, waypointId, lessonId, contentJson, sourcesJson),
-                  recordUsageStatement(env.DB, {
-                    userId,
-                    journeyId,
+              if (invalidReason !== null) {
+                // Nothing worth committing — skip the batch entirely. The guard sits in
+                // FRONT of `env.DB.batch([...])`, never inside it, so the atomicity
+                // guarantee (both writes or neither) is untouched: this is "neither".
+                // No lessons row, no usage row — a learner is never billed for a lesson
+                // they cannot open.
+                outcome = "invalid_stream";
+                console.log(
+                  JSON.stringify({
+                    event: "lesson.stream_incomplete",
+                    user_id: userId,
+                    journey_id: journeyId,
+                    waypoint_id: waypointId,
                     model,
-                    type: "lesson",
-                    usage,
-                    costUsd,
-                    durationMs,
+                    reason: invalidReason,
+                    failed: failedGuards,
+                    had_resume_baseline: resumeSections.length > 0,
+                    flushed_residual: flushedResidual,
                   }),
-                ]);
-                waitUntil(batchPromise);
-                await batchPromise;
-              } catch (err) {
-                persistFailed = true;
-                console.error("[lesson-sse] D1 persist/meter failed:", err);
-              }
-
-              if (persistFailed) {
-                // The learner must not be shown a "complete" lesson that was never
-                // actually saved — tell the client explicitly instead of the usual
-                // `sources` completion event.
+                );
                 controller.enqueue(
                   encoder.encode(
                     `data: ${JSON.stringify({
                       type: "error",
-                      message:
-                        "Lesson generation finished but could not be saved. Please try again.",
+                      message: "Lesson generation ended early and was not saved. Please try again.",
                     })}\n\n`,
                   ),
                 );
               } else {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
-                  ),
-                );
+                const lessonDoc: LessonDocumentV1 = {
+                  version: 1,
+                  title: headerTitle,
+                  summary: headerSummary,
+                  sections: completedSections,
+                  sources: sourcesPayload.sources,
+                  recommended_primary_source: sourcesPayload.recommended_primary_source,
+                };
+                const contentJson = JSON.stringify(lessonDoc);
+                const sourcesJson = JSON.stringify(sourcesPayload);
+
+                let persistFailed = false;
+                try {
+                  const batchPromise = env.DB.batch([
+                    upsertLessonStatement(env.DB, waypointId, lessonId, contentJson, sourcesJson),
+                    recordUsageStatement(env.DB, {
+                      userId,
+                      journeyId,
+                      model,
+                      type: "lesson",
+                      usage,
+                      costUsd,
+                      durationMs,
+                    }),
+                  ]);
+                  waitUntil(batchPromise);
+                  await batchPromise;
+                } catch (err) {
+                  persistFailed = true;
+                  console.error("[lesson-sse] D1 persist/meter failed:", err);
+                }
+
+                outcome = persistFailed ? "persist_failed" : "success";
+
+                if (persistFailed) {
+                  // The learner must not be shown a "complete" lesson that was never
+                  // actually saved — tell the client explicitly instead of the usual
+                  // `sources` completion event.
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        type: "error",
+                        message:
+                          "Lesson generation finished but could not be saved. Please try again.",
+                      })}\n\n`,
+                    ),
+                  );
+                } else {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
+                    ),
+                  );
+                }
               }
 
               console.log(
@@ -465,7 +568,7 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                   completion_tokens: usage.completion_tokens,
                   cost_usd: costUsd,
                   duration_ms: durationMs,
-                  outcome: persistFailed ? "persist_failed" : "success",
+                  outcome,
                 }),
               );
             } catch (err) {
