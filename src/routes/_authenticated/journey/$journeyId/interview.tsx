@@ -39,6 +39,15 @@ function validateSearch(raw: Record<string, unknown>): { mock?: boolean } {
  */
 const COMPLETION_HOLD_MS = 1000;
 
+/**
+ * Minimum time the roadmap-pending card stays on screen once it replaces the completion card.
+ *
+ * Generation is started before the completion hold begins, so on a fast backend it can settle
+ * during that hold. Without this floor, swapping to the pending card and immediately awaiting
+ * an already-resolved promise gives React no guaranteed paint before navigate() unmounts it.
+ */
+const PENDING_HOLD_MS = 400;
+
 export const Route = createFileRoute("/_authenticated/journey/$journeyId/interview")({
   validateSearch,
   head: () => ({
@@ -124,7 +133,10 @@ function InterviewPage() {
     setGenerationError(null);
 
     try {
-      const result = await generation;
+      const [result] = await Promise.all([
+        generation,
+        new Promise<void>((resolve) => setTimeout(resolve, PENDING_HOLD_MS)),
+      ]);
       // Navigate to the first waypoint lesson page
       await navigate({
         to: "/journey/$journeyId/waypoint/$waypointId",
