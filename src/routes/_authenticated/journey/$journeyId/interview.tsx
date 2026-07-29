@@ -137,12 +137,17 @@ function InterviewPage() {
         generation,
         new Promise<void>((resolve) => setTimeout(resolve, PENDING_HOLD_MS)),
       ]);
+      // A learner who navigated away during the pending hold must not be dragged back
+      // into this journey once generation settles — mirrors the guard right after the
+      // completion hold above.
+      if (unmountedRef.current) return;
       // Navigate to the first waypoint lesson page
       await navigate({
         to: "/journey/$journeyId/waypoint/$waypointId",
         params: { journeyId, waypointId: result.firstWaypointId },
       });
     } catch (err) {
+      if (unmountedRef.current) return;
       setGeneratingRoadmap(false);
       setGenerationError(
         err instanceof Error ? err.message : "Roadmap generation failed. Please try again.",
