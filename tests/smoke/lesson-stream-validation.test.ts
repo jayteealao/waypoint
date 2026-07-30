@@ -136,6 +136,29 @@ describe("lesson stream validation — AC-1: the last line is not lost", () => {
     expect(row.sources).toContain("https://mdn.example/recursion");
     expect(row.content).toContain("https://mdn.example/recursion");
   });
+
+  // The stricter author check must not over-refuse. A string author and an explicit
+  // null author are both legal per LessonSource, and an absent author is already
+  // covered by the case above — all three must still persist and bill exactly once.
+  it("still accepts a string author and an explicit null author", async () => {
+    scriptStream([
+      HEADER,
+      SECTION,
+      `{"type":"sources","sources":[{"title":"MDN","url":"https://mdn.example/r","author":"Mozilla"},{"title":"RFC","url":null,"author":null}],"recommended_primary_source":{"title":"Spec","url":"https://spec.example/x","author":"WHATWG"}}\n`,
+    ]);
+
+    const body = await callRoute();
+
+    expect(body).toContain('"type":"sources"');
+    expect(body).not.toContain('"type":"error"');
+    expect(count("lessons")).toBe(1);
+    expect(count("usage_events")).toBe(1);
+    const row = db.prepare("SELECT sources FROM lessons WHERE waypoint_id = ?").get("wp-carol") as {
+      sources: string;
+    };
+    expect(row.sources).toContain("Mozilla");
+    expect(row.sources).toContain("WHATWG");
+  });
 });
 
 describe("lesson stream validation — AC-2: an incomplete stream is neither saved nor billed", () => {
@@ -182,6 +205,30 @@ describe("lesson stream validation — AC-2: an incomplete stream is neither sav
         HEADER,
         SECTION,
         `{"type":"sources","sources":[42],"recommended_primary_source":null}\n`,
+      ],
+      reason: "missing_sources",
+    },
+    {
+      // `author` is typed `string | null`, so an object slips past a title/url-only
+      // check, is persisted and billed, and then reaches LessonView as a React child —
+      // which throws on an object. The guard must check every optional field it
+      // asserts, not just the ones the renderer dereferences unconditionally.
+      name: "a sources array element whose author is an object",
+      chunks: [
+        HEADER,
+        SECTION,
+        `{"type":"sources","sources":[{"title":"MDN","url":"https://mdn.example/r","author":{"name":"X"}}],"recommended_primary_source":null}\n`,
+      ],
+      reason: "missing_sources",
+    },
+    {
+      // Same predicate guards the primary source, so the same hole must be closed on
+      // that path — a valid array cannot license a malformed primary.
+      name: "a recommended_primary_source whose author is an array",
+      chunks: [
+        HEADER,
+        SECTION,
+        `{"type":"sources","sources":[{"title":"MDN","url":"https://mdn.example/r"}],"recommended_primary_source":{"title":"RFC","url":null,"author":["X"]}}\n`,
       ],
       reason: "missing_sources",
     },

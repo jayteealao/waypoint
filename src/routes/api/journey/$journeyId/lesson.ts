@@ -83,7 +83,11 @@ import type {
  * LessonSource if it survives this check — `Array.isArray` alone accepts `[null]`,
  * `[42]`, or `["x"]`, and a cast over those would persist and bill a payload that
  * `source.url` in LessonView then throws on. `title` must be a real, non-empty
- * string; `url` may be absent or null but must be a string when it IS present.
+ * string; `url` and `author` may each be absent or null but must be a string when
+ * they ARE present. Every optional field LessonSource declares is checked here, so
+ * the `value is LessonSource` assertion cannot outrun what was actually verified —
+ * an unchecked `author` reaches LessonView as a React child and throws when it is
+ * an object or an array.
  */
 function isLessonSource(value: unknown): value is LessonSource {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -91,6 +95,8 @@ function isLessonSource(value: unknown): value is LessonSource {
   if (typeof candidate["title"] !== "string" || candidate["title"].trim() === "") return false;
   const url = candidate["url"];
   if (url !== undefined && url !== null && typeof url !== "string") return false;
+  const author = candidate["author"];
+  if (author !== undefined && author !== null && typeof author !== "string") return false;
   return true;
 }
 
