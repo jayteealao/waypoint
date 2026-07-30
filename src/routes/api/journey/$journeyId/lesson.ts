@@ -574,7 +574,11 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                       durationMs,
                     }),
                   ]);
-                  waitUntil(batchPromise);
+                  // Hand waitUntil a rejection-safe view of the batch promise: the route
+                  // already reports a persist failure on the wire via the terminal `error`
+                  // event below, so we don't want the platform to also log an unhandled
+                  // rejection for the same failure.
+                  waitUntil(batchPromise.catch(() => {}));
                   await batchPromise;
                 } catch (err) {
                   persistFailed = true;

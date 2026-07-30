@@ -16,6 +16,7 @@ import type { InterviewStage, InterviewTurn, TurnResponse } from "#/types/interv
 import { STAGE_CHIPS } from "#/types/interview";
 import { getInterviewState, sendTurn, completeInterview } from "#/server/interview";
 import { generateRoadmap } from "#/server/roadmap";
+import type { GenerateRoadmapResult } from "#/server/roadmap";
 import { parseMockFlag } from "#/lib/interview/mock-flag";
 import { InterviewView } from "#/components/interview/InterviewView";
 import { RoadmapPendingCard } from "#/components/generation/RoadmapPendingCard";
@@ -132,27 +133,36 @@ function InterviewPage() {
     setGeneratingRoadmap(true);
     setGenerationError(null);
 
-    try {
-      const [result] = await Promise.all([
-        generation,
-        new Promise<void>((resolve) => setTimeout(resolve, PENDING_HOLD_MS)),
-      ]);
-      // A learner who navigated away during the pending hold must not be dragged back
-      // into this journey once generation settles — mirrors the guard right after the
-      // completion hold above.
-      if (unmountedRef.current) return;
-      // Navigate to the first waypoint lesson page
-      await navigate({
-        to: "/journey/$journeyId/waypoint/$waypointId",
-        params: { journeyId, waypointId: result.firstWaypointId },
-      });
-    } catch (err) {
-      if (unmountedRef.current) return;
+    // Await the hold independently of the outcome: Promise.all([generation, delay]) would
+    // reject as soon as generation rejects, skipping the rest of the delay and defeating the
+    // whole point of the hold on the error path — the pending card would flash and vanish
+    // instead of staying up for the full PENDING_HOLD_MS. Settling generation into a result
+    // object first means the delay always runs to completion before we act on either outcome.
+    const [outcome] = await Promise.all([
+      generation.then(
+        (value): { ok: true; value: GenerateRoadmapResult } => ({ ok: true, value }),
+        (error: unknown): { ok: false; error: unknown } => ({ ok: false, error }),
+      ),
+      new Promise<void>((resolve) => setTimeout(resolve, PENDING_HOLD_MS)),
+    ]);
+    // A learner who navigated away during the pending hold must not be dragged back
+    // into this journey once generation settles — mirrors the guard right after the
+    // completion hold above.
+    if (unmountedRef.current) return;
+    if (!outcome.ok) {
       setGeneratingRoadmap(false);
       setGenerationError(
-        err instanceof Error ? err.message : "Roadmap generation failed. Please try again.",
+        outcome.error instanceof Error
+          ? outcome.error.message
+          : "Roadmap generation failed. Please try again.",
       );
+      return;
     }
+    // Navigate to the first waypoint lesson page
+    await navigate({
+      to: "/journey/$journeyId/waypoint/$waypointId",
+      params: { journeyId, waypointId: outcome.value.firstWaypointId },
+    });
   }
 
   // Roadmap generation in progress — replace the interview surface
