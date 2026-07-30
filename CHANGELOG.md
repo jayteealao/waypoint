@@ -1,4 +1,4 @@
-## [0.1.0] - 2026-07-18
+## [0.1.0] - 2026-07-30
 
 ### 🚀 Features
 
@@ -51,6 +51,15 @@
 - *(ci)* Drop redundant pnpm version input across workflows, normalize formatting
 - *(lesson)* Html-escape ssr sanitizer fallback to prevent xss before dompurify upgrade
 - *(waypoint-app)* Route Continue to interview when journey lacks a roadmap
+- *(lesson)* Persist and meter generated lessons on a deployed Worker, ending the paid regeneration loop
+- *(lesson)* Store lessons in the shape the waypoint page recognizes as complete, so a revisit replays instead of re-billing
+- *(lesson)* Scope every lesson read and write to the owning learner
+- *(lesson)* Refuse to save or bill a lesson the model stream never finished
+- *(lesson)* Validate every source individually and require the sources line to end the stream
+- *(lesson)* Emit the terminal stream event only after the lesson write lands, and signal an error when it does not
+- *(interview)* Hold the roadmap pending card long enough to render, and guard against unmount
+- *(nav)* Fix 404 on waypoint links and add a new-journey button to a populated dashboard
+- *(a11y)* Focus-manage the 404 page and correct copy on the surfaces touched
 
 ### 🚜 Refactor
 
@@ -70,6 +79,9 @@
 - *(e2e)* Align seeded session cookie with the app's secure cookie name
 - *(ci)* Provision placeholder dev vars so /health e2e reaches its 200 path
 - *(waypoint-app)* Verify fix-continue-button
+- *(e2e)* Turn on 43 end-to-end specs that were silently skipping, and apply D1 migrations before the suite
+- *(ci)* Use an https base URL so seeded-session E2E specs authenticate
+- Make three checks assert what they claim
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -117,3 +129,4 @@
 - Use osv-scanner composite action path for advisory supply-chain scan
 - *(waypoint-app)* Record fix-continue-button review (ship; IF-1 fixed in-loop)
 - Exclude SDLC scaffolding and test evidence from version control
+- *(lesson)* Add a build-time guard rejecting raw lesson queries outside an allowlist
