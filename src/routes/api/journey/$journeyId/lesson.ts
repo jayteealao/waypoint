@@ -13,7 +13,12 @@
  *   waypoint ids exist. Every denial emits a server-side lesson.access_denied log. This gate
  *   sits above every lesson read AND above the upsert, so a foreign waypoint id can neither
  *   disclose nor overwrite another user's lesson.
- * Quota: checkQuota(env.DB, userId, 'lesson') — emits quota.rejected if over limit.
+ * Outbound path: callGatewayStream() (src/lib/ai/gateway.ts) — the same entry point every
+ *   other generation feature uses, in its streaming mode. The gateway owns the quota gate
+ *   (emitting quota.rejected if over limit), the model tier and its fallback chain, cost
+ *   computation, the usage_events insert, and the generation.* signals. This route owns the
+ *   NDJSON protocol, the stream-validity gate, and the SSE wire format — nothing about the
+ *   outbound call is re-implemented here.
  * Resume: reads the existing lesson row from D1. If it already holds a complete lesson
  *   (non-empty sections + a persisted sources payload), the stream replays that stored
  *   content and emits the terminal event WITHOUT calling the model or metering again —
@@ -23,15 +28,16 @@
  *   incomplete, generation proceeds and any stored sections seed the resume baseline.
  * Fallback: lesson tier (z-ai/glm-5.2 → google/gemini-3.5-flash). On all-fallbacks failure, emits
  *   {"type":"error","message":"..."} then closes.
- * D1 writes: AWAITED before controller.close(), and ALSO handed to `waitUntil()` (imported
- *   from 'cloudflare:workers') as defense-in-depth. That module exports a context-free
- *   `waitUntil(promise): void` in this project's workerd version — no ExecutionContext needs
- *   to be threaded through — so unlike a plain fire-and-forget Promise.all, the write is
- *   registered with the platform even if something downstream stops awaiting it. The primary
- *   guarantee is still the `await`: the ReadableStream start() fn keeps the Worker request
- *   alive while the stream is open, so awaiting the writes there before enqueuing the
- *   terminal event guarantees both that they land AND that the client is told "done" only
- *   once the data is durable.
+ * D1 writes: AWAITED before controller.close(), and ALSO registered with `waitUntil()`
+ *   (imported from 'cloudflare:workers' and handed to the gateway as `registerBackground`,
+ *   because the gateway must stay importable outside a Worker runtime) as defense-in-depth.
+ *   That module exports a context-free `waitUntil(promise): void` in this project's workerd
+ *   version — no ExecutionContext needs to be threaded through — so unlike a plain
+ *   fire-and-forget Promise.all, the write is registered with the platform even if something
+ *   downstream stops awaiting it. The primary guarantee is still the `await`: the
+ *   ReadableStream start() fn keeps the Worker request alive while the stream is open, so
+ *   awaiting the writes there before enqueuing the terminal event guarantees both that they
+ *   land AND that the client is told "done" only once the data is durable.
  * Stream validation: a stream that ends without throwing is not yet a lesson. Before the
  *   batch below runs, the generation must have produced a non-empty title, at least one
  *   structurally real section (non-empty string `id` + string `type`), and a terminal
@@ -44,9 +50,10 @@
  * Atomicity: the lesson upsert and the usage-metering insert commit together via
  *   `env.DB.batch([...])` so a D1 failure can never leave one write applied without the
  *   other (an unmetered generation, or a metered generation with no lesson to show for it).
- *   If the batch throws, the client receives a terminal {"type":"error",...} event instead
- *   of a {"type":"sources",...} completion — it is never told "complete" for content that
- *   didn't actually get saved.
+ *   The route hands the lesson statement to the gateway, which appends the usage insert and
+ *   commits both as one batch. If the batch fails, the run reports `persist_failed` and the
+ *   client receives a terminal {"type":"error",...} event instead of a {"type":"sources",...}
+ *   completion — it is never told "complete" for content that didn't actually get saved.
  * Terminal event: on the generation path, the {"type":"sources",...} completion event is
  *   enqueued only AFTER the D1 batch write above resolves — never before — so the client's
  *   `es.close()` (fired the instant it sees that event) never races the persist. On the
@@ -65,9 +72,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { env, waitUntil } from "cloudflare:workers";
 import { requireAuth } from "#/lib/auth-guard";
-import { checkQuota } from "#/lib/ai/quota";
-import { TIERS } from "#/lib/ai/tiers";
-import { runModelWithFallback, computeCost, recordUsageStatement } from "#/lib/ai/model-stream";
+import { callGatewayStream, QuotaExhaustedError } from "#/lib/ai/gateway";
+import type { GatewayStreamHandle } from "#/lib/ai/gateway";
 import { LESSON_SYSTEM_PROMPT, buildSourceMaterialBlock } from "#/lib/interview/prompts";
 import type { SourceContent } from "#/lib/source-fetch";
 import { upsertLessonStatement } from "#/server/lessons";
@@ -207,19 +213,35 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
         // already-billed generation — replay it instead of re-running the model.
         const isResumedLessonComplete = resumeSections.length > 0 && resumeSourcesPayload !== null;
 
-        // ── 4. Quota check — only for work that will actually call the model ──
-        // This runs after the resume read, not before it. Quota meters *generation*, and a
-        // replay generates nothing: it re-serves a lesson the learner has already been billed
-        // for. Gating it here too would make an exhausted quota retroactively revoke access to
-        // finished work, contradicting the free-and-instant revisit guarantee this route's
-        // short-circuit exists to provide.
+        // ── 4. Open the generation — only for work that will actually call the model ──
+        // The gateway gates on quota as it opens, which is why this sits exactly where the
+        // route's own quota check used to: after the resume read, before everything below.
+        // Quota meters *generation*, and a replay generates nothing — it re-serves a lesson
+        // the learner has already been billed for — so gating a replay would make an
+        // exhausted quota retroactively revoke access to finished work, contradicting the
+        // free-and-instant revisit guarantee the short-circuit exists to provide. Opening
+        // here also keeps an over-quota request from paying for the source-grounding read
+        // below: the messages are handed over later, at `run()`.
+        let gateway: GatewayStreamHandle | null = null;
         if (!isResumedLessonComplete) {
-          const quotaStatus = await checkQuota(env.DB, userId, "lesson");
-          if (!quotaStatus.allowed) {
-            return new Response(JSON.stringify({ error: "Daily generation quota exhausted" }), {
-              status: 429,
-              headers: { "Content-Type": "application/json" },
+          try {
+            gateway = await callGatewayStream({
+              env,
+              userId,
+              journeyId,
+              type: "lesson",
+              modelTimeoutMs: 120_000, // 2 minutes per model attempt
+              logContext: { waypoint_id: waypointId },
+              registerBackground: waitUntil,
             });
+          } catch (err) {
+            if (err instanceof QuotaExhaustedError) {
+              return new Response(JSON.stringify({ error: "Daily generation quota exhausted" }), {
+                status: 429,
+                headers: { "Content-Type": "application/json" },
+              });
+            }
+            throw err;
           }
         }
 
@@ -266,8 +288,6 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
 
         // ── 7. Build the SSE streaming response ──────────────────────────────
         const encoder = new TextEncoder();
-        const tier = TIERS["lesson"];
-        const modelChain = [tier.primaryModel, ...tier.fallbackChain];
 
         const stream = new ReadableStream({
           async start(controller) {
@@ -302,17 +322,24 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               return;
             }
 
+            // Past the replay short-circuit, so this request will call the model — which
+            // means step 4 opened a gateway handle for it. The guard is what keeps that
+            // invariant in the type system instead of in an assertion.
+            if (!gateway) {
+              controller.close();
+              return;
+            }
+
             // ── 7a2. Emit any resume sections first (partial/prior-incomplete attempt) ─
             for (const section of resumeSections) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(section)}\n\n`));
             }
 
             // ── 7b. Per-model-attempt SSE state ──────────────────────────────
-            // The shared model-stream helper owns the fallback loop, chunk vocab,
-            // and usage accumulation; this closure owns the token-by-token SSE
+            // The gateway owns the fallback loop, chunk vocab, usage accumulation,
+            // cost, and metering; this closure owns the token-by-token SSE
             // consumption. State resets on each fallback so a retried model starts
             // from the resume baseline (preserving the original per-attempt reset).
-            const startTime = Date.now();
             let lineBuffer = "";
             let completedSections: LessonSectionType[] = [...resumeSections];
             let headerTitle = resumeTitle ?? "";
@@ -458,94 +485,99 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
               }
             };
 
-            // ── 7d. Run the model chain (streaming) via the shared helper ────
+            // ── 7d. Run the model chain (streaming) through the gateway ──────
+            // The gateway owns the fallback chain, the cost computation, the
+            // `usage_events` insert, and the generation signals. What stays here is
+            // what only this route knows: how to read the NDJSON protocol, when the
+            // stream counts as a lesson, and what to say to the learner.
             try {
-              const { model, usage } = await runModelWithFallback({
-                env,
-                modelChain,
+              const outcome = await gateway.run(
                 messages,
-                reasoningEffort: tier.reasoningEffort,
-                modelTimeoutMs: 120_000, // 2 minutes per model attempt
-                handlers: { onTextDelta },
-                onFallback: (previousModel, model) => {
-                  console.log(
-                    JSON.stringify({
-                      event: "model.fallback_triggered",
-                      user_id: userId,
-                      journey_id: journeyId,
-                      waypoint_id: waypointId,
-                      original_model: previousModel,
-                      fallback_model: model,
-                    }),
+                { onTextDelta, onAttemptReset: resetPerModelState },
+                ({ model }) => {
+                  // ── 7d2. Flush the residual, unterminated line ───────────────
+                  // The model stream has no end-of-stream callback — its chunk loop
+                  // forwards deltas and returns (src/lib/ai/model-stream.ts:130-133) — so
+                  // a model whose last line lacks a trailing newline would otherwise
+                  // leave that line stranded in `lineBuffer`, silently losing it. Run it
+                  // through the same parser once. A *truncated* line stays a failure: it
+                  // hits `handleLine`'s catch, sets no flag, and the gate below refuses.
+                  // End-of-stream is not permission to salvage malformed JSON.
+                  const flushedResidual = lineBuffer.trim() !== "";
+                  if (flushedResidual) {
+                    handleLine(lineBuffer);
+                    lineBuffer = "";
+                  }
+
+                  // ── 7d3. Did the stream actually deliver a lesson? ───────────
+                  // Billing on "the stream ended without throwing" persists and meters an
+                  // empty generation, which the waypoint loader then judges incomplete and
+                  // regenerates — billing twice for a lesson nobody can open. Three
+                  // independent signals decide whether there is anything worth committing.
+                  const hasRealSection = completedSections.some(
+                    (s) =>
+                      typeof (s as { id?: unknown }).id === "string" &&
+                      (s as { id: string }).id.trim() !== "" &&
+                      typeof (s as { type?: unknown }).type === "string",
                   );
-                  resetPerModelState();
+                  const failedGuards: string[] = [];
+                  if (typeof headerTitle !== "string" || headerTitle.trim() === "")
+                    failedGuards.push("missing_header");
+                  if (!hasRealSection) failedGuards.push("no_sections");
+                  if (!sawSources) failedGuards.push("missing_sources");
+                  const invalidReason = failedGuards[0] ?? null;
+
+                  if (invalidReason !== null) {
+                    // Nothing worth committing — refusing here skips the batch entirely,
+                    // in FRONT of it rather than inside it, so the atomicity guarantee
+                    // (both writes or neither) is untouched: this is "neither". No lessons
+                    // row, no usage row — a learner is never billed for a lesson they
+                    // cannot open.
+                    console.log(
+                      JSON.stringify({
+                        event: "lesson.stream_incomplete",
+                        user_id: userId,
+                        journey_id: journeyId,
+                        waypoint_id: waypointId,
+                        model,
+                        reason: invalidReason,
+                        failed: failedGuards,
+                        had_resume_baseline: resumeSections.length > 0,
+                        flushed_residual: flushedResidual,
+                      }),
+                    );
+                    return { kind: "refuse", reason: invalidReason };
+                  }
+
+                  // ── 7e. Hand the lesson write to the gateway, which commits it
+                  //       together with the usage row in one batch ──────────────
+                  const lessonDoc: LessonDocumentV1 = {
+                    version: 1,
+                    title: headerTitle,
+                    summary: headerSummary,
+                    sections: completedSections,
+                    sources: sourcesPayload.sources,
+                    recommended_primary_source: sourcesPayload.recommended_primary_source,
+                  };
+                  return {
+                    kind: "commit",
+                    statements: [
+                      upsertLessonStatement(
+                        env.DB,
+                        waypointId,
+                        lessonId,
+                        JSON.stringify(lessonDoc),
+                        JSON.stringify(sourcesPayload),
+                      ),
+                    ],
+                  };
                 },
-              });
-
-              // ── 7d2. Flush the residual, unterminated line ───────────────────
-              // `runModelWithFallback` has no end-of-stream callback — its chunk loop
-              // forwards deltas and returns (src/lib/ai/model-stream.ts:130-133) — so a
-              // model whose last line lacks a trailing newline would otherwise leave that
-              // line stranded in `lineBuffer`, silently losing it. Run it through the same
-              // parser once. A *truncated* line stays a failure: it hits `handleLine`'s
-              // catch, sets no flag, and the gate below refuses. End-of-stream is not
-              // permission to salvage malformed JSON.
-              const flushedResidual = lineBuffer.trim() !== "";
-              if (flushedResidual) {
-                handleLine(lineBuffer);
-                lineBuffer = "";
-              }
-
-              // ── 7d3. Did the stream actually deliver a lesson? ───────────────
-              // Billing on "the stream ended without throwing" persists and meters an
-              // empty generation, which the waypoint loader then judges incomplete and
-              // regenerates — billing twice for a lesson nobody can open. Three
-              // independent signals decide whether there is anything worth committing.
-              const hasRealSection = completedSections.some(
-                (s) =>
-                  typeof (s as { id?: unknown }).id === "string" &&
-                  (s as { id: string }).id.trim() !== "" &&
-                  typeof (s as { type?: unknown }).type === "string",
               );
-              const failedGuards: string[] = [];
-              if (typeof headerTitle !== "string" || headerTitle.trim() === "")
-                failedGuards.push("missing_header");
-              if (!hasRealSection) failedGuards.push("no_sections");
-              if (!sawSources) failedGuards.push("missing_sources");
-              const invalidReason = failedGuards[0] ?? null;
 
-              // ── 7e. Persist + meter atomically, AWAITED before the terminal event ──
-              // The lesson upsert and the usage-metering insert commit together via
-              // `env.DB.batch([...])` — a D1 failure can never apply one write without
-              // the other. The write is also handed to `waitUntil()` as defense-in-depth
-              // (still awaited directly below; waitUntil is additive insurance, not a
-              // replacement). Only once this settles does the client learn the outcome —
-              // `sources` on success, `error` if the persist failed — so `es.close()`
-              // never fires before the generation is actually durable.
-              const durationMs = Date.now() - startTime;
-              const { costUsd } = computeCost(usage, tier);
-              let outcome: "success" | "persist_failed" | "invalid_stream";
-
-              if (invalidReason !== null) {
-                // Nothing worth committing — skip the batch entirely. The guard sits in
-                // FRONT of `env.DB.batch([...])`, never inside it, so the atomicity
-                // guarantee (both writes or neither) is untouched: this is "neither".
-                // No lessons row, no usage row — a learner is never billed for a lesson
-                // they cannot open.
-                outcome = "invalid_stream";
-                console.log(
-                  JSON.stringify({
-                    event: "lesson.stream_incomplete",
-                    user_id: userId,
-                    journey_id: journeyId,
-                    waypoint_id: waypointId,
-                    model,
-                    reason: invalidReason,
-                    failed: failedGuards,
-                    had_resume_baseline: resumeSections.length > 0,
-                    flushed_residual: flushedResidual,
-                  }),
-                );
+              // ── 7e2. Terminal event — only now, once the write has settled ───
+              // The client's `es.close()` fires the instant it sees a terminal event, so
+              // it must never learn the outcome before the generation is durable.
+              if (outcome.kind === "refused") {
                 controller.enqueue(
                   encoder.encode(
                     `data: ${JSON.stringify({
@@ -554,84 +586,31 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                     })}\n\n`,
                   ),
                 );
+              } else if (outcome.kind === "persist_failed") {
+                // The learner must not be shown a "complete" lesson that was never
+                // actually saved — tell the client explicitly instead of the usual
+                // `sources` completion event.
+                console.error("[lesson-sse] D1 persist/meter failed:", outcome.error);
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      type: "error",
+                      message:
+                        "Lesson generation finished but could not be saved. Please try again.",
+                    })}\n\n`,
+                  ),
+                );
               } else {
-                const lessonDoc: LessonDocumentV1 = {
-                  version: 1,
-                  title: headerTitle,
-                  summary: headerSummary,
-                  sections: completedSections,
-                  sources: sourcesPayload.sources,
-                  recommended_primary_source: sourcesPayload.recommended_primary_source,
-                };
-                const contentJson = JSON.stringify(lessonDoc);
-                const sourcesJson = JSON.stringify(sourcesPayload);
-
-                let persistFailed = false;
-                try {
-                  const batchPromise = env.DB.batch([
-                    upsertLessonStatement(env.DB, waypointId, lessonId, contentJson, sourcesJson),
-                    recordUsageStatement(env.DB, {
-                      userId,
-                      journeyId,
-                      model,
-                      type: "lesson",
-                      usage,
-                      costUsd,
-                      durationMs,
-                    }),
-                  ]);
-                  // Hand waitUntil a rejection-safe view of the batch promise: the route
-                  // already reports a persist failure on the wire via the terminal `error`
-                  // event below, so we don't want the platform to also log an unhandled
-                  // rejection for the same failure.
-                  waitUntil(batchPromise.catch(() => {}));
-                  await batchPromise;
-                } catch (err) {
-                  persistFailed = true;
-                  console.error("[lesson-sse] D1 persist/meter failed:", err);
-                }
-
-                outcome = persistFailed ? "persist_failed" : "success";
-
-                if (persistFailed) {
-                  // The learner must not be shown a "complete" lesson that was never
-                  // actually saved — tell the client explicitly instead of the usual
-                  // `sources` completion event.
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({
-                        type: "error",
-                        message:
-                          "Lesson generation finished but could not be saved. Please try again.",
-                      })}\n\n`,
-                    ),
-                  );
-                } else {
-                  controller.enqueue(
-                    encoder.encode(
-                      `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
-                    ),
-                  );
-                }
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ type: "sources", ...sourcesPayload })}\n\n`,
+                  ),
+                );
               }
-
-              console.log(
-                JSON.stringify({
-                  event: "generation.completed",
-                  user_id: userId,
-                  journey_id: journeyId,
-                  waypoint_id: waypointId,
-                  model,
-                  generation_type: "lesson",
-                  prompt_tokens: usage.prompt_tokens,
-                  completion_tokens: usage.completion_tokens,
-                  cost_usd: costUsd,
-                  duration_ms: durationMs,
-                  outcome,
-                }),
-              );
             } catch (err) {
               // ── 7f. All models failed — emit terminal error event ──────────
+              // The gateway already logged the failed generation; only the model chain
+              // exhausting throws, so this branch stays exactly one case wide.
               // Use a generic client-facing message; log the actual error server-side.
               const clientMsg = "Lesson generation failed. Please try again.";
               if (err instanceof Error) {
@@ -641,19 +620,6 @@ export const Route = createFileRoute("/api/journey/$journeyId/lesson")({
                 encoder.encode(
                   `data: ${JSON.stringify({ type: "error", message: clientMsg })}\n\n`,
                 ),
-              );
-
-              console.log(
-                JSON.stringify({
-                  event: "generation.completed",
-                  user_id: userId,
-                  journey_id: journeyId,
-                  waypoint_id: waypointId,
-                  model: modelChain[modelChain.length - 1],
-                  generation_type: "lesson",
-                  outcome: "failure",
-                  error_code: err instanceof Error ? err.message : "unknown",
-                }),
               );
             }
 
