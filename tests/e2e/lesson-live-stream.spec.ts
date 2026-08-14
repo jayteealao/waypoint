@@ -56,13 +56,37 @@ function runD1(command: string): string {
   ).toString();
 }
 
-/** Count rows via the wrangler CLI — the output is scanned for the returned integer. */
+/**
+ * Count rows via the wrangler CLI.
+ *
+ * Wrangler prints the result set as JSON (`{"results":[{"n":1}], "meta":{"duration":0}}`),
+ * so the count is read from the named column. The previous table-pipe scan never matched
+ * that shape and fell through to "last integer in the output" — which is `meta.duration`,
+ * not the count, and would have made this assertion pass or fail by coincidence.
+ */
+function countRows(sql: string): number {
+  const out = runD1(sql);
+  const json = out.match(/"n":\s*(\d+)/);
+  if (json) return Number(json[1]);
+  const table = out.match(/(?:│|\|)\s*(\d+)\s*(?:│|\|)/);
+  if (table) return Number(table[1]);
+  throw new Error(`could not read a row count from wrangler output:\n${out}`);
+}
+
 function countUsageRows(userId: string): number {
-  const out = runD1(`SELECT COUNT(*) AS n FROM usage_events WHERE user_id = '${sqlEsc(userId)}';`);
-  const match = out.match(/(?:│|\|)\s*(\d+)\s*(?:│|\|)/);
-  return match
-    ? Number(match[1])
-    : Number((out.match(/\b(\d+)\b(?![\s\S]*\b\d+\b)/) ?? [])[1] ?? 0);
+  return countRows(`SELECT COUNT(*) AS n FROM usage_events WHERE user_id = '${sqlEsc(userId)}';`);
+}
+
+/**
+ * Persistence is the only completion signal that does not depend on what the model
+ * happened to write. The generating view has no "done" element of its own, and the
+ * sources block it *can* render is conditional on a non-empty sources array — a real
+ * run returned `{"sources":[],"recommended_primary_source":null}` and rendered nothing.
+ */
+function countLessonRows(waypointId: string): number {
+  return countRows(
+    `SELECT COUNT(*) AS n FROM lessons WHERE waypoint_id = '${sqlEsc(waypointId)}' AND content IS NOT NULL;`,
+  );
 }
 
 const USER = {
@@ -147,6 +171,12 @@ test("AC-U1: a lesson streams in token by token through the unified path, then r
   await expect(content).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[data-testid="lesson-error"]')).toHaveCount(0);
 
+  // The sources block is an *early-exit hint* for the sampling loop below, not the
+  // completion assertion: it only renders when the model returned a non-empty sources
+  // array. The "Take Quiz" CTA is not the signal either — the route renders it from
+  // *loader* data, so it can only appear on a later page load, never on this one.
+  const sourcesBlock = content.locator(".wp-lesson-sources");
+
   // ── The assertion that only a live drive can make: content GREW while the stream
   //    was open. A single flush at the end would satisfy "the lesson appeared" and
   //    still mean the streaming path is broken.
@@ -165,7 +195,7 @@ test("AC-U1: a lesson streams in token by token through the unified path, then r
         break;
       }
     }
-    if ((await page.locator('[data-testid="quiz-cta"]').count()) > 0) break;
+    if ((await sourcesBlock.count()) > 0) break;
     await page.waitForTimeout(250);
   }
 
@@ -178,12 +208,22 @@ test("AC-U1: a lesson streams in token by token through the unified path, then r
   ).toBeGreaterThan(samples[0]!);
 
   // ── The generation completes and is persisted.
-  await expect(page.locator('[data-testid="quiz-cta"]')).toBeVisible({ timeout: 240_000 });
+  await expect
+    .poll(() => countLessonRows(WAYPOINT_ID), {
+      message: "the stream must finish and persist its lesson",
+      timeout: 240_000,
+      intervals: [2_000],
+    })
+    .toBe(1);
+  await expect(page.locator('[data-testid="lesson-error"]')).toHaveCount(0);
   expect(countUsageRows(USER.id), "exactly one metered generation").toBe(1);
 
   // ── Revisiting replays the stored lesson: no second generation, no second charge.
+  //    This load is also where the completed-lesson CTA becomes reachable, because the
+  //    route renders it from the persisted row the loader now finds.
   await page.reload();
   await expect(page.locator('[data-testid="lesson-view"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-testid="quiz-cta"]')).toBeVisible({ timeout: 30_000 });
   expect(countUsageRows(USER.id), "a replay must not meter again").toBe(1);
 
   await ctx.close();
