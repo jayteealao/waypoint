@@ -16,8 +16,21 @@
       "migrations_dir": "migrations",
     },
   ],
-  // Deploy targets. D1 bindings are NOT inherited by environments — each env
-  // declares its own database. Deploy with `wrangler deploy --env <staging|production>`.
+  // Workers AI binding. The AI Gateway id is NOT part of this block — wrangler's config
+  // schema defines "ai" as exactly { binding, staging, remote } and rejects anything else,
+  // so the gateway id travels as the AIG_GATEWAY_ID var below and is applied in code via
+  // env.AI.gateway(env.AIG_GATEWAY_ID).
+  "ai": { "binding": "AI" },
+  // AIG_ENABLED is the kill switch: set to "false" to route LLM traffic straight to the
+  // provider, bypassing the gateway. Strings, not booleans, so wrangler.jsonc and the
+  // dotenv-format .dev.vars agree on the type. Regenerate types with
+  // `pnpm exec wrangler types --strict-vars=false` so these stay `string` and not literals.
+  "vars": {
+    "AIG_ENABLED": "true",
+    "AIG_GATEWAY_ID": "waypoint-dev",
+  },
+  // Deploy targets. D1 bindings, the AI binding and vars are NOT inherited by environments —
+  // each env declares its own. Deploy with `wrangler deploy --env <staging|production>`.
   "env": {
     "staging": {
       "name": "waypoint-staging",
@@ -29,6 +42,11 @@
           "migrations_dir": "migrations",
         },
       ],
+      "ai": { "binding": "AI" },
+      "vars": {
+        "AIG_ENABLED": "true",
+        "AIG_GATEWAY_ID": "waypoint-staging",
+      },
     },
     "production": {
       "name": "waypoint",
@@ -40,6 +58,11 @@
           "migrations_dir": "migrations",
         },
       ],
+      "ai": { "binding": "AI" },
+      "vars": {
+        "AIG_ENABLED": "true",
+        "AIG_GATEWAY_ID": "waypoint-prod",
+      },
     },
   },
 }
