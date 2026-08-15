@@ -30,7 +30,11 @@
     "AIG_GATEWAY_ID": "waypoint-dev",
   },
   // Deploy targets. D1 bindings, the AI binding and vars are NOT inherited by environments —
-  // each env declares its own. Deploy with `wrangler deploy --env <staging|production>`.
+  // each env declares its own. Select the target with CLOUDFLARE_ENV *before* building
+  // (`CLOUDFLARE_ENV=staging pnpm run build && pnpm exec wrangler deploy`): @cloudflare/vite-plugin
+  // bakes the chosen environment into dist/server/wrangler.json, and a later
+  // `wrangler deploy --env <name>` cannot retarget it — it silently resolves the top-level
+  // (waypoint-dev) bindings instead. .github/workflows/deploy.yml deploys exactly this way.
   "env": {
     "staging": {
       "name": "waypoint-staging",
