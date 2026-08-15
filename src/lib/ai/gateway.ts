@@ -43,6 +43,8 @@ import {
   recordUsageStatement,
 } from "./model-stream";
 import type { StreamUsage } from "./model-stream";
+import { isAigRouted } from "./adapter";
+import type { AdapterEnv } from "./adapter";
 
 // ---- Public error types -------------------------------------------------------
 
@@ -58,7 +60,13 @@ export class QuotaExhaustedError extends Error {
 
 // ---- Input / output types -----------------------------------------------------
 
-type GatewayEnv = { DB: D1Database; OPENROUTER_API_KEY: string };
+/**
+ * The env every gateway call needs: D1 for quota and metering, the provider key, and
+ * the AI Gateway routing fields. The routing fields are optional so callers that
+ * predate gateway routing — and both hand-built test envs — keep compiling untouched;
+ * an env without them simply takes the direct outbound path.
+ */
+type GatewayEnv = { DB: D1Database; OPENROUTER_API_KEY: string } & AdapterEnv;
 
 type GatewayBase = {
   /** Cloudflare Workers env — must have DB and OPENROUTER_API_KEY. */
@@ -248,6 +256,18 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     console.log(JSON.stringify(logContext ? { ...logContext, ...payload } : payload));
   };
 
+  /**
+   * Which way out of the Worker this generation took. Computed once and stamped on
+   * every generation signal, because nothing else in a running app says whether a
+   * request went through the AI Gateway or straight to the provider — the outbound
+   * call is server-side, so no browser trace can answer it. Operators read this in
+   * the Logpush stream to confirm the kill switch actually took effect.
+   */
+  const routed = isAigRouted(env);
+  const routing: Record<string, unknown> = routed
+    ? { aig_routed: true, gateway_id: env.AIG_GATEWAY_ID }
+    : { aig_routed: false };
+
   // ── 1. Tier config ─────────────────────────────────────────────────────────
   const tier = TIERS[type];
   const modelChain = [tier.primaryModel, ...tier.fallbackChain];
@@ -264,6 +284,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     model: tier.primaryModel,
     generation_type: type,
     estimated_prompt_tokens: estimatedPromptTokens,
+    ...routing,
     timestamp: Date.now(),
   });
 
@@ -373,6 +394,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       completion_tokens: rawUsage.completion_tokens,
       cost_usd: costUsd,
       duration_ms: durationMs,
+      ...routing,
       outcome: outcome.kind === "success" ? "success" : outcome.kind,
     });
 
@@ -390,6 +412,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       completion_tokens: 0,
       cost_usd: 0,
       duration_ms: durationMs,
+      ...routing,
       outcome: "failure",
       error_code: err instanceof Error ? err.message : "unknown",
     });

@@ -13,7 +13,8 @@
 
 // @ts-ignore — @tanstack/ai is in beta; complex generic constraints bypassed with 'as any'
 import { chat, toolDefinition } from "@tanstack/ai";
-import { createOpenRouterText } from "@tanstack/ai-openrouter";
+import { createTextAdapter } from "./adapter";
+import type { AdapterEnv } from "./adapter";
 import type { TierConfig } from "./tiers";
 import type { GenerationType } from "./tiers";
 
@@ -32,7 +33,8 @@ export interface ModelStreamHandlers {
 }
 
 export interface RunModelOptions {
-  env: { OPENROUTER_API_KEY: string };
+  /** Carries the outbound routing decision (see `./adapter`) alongside the provider key. */
+  env: AdapterEnv;
   /** Ordered model chain: [primary, ...fallbacks]. */
   modelChain: string[];
   messages: Array<{ role: "user" | "assistant"; content: string }>;
@@ -49,7 +51,10 @@ export interface RunModelOptions {
 }
 
 export interface RunModelResult {
-  /** The model that produced the successful response. */
+  /**
+   * The model that produced the successful response — the one the provider reports
+   * on RUN_FINISHED when it says so, otherwise the one that was requested.
+   */
   model: string;
   usage: StreamUsage;
   toolUse?: { name: string; input: Record<string, unknown> };
@@ -63,7 +68,9 @@ export interface RunModelResult {
  * as TEXT_MESSAGE_CONTENT chunks; final token usage rides on the terminal
  * RUN_FINISHED chunk (camelCase promptTokens/completionTokens). The legacy
  * TEXT_DELTA/USAGE/snake_case names are also accepted so a future adapter that
- * emits either shape keeps working.
+ * emits either shape keeps working. A RUN_ERROR chunk is the adapter's way of
+ * reporting a failed call — it is treated as an attempt failure, never as a
+ * successful empty stream.
  */
 export async function runModelWithFallback(opts: RunModelOptions): Promise<RunModelResult> {
   const {
@@ -93,9 +100,11 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
     }
 
     try {
-      // @ts-expect-error — createOpenRouterText accepts a string model ID; the TS overloads
-      // enumerate the known model names but the list is non-exhaustive at runtime.
-      const adapter = createOpenRouterText(model, env.OPENROUTER_API_KEY);
+      // Inside the try on purpose: a routed environment that cannot build its gateway
+      // adapter is an attempt failure like any other, so the chain advances and, if it
+      // exhausts, the caller sees a thrown generation failure rather than a silent
+      // fall-back to the direct provider.
+      const adapter = await createTextAdapter(env, model);
 
       const streamOpts: Record<string, unknown> = {
         adapter: adapter as any,
@@ -115,6 +124,8 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
 
       let toolName: string | undefined;
       let toolArgsJson = "";
+      /** The model the provider actually served — RUN_FINISHED carries it; see below. */
+      let servedModel = model;
       const usage: StreamUsage = { prompt_tokens: 0, completion_tokens: 0 };
       const modelCallStart = Date.now();
 
@@ -130,7 +141,24 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
           toolArgsJson += (chunk["delta"] as string) ?? "";
         } else if (chunkType === "TEXT_MESSAGE_CONTENT" || chunkType === "TEXT_DELTA") {
           handlers?.onTextDelta?.((chunk["delta"] as string) ?? "");
+        } else if (chunkType === "RUN_ERROR") {
+          // The OpenRouter adapter never rethrows: it catches every failure — transport,
+          // gateway, or provider — and YIELDS a RUN_ERROR chunk (source:
+          // node_modules/@tanstack/ai-openrouter/src/adapters/text.ts, chatStream's catch).
+          // A loop that ignores it sees a clean end-of-stream and meters a generation that
+          // never happened. Throwing here makes the failure an attempt failure: the chain
+          // advances, exhaustion rethrows, and persistence — which runs after the model
+          // call — never writes a row.
+          const message = (chunk["message"] as string | undefined) ?? "unknown error";
+          throw new Error(`model-stream: model stream failed — ${message}`);
         } else if (chunkType === "RUN_FINISHED" || chunkType === "USAGE") {
+          // RUN_FINISHED reports `model: lastModel || options.model` — the model the
+          // provider actually served, which differs from the requested one when the
+          // gateway or OpenRouter itself falls back (same source file as above).
+          const reported = chunk["model"];
+          if (typeof reported === "string" && reported.length > 0) {
+            servedModel = reported;
+          }
           const raw = chunk["usage"] as Record<string, unknown> | undefined;
           if (raw) {
             const pt = raw["promptTokens"] ?? raw["prompt_tokens"];
@@ -151,7 +179,7 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
             }
           : undefined;
 
-      return { model, usage, toolUse };
+      return { model: servedModel, usage, toolUse };
     } catch (err) {
       lastError = err;
       // Continue to the next model in the chain (logged via onFallback on next iteration).

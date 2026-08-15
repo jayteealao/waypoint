@@ -178,6 +178,9 @@ describe("gateway characterization — the success completion payload", () => {
         "completion_tokens",
         "cost_usd",
         "duration_ms",
+        // Which way the request left the Worker. Always present; `gateway_id` joins it
+        // only when the request is routed, which this env is not.
+        "aig_routed",
         "outcome",
       ].sort(),
     );
