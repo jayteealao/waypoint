@@ -48,6 +48,15 @@ export interface RunModelOptions {
    * (advancing to the next model). Omitted → no timeout (the buffered gateway path).
    */
   modelTimeoutMs?: number;
+  /**
+   * `cf-aig-*` headers for the routed path — today the generation's metadata tags.
+   * Forwarded verbatim to the adapter factory; ignored on the direct path, which has
+   * no gateway to read them. The SAME map is used for every attempt in the chain, so
+   * a primary failure followed by a fallback success produces two gateway log entries
+   * sharing one `request_id`: the id identifies the generation, not the attempt, which
+   * is what keeps it resolvable against the single `usage_events` row.
+   */
+  aigHeaders?: Record<string, string>;
 }
 
 export interface RunModelResult {
@@ -82,6 +91,7 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
     handlers,
     onFallback,
     modelTimeoutMs,
+    aigHeaders,
   } = opts;
 
   const toolDefs = tools?.map((t) =>
@@ -104,7 +114,7 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
       // adapter is an attempt failure like any other, so the chain advances and, if it
       // exhausts, the caller sees a thrown generation failure rather than a silent
       // fall-back to the direct provider.
-      const adapter = await createTextAdapter(env, model);
+      const adapter = await createTextAdapter(env, model, aigHeaders);
 
       const streamOpts: Record<string, unknown> = {
         adapter: adapter as any,
@@ -208,6 +218,13 @@ export function computeCost(
 }
 
 export interface RecordUsageInput {
+  /**
+   * The row id to write. Supplied by the gateway so the id it already put on the wire
+   * as the generation's `request_id` is the id the ledger row is keyed by — the two
+   * sides of that cross-reference are then the same variable rather than two
+   * generators that happened to agree. Omitted → minted here, as it always was.
+   */
+  id?: string;
   userId: string;
   journeyId?: string | null;
   model: string;
@@ -230,8 +247,8 @@ export interface RecordUsageInput {
  * the quota SUM always return 0.
  */
 export function recordUsageStatement(db: D1Database, input: RecordUsageInput): D1PreparedStatement {
-  const { userId, journeyId = null, model, type, usage, costUsd, durationMs } = input;
-  const usageId = crypto.randomUUID();
+  const { id, userId, journeyId = null, model, type, usage, costUsd, durationMs } = input;
+  const usageId = id ?? crypto.randomUUID();
   const insertedAt = new Date().toISOString();
   return db
     .prepare(

@@ -280,6 +280,42 @@ export const getQuizQuestions = createServerFn()
 // ─── gradeAnswer ──────────────────────────────────────────────────────────────
 
 /**
+ * Load a quiz question the authenticated user is entitled to be graded on, together
+ * with the journey it belongs to. Returns `null` when no such question exists for
+ * this user — the caller turns that into a 404.
+ *
+ * The JOIN was always here, proving ownership through `quiz_questions → waypoints →
+ * journeys`; it just threw the journey away afterwards, and the grading call then
+ * attributed the generation to a *client-supplied* journey id that defaulted to null.
+ * Selecting `j.id` from the query that already runs makes attribution derived rather
+ * than declared: it costs no extra round-trip, it is the journey ownership was
+ * actually proven against, and it is why no generation can be tagged with a journey
+ * that does not exist.
+ *
+ * Exported (rather than inlined in the server function) so the query is reachable from
+ * a test without standing up `createServerFn` and its session middleware.
+ */
+export async function loadGradableQuestion(
+  db: D1Database,
+  questionId: string,
+  userId: string,
+): Promise<{ question: QuizQuestion; journeyId: string } | null> {
+  const row = await db
+    .prepare(
+      `SELECT q.*, j.id AS journey_id FROM quiz_questions q
+       JOIN waypoints w ON w.id = q.waypoint_id
+       JOIN journeys j ON j.id = w.journey_id
+       WHERE q.id = ? AND j.user_id = ?`,
+    )
+    .bind(questionId, userId)
+    .first<QuizQuestion & { journey_id: string }>();
+  if (!row) return null;
+
+  const { journey_id: journeyId, ...question } = row;
+  return { question, journeyId };
+}
+
+/**
  * Grade a free-response answer using the AI gateway (quiz tier).
  *
  * Reads the quiz_questions row for context (question text + rubric), calls
@@ -295,19 +331,15 @@ export const gradeAnswer = createServerFn({ method: "POST" })
   .validator((input: { questionId: string; response: string; journeyId?: string }) => input)
   .handler(async ({ data, context }): Promise<GradingOutput> => {
     const { session } = context as { session: Awaited<ReturnType<typeof requireAuth>> };
-    const { questionId, response: learnerResponse, journeyId = null } = data;
+    // The validator still accepts a `journeyId` from the client for backward
+    // compatibility, but it no longer decides attribution — the derived one below does.
+    const { questionId, response: learnerResponse } = data;
     const userId = session.user.id;
 
     // Read question for context — and verify it belongs to a journey owned by this user
-    const question = await env.DB.prepare(
-      `SELECT q.* FROM quiz_questions q
-       JOIN waypoints w ON w.id = q.waypoint_id
-       JOIN journeys j ON j.id = w.journey_id
-       WHERE q.id = ? AND j.user_id = ?`,
-    )
-      .bind(questionId, userId)
-      .first<QuizQuestion>();
-    if (!question) throw new Response(null, { status: 404 });
+    const gradable = await loadGradableQuestion(env.DB, questionId, userId);
+    if (!gradable) throw new Response(null, { status: 404 });
+    const { question, journeyId } = gradable;
 
     const userContent = buildGradingPrompt(question, learnerResponse);
     const messages = [

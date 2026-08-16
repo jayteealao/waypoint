@@ -161,7 +161,7 @@ export const startInterview = createServerFn({ method: "POST" })
 
     // Call the gateway — interview tier (z-ai/glm-5.2 primary)
     const gatewayResult = await callGateway({
-      env: { DB: env.DB, OPENROUTER_API_KEY: env.OPENROUTER_API_KEY },
+      env,
       userId: session.user.id,
       journeyId,
       type: "interview",
@@ -315,7 +315,7 @@ export const sendTurn = createServerFn({ method: "POST" })
       // Live mode: call the gateway with accumulated conversation turns
       const gatewayMessages = turns.map((t) => ({ role: t.role, content: t.content }));
       const gatewayResult = await callGateway({
-        env: { DB: env.DB, OPENROUTER_API_KEY: env.OPENROUTER_API_KEY },
+        env,
         userId: session.user.id,
         journeyId,
         type: "interview",

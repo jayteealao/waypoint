@@ -45,6 +45,7 @@ import {
 import type { StreamUsage } from "./model-stream";
 import { isAigRouted } from "./adapter";
 import type { AdapterEnv } from "./adapter";
+import { buildAigMetadata, aigMetadataHeaders } from "./aig-metadata";
 
 // ---- Public error types -------------------------------------------------------
 
@@ -139,6 +140,13 @@ export interface StreamRunCallbacks {
 
 /** What the caller knows about a generation when it is time to decide what to persist. */
 export interface GatewayFinalizeContext {
+  /**
+   * This generation's id — already on the wire as the AI Gateway's `request_id` tag,
+   * and the id the `usage_events` row will be written under. A caller that writes the
+   * usage row itself (the buffered path) must pass it through, or the dashboard's
+   * `request_id` would resolve to no ledger row.
+   */
+  requestId: string;
   model: string;
   usage: StreamUsage;
   costUsd: number;
@@ -268,6 +276,27 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     ? { aig_routed: true, gateway_id: env.AIG_GATEWAY_ID }
     : { aig_routed: false };
 
+  /**
+   * This generation's identity, minted here rather than inside the ledger write.
+   *
+   * The gateway's `request_id` tag has to be on the wire *before* the model call, and
+   * the `usage_events` row is written *after* it — so the only way the two can carry
+   * the same value is for one variable to reach both. Minting it here is that variable;
+   * `recordUsageStatement` accepts it and falls back to its own mint for every caller
+   * that does not (see `model-stream.ts`).
+   */
+  const requestId = crypto.randomUUID();
+
+  /**
+   * The `cf-aig-*` headers for this generation — built only when the request is
+   * actually routed, because an unrouted generation has no gateway to read them and
+   * constructing one would blur what the kill switch means. The direct path stays
+   * byte-identical to what it was before this slice.
+   */
+  const aigHeaders = routed
+    ? aigMetadataHeaders(buildAigMetadata({ userId, journeyId, type, requestId }))
+    : undefined;
+
   // ── 1. Tier config ─────────────────────────────────────────────────────────
   const tier = TIERS[type];
   const modelChain = [tier.primaryModel, ...tier.fallbackChain];
@@ -303,6 +332,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       tools,
       reasoningEffort: tier.reasoningEffort,
       modelTimeoutMs,
+      aigHeaders,
       handlers: { onTextDelta },
       onFallback: (previousModel, nextModel, err) => {
         signal({
@@ -344,7 +374,13 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     // ── 5. Persist — what to write is the caller's; whether the usage row rides
     //       along is the gateway's ───────────────────────────────────────────
     const persist = async (): Promise<StreamOutcome> => {
-      const directive = await finalize({ model, usage: rawUsage, costUsd, durationMs });
+      const directive = await finalize({
+        requestId,
+        model,
+        usage: rawUsage,
+        costUsd,
+        durationMs,
+      });
       if (directive?.kind === "refuse") {
         return { kind: "refused", reason: directive.reason };
       }
@@ -352,6 +388,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
         const batchPromise = env.DB.batch([
           ...directive.statements,
           recordUsageStatement(env.DB, {
+            id: requestId,
             userId,
             journeyId,
             model,
@@ -455,8 +492,9 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
     onTextDelta: (delta) => {
       textContent += delta;
     },
-    finalize: ({ model, usage: rawUsage, costUsd, durationMs }) =>
+    finalize: ({ requestId, model, usage: rawUsage, costUsd, durationMs }) =>
       recordUsage(env.DB, {
+        id: requestId,
         userId,
         journeyId,
         model,

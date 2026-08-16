@@ -71,7 +71,8 @@ function deriveEndpoint(url: URL): string {
  * Build the OpenRouter-SDK `Fetcher` that sends a request through an AI Gateway binding.
  *
  * `headers` is the `cf-aig-*` slot: it merges last, so a gateway header can never be
- * shadowed by a provider header of the same name. This slice passes nothing.
+ * shadowed by a provider header of the same name. The gateway orchestrator fills it
+ * with the generation's `cf-aig-metadata` tags (see `./aig-metadata`).
  *
  * Nothing here catches. A gateway rejection propagates into the SDK, the adapter turns
  * it into a RUN_ERROR chunk, and the drain treats that as an attempt failure with no
