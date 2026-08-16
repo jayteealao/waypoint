@@ -28,8 +28,10 @@ vi.mock("@tanstack/ai-openrouter", () => ({
 
 import { callGateway, callGatewayStream } from "#/lib/ai/gateway";
 import { TIERS } from "#/lib/ai/tiers";
+import { AIG_CACHE_TTL_SECONDS, buildCacheKey, classifyCacheOutcome } from "#/lib/ai/aig-cache";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
+import type { HTTPClient } from "@openrouter/sdk";
 
 /**
  * Both branches build the adapter with the same factory now, so factory identity no
@@ -53,12 +55,21 @@ interface DbHandle {
   db: D1Database;
   /** Every `usage_events` INSERT that actually executed, in order. */
   usageWrites: unknown[][];
+  /**
+   * The SQL of EVERY statement that executed, usage row or not. Cache accounting is
+   * defined by an absence — the caller's own write commits and the ledger row does not —
+   * and an absence is only assertable against a record of what *did* run.
+   */
+  executedSql: string[];
 }
 
-function makeDb(): DbHandle {
+/** `rejectBatch` makes `batch()` fail, which is how the persist-failure contract is driven. */
+function makeDb(opts?: { rejectBatch?: boolean }): DbHandle {
   const usageWrites: unknown[][] = [];
+  const executedSql: string[] = [];
 
   const record = (sql: string, args: unknown[]): void => {
+    executedSql.push(sql);
     if (sql.includes("INSERT INTO usage_events")) usageWrites.push(args);
   };
 
@@ -81,24 +92,63 @@ function makeDb(): DbHandle {
       };
     },
     async batch(statements: FakeStatement[]) {
+      if (opts?.rejectBatch) throw new Error("d1: batch rejected");
       for (const s of statements) record(s.__sql, s.__args);
       return [];
     },
   } as unknown as D1Database;
 
-  return { db, usageWrites };
+  return { db, usageWrites, executedSql };
 }
 
-/** A stand-in for `env.AI` — only `gateway(id)` is ever reached from here. */
-function makeAiBinding(): { binding: Ai; gatewayCalls: string[] } {
+/**
+ * A stand-in for `env.AI`.
+ *
+ * `cacheStatuses` is answered one entry per `run()` call, so a chain can be given a
+ * gateway that reports a hit on the first attempt and says nothing on the next —
+ * `undefined`/exhausted means the response carries no `cf-aig-cache-status` at all.
+ */
+function makeAiBinding(cacheStatuses: Array<string | undefined> = []): {
+  binding: Ai;
+  gatewayCalls: string[];
+} {
   const gatewayCalls: string[] = [];
+  let runs = 0;
   const binding = {
     gateway(gatewayId: string) {
       gatewayCalls.push(gatewayId);
-      return { __gateway: gatewayId, run: async () => new Response("{}") };
+      return {
+        __gateway: gatewayId,
+        run: async () => {
+          const status = cacheStatuses[runs++];
+          return new Response("{}", {
+            headers: status === undefined ? {} : { "cf-aig-cache-status": status },
+          });
+        },
+      };
     },
   } as unknown as Ai;
   return { binding, gatewayCalls };
+}
+
+/**
+ * Send one request down the REAL gateway fetcher built for the Nth model attempt.
+ *
+ * The chat loop is mocked in this file, so the transport is never exercised on its own —
+ * but the transport is where the gateway's cache verdict is read. Driving it explicitly
+ * from inside a mocked stream is what lets an attempt "observe a HIT" and then fail,
+ * which is the only way to prove the observation does not leak into the next attempt.
+ */
+async function driveGatewayTransport(callIndex = 0): Promise<void> {
+  const httpClient = adapterConfig(callIndex)?.["httpClient"] as HTTPClient | undefined;
+  expect(httpClient, "httpClient for attempt " + callIndex).toBeDefined();
+  await httpClient!.request(
+    new Request("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      body: JSON.stringify({ model: "m", messages: [{ role: "user", content: "Hello" }] }),
+      headers: { "content-type": "application/json" },
+    }),
+  );
 }
 
 function makeEnv(
@@ -136,6 +186,23 @@ function servedModelEnvelope(opts: {
   return (async function* () {
     yield { type: "TEXT_MESSAGE_CONTENT", delta: opts.text ?? "answer" };
     yield { type: "RUN_FINISHED", model: opts.servedModel, usage };
+  })();
+}
+
+/**
+ * What a cache hit looks like coming out of the drain: real content, and a usage payload
+ * whose tokens and cost are all present and exactly zero. The mocked chunk stream carries
+ * no HTTP headers, so this is the fallback signal — the branch that exists precisely
+ * because Cloudflare does not promise `cf-aig-cache-status` in binding mode.
+ */
+function zeroedUsageEnvelope(model: string): AsyncIterable<Record<string, unknown>> {
+  return (async function* () {
+    yield { type: "TEXT_MESSAGE_CONTENT", delta: "cached answer" };
+    yield {
+      type: "RUN_FINISHED",
+      model,
+      usage: { promptTokens: 0, completionTokens: 0, total_cost: 0 },
+    };
   })();
 }
 
@@ -398,6 +465,358 @@ describe("the kill switch decides which way out of the Worker", () => {
       }),
     ).rejects.toThrow("AIG_ENABLED=true but the AI binding or AIG_GATEWAY_ID is missing");
 
+    expect(usageWrites).toHaveLength(0);
+  });
+});
+
+// ── Caching helpers ────────────────────────────────────────────────────────
+
+function routedEnv(db: D1Database, binding: Ai) {
+  return makeEnv(db, { AI: binding, AIG_ENABLED: "true", AIG_GATEWAY_ID: "waypoint-dev" });
+}
+
+/** A write of the caller's own — the thing that must survive a cache hit. */
+function lessonStatement(db: D1Database): D1PreparedStatement {
+  return db.prepare("INSERT INTO lessons (id, body) VALUES (?, ?)").bind("lesson-1", "body");
+}
+
+/** Every structured signal this generation emitted, parsed. */
+function emittedSignals(logSpy: { mock: { calls: unknown[][] } }): Array<Record<string, unknown>> {
+  return logSpy.mock.calls
+    .map((c) => {
+      try {
+        return JSON.parse(c[0] as string) as Record<string, unknown>;
+      } catch {
+        return null;
+      }
+    })
+    .filter((s): s is Record<string, unknown> => s !== null);
+}
+
+// ── AC-5: the cache key isolates one user from another ─────────────────────
+
+describe("the cache key can only ever replay the requesting user's own answer", () => {
+  const BODY = JSON.stringify({
+    model: "openai/gpt-5.6-luna",
+    messages: [{ role: "user", content: "Teach me recursion" }],
+  });
+  const ROUTE = { provider: "openrouter", endpoint: "chat/completions", body: BODY };
+
+  test("two users issuing byte-identical bodies get different keys", async () => {
+    const a = await buildCacheKey({ ...ROUTE, userId: "user-a" });
+    const b = await buildCacheKey({ ...ROUTE, userId: "user-b" });
+
+    expect(a).not.toBe(b);
+    expect(a.startsWith("user-a:")).toBe(true);
+    expect(b.startsWith("user-b:")).toBe(true);
+    // The digest halves are IDENTICAL — the principal is the only thing separating the
+    // two entries, which is what makes the isolation structural rather than incidental.
+    expect(a.split(":")[1]).toBe(b.split(":")[1]);
+  });
+
+  test("the same user and the same body always produce the same key", async () => {
+    expect(await buildCacheKey({ ...ROUTE, userId: "user-a" })).toBe(
+      await buildCacheKey({ ...ROUTE, userId: "user-a" }),
+    );
+  });
+
+  test("one user's two different requests do not share an entry", async () => {
+    const first = await buildCacheKey({ ...ROUTE, userId: "user-a" });
+    const second = await buildCacheKey({
+      ...ROUTE,
+      userId: "user-a",
+      body: JSON.stringify({ model: "openai/gpt-5.6-luna", messages: [] }),
+    });
+
+    expect(first).not.toBe(second);
+  });
+
+  test("the route is inside the digest, because our key replaces the platform's own", async () => {
+    // `cf-aig-cache-key` OVERRIDES the gateway's default key, so provider and endpoint
+    // stop discriminating entries the moment we set it. Both are constant today, which is
+    // exactly why leaving them out would never be caught anywhere else.
+    const here = await buildCacheKey({ ...ROUTE, userId: "user-a" });
+    const elsewhere = await buildCacheKey({ ...ROUTE, userId: "user-a", endpoint: "completions" });
+    const otherProvider = await buildCacheKey({ ...ROUTE, userId: "user-a", provider: "openai" });
+
+    expect(new Set([here, elsewhere, otherProvider]).size).toBe(3);
+  });
+
+  test("every key is a principal followed by a full SHA-256 digest", async () => {
+    expect(await buildCacheKey({ ...ROUTE, userId: "user-a" })).toMatch(/^user-a:[0-9a-f]{64}$/);
+  });
+
+  test("the TTL sits inside Cloudflare's documented window", () => {
+    // 60s minimum, one month maximum
+    // (https://developers.cloudflare.com/ai-gateway/features/caching/).
+    expect(AIG_CACHE_TTL_SECONDS).toBeGreaterThanOrEqual(60);
+    expect(AIG_CACHE_TTL_SECONDS).toBeLessThanOrEqual(2_592_000);
+  });
+});
+
+// ── RIM-8: the detector's truth table ──────────────────────────────────────
+
+describe("deciding whether a response was served from the gateway's cache", () => {
+  const ZEROED = { prompt_tokens: 0, completion_tokens: 0, total_cost: 0 };
+  const REAL = { prompt_tokens: 11, completion_tokens: 22, total_cost: 0.003 };
+
+  test("an explicit HIT header decides, whatever the payload says", () => {
+    expect(classifyCacheOutcome({ status: "HIT", usage: REAL, producedOutput: true })).toEqual({
+      cached: true,
+      signal: "header",
+    });
+  });
+
+  test("an explicit MISS header decides too, even against a zeroed payload", () => {
+    // The header wins in BOTH directions: a stated MISS is a stronger claim than any
+    // inference from the numbers, so a real generation that happened to report zeros is
+    // never waived.
+    expect(classifyCacheOutcome({ status: "MISS", usage: ZEROED, producedOutput: true })).toEqual({
+      cached: false,
+      signal: "header",
+    });
+  });
+
+  test("the header is read case- and whitespace-insensitively", () => {
+    expect(
+      classifyCacheOutcome({ status: " hit ", usage: REAL, producedOutput: true }).cached,
+    ).toBe(true);
+  });
+
+  test("with no header, content plus an explicit zero cost is a hit", () => {
+    expect(classifyCacheOutcome({ usage: ZEROED, producedOutput: true })).toEqual({
+      cached: true,
+      signal: "zeroed-usage",
+    });
+  });
+
+  test("with no header, an ABSENT total_cost still meters", () => {
+    // The ordinary OpenRouter miss, and AC-7's whole subject. Reading "zeroed" loosely
+    // enough to include it would drop a real generation's cost — the one error that
+    // leaves no trace.
+    expect(
+      classifyCacheOutcome({
+        usage: { prompt_tokens: 0, completion_tokens: 0 },
+        producedOutput: true,
+      }),
+    ).toEqual({ cached: false, signal: "none" });
+  });
+
+  test("with no header, real usage is not a hit", () => {
+    expect(classifyCacheOutcome({ usage: REAL, producedOutput: true })).toEqual({
+      cached: false,
+      signal: "none",
+    });
+  });
+
+  test("an all-zero response that produced NO output is not a hit", () => {
+    // A refusal, a pre-generation failure or a truncated stream also reports zero tokens
+    // and zero cost. A cache hit always replays content, so an empty answer never
+    // qualifies — otherwise the ledger would waive exactly the failures worth seeing.
+    expect(classifyCacheOutcome({ usage: ZEROED, producedOutput: false })).toEqual({
+      cached: false,
+      signal: "none",
+    });
+  });
+});
+
+// ── AC-6 / AC-7: what a hit and a miss cost in the ledger ──────────────────
+
+describe("a cache hit costs nothing and a miss still meters", () => {
+  test("a cached buffered generation resolves cost 0 and writes no ledger row", async () => {
+    const { db, usageWrites } = makeDb();
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.interview.primaryModel) as never);
+
+    const result = await callGateway({ env: routedEnv(db, binding), ...TEXT_INPUT });
+
+    expect(result.text).toBe("cached answer");
+    expect(result.usage.costUsd).toBe(0);
+    // No row IS no quota: `checkQuota` sums `cost_usd` over `usage_events` and nothing
+    // else advances it, so declining the insert is declining the charge.
+    expect(usageWrites).toHaveLength(0);
+  });
+
+  test("a cached streamed generation still commits the caller's own write", async () => {
+    const { db, usageWrites, executedSql } = makeDb();
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.lesson.primaryModel) as never);
+
+    const handle = await callGatewayStream({ env: routedEnv(db, binding), ...STREAM_CONTEXT });
+    const outcome = await handle.run(
+      [{ role: "user", content: "Teach me recursion" }],
+      { onTextDelta: () => {} },
+      () => ({ kind: "commit", statements: [lessonStatement(db)] }),
+    );
+
+    // A cached lesson is still a real lesson the learner keeps — only the ledger row goes.
+    expect(outcome.kind).toBe("success");
+    expect(executedSql.some((sql) => sql.includes("INSERT INTO lessons"))).toBe(true);
+    expect(usageWrites).toHaveLength(0);
+  });
+
+  test("the completion signal says the charge was waived and on what evidence", async () => {
+    const logSpy = vi.spyOn(console, "log");
+    const { db } = makeDb();
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.interview.primaryModel) as never);
+
+    await callGateway({ env: routedEnv(db, binding), ...TEXT_INPUT });
+
+    // A hit writes no row, so this signal is the only place a waived charge is visible.
+    const completed = emittedSignals(logSpy).find((s) => s["event"] === "generation.completed");
+    expect(completed!["cache_status"]).toBe("HIT");
+    expect(completed!["cache_signal"]).toBe("zeroed-usage");
+    expect(completed!["cost_usd"]).toBe(0);
+  });
+
+  test("a miss whose stream omits total_cost recomputes and meters (AC-7)", async () => {
+    const logSpy = vi.spyOn(console, "log");
+    const { db, usageWrites } = makeDb();
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(
+      servedModelEnvelope({ servedModel: TIERS.interview.primaryModel }) as never,
+    );
+
+    const result = await callGateway({ env: routedEnv(db, binding), ...TEXT_INPUT });
+
+    expect(result.usage.costUsd).toBeGreaterThan(0);
+    expect(usageWrites).toHaveLength(1);
+    expect(usageWrites[0]![7] as number).toBeGreaterThan(0); // cost_usd column
+    expect(emittedSignals(logSpy).some((s) => s["event"] === "generation.cost_recomputed")).toBe(
+      true,
+    );
+    const completed = emittedSignals(logSpy).find((s) => s["event"] === "generation.completed");
+    expect(completed!["cache_status"]).toBe("MISS");
+  });
+
+  test("the same zeroed envelope off the gateway still meters (bypass guard)", async () => {
+    const logSpy = vi.spyOn(console, "log");
+    const { db, usageWrites } = makeDb();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.interview.primaryModel) as never);
+
+    await callGateway({ env: makeEnv(db), ...TEXT_INPUT });
+
+    // Cache accounting exists only on the routed path. A bypass generation that happened
+    // to report zeros must not stop metering — that would be exactly the drift the kill
+    // switch exists to prevent.
+    expect(usageWrites).toHaveLength(1);
+    const completed = emittedSignals(logSpy).find((s) => s["event"] === "generation.completed");
+    expect(completed!["cache_status"]).toBeUndefined();
+    expect(completed!["cache_signal"]).toBeUndefined();
+  });
+});
+
+// ── Attempt identity and the outcome contract ──────────────────────────────
+
+describe("a cache observation belongs to the attempt that made it", () => {
+  test("a HIT seen by a failed attempt does not waive the attempt that succeeded", async () => {
+    const { db, usageWrites } = makeDb();
+    // The gateway reports a hit to the FIRST attempt only; the second never reaches it.
+    const { binding } = makeAiBinding(["HIT"]);
+    vi.mocked(chat)
+      .mockImplementationOnce(
+        () =>
+          (async function* () {
+            await driveGatewayTransport(0);
+            yield { type: "RUN_ERROR", message: "upstream 502" };
+          })() as never,
+      )
+      .mockImplementationOnce(
+        () =>
+          servedModelEnvelope({
+            servedModel: TIERS.interview.primaryModel,
+            totalCost: 0.002,
+          }) as never,
+      );
+
+    const result = await callGateway({ env: routedEnv(db, binding), ...TEXT_INPUT });
+
+    // Without a per-attempt reset the stale "HIT" would answer for the retry and this
+    // generation would go unmetered — a real cost dropped on the strength of an
+    // observation about a request that failed.
+    expect(result.usage.costUsd).toBe(0.002);
+    expect(usageWrites).toHaveLength(1);
+  });
+
+  test("text streamed by a failed attempt does not vouch for an empty one", async () => {
+    const { db, usageWrites } = makeDb();
+    const { binding } = makeAiBinding();
+    vi.mocked(chat)
+      .mockImplementationOnce(
+        () =>
+          (async function* () {
+            yield { type: "TEXT_MESSAGE_CONTENT", delta: "half an answer" };
+            yield { type: "RUN_ERROR", message: "upstream reset" };
+          })() as never,
+      )
+      .mockImplementationOnce(
+        () =>
+          (async function* () {
+            yield {
+              type: "RUN_FINISHED",
+              model: TIERS.interview.primaryModel,
+              usage: { promptTokens: 0, completionTokens: 0, total_cost: 0 },
+            };
+          })() as never,
+      );
+
+    await callGateway({ env: routedEnv(db, binding), ...TEXT_INPUT });
+
+    // The retry said nothing at all, at zero reported cost — a refusal, not a replay.
+    // Counting the abandoned attempt's deltas would have made it look like content plus
+    // a zero cost, which is the shape of a cache hit, and the row would have vanished.
+    expect(usageWrites).toHaveLength(1);
+  });
+
+  test("a cached generation whose batch fails is a persist failure, never a success", async () => {
+    const { db } = makeDb({ rejectBatch: true });
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.lesson.primaryModel) as never);
+
+    const handle = await callGatewayStream({ env: routedEnv(db, binding), ...STREAM_CONTEXT });
+    const outcome = await handle.run(
+      [{ role: "user", content: "Teach me recursion" }],
+      { onTextDelta: () => {} },
+      () => ({ kind: "commit", statements: [lessonStatement(db)] }),
+    );
+
+    // Free does not mean saved: the learner must still be told the lesson was not stored.
+    expect(outcome.kind).toBe("persist_failed");
+  });
+
+  test("a cached generation whose caller refuses writes nothing at all", async () => {
+    const { db, usageWrites, executedSql } = makeDb();
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.lesson.primaryModel) as never);
+
+    const handle = await callGatewayStream({ env: routedEnv(db, binding), ...STREAM_CONTEXT });
+    const outcome = await handle.run(
+      [{ role: "user", content: "Teach me recursion" }],
+      { onTextDelta: () => {} },
+      () => ({ kind: "refuse", reason: "empty lesson" }),
+    );
+
+    expect(outcome).toEqual({ kind: "refused", reason: "empty lesson" });
+    expect(usageWrites).toHaveLength(0);
+    expect(executedSql).toEqual([]);
+  });
+
+  test("a cached generation with nothing else to write issues no batch at all", async () => {
+    // `rejectBatch` is the instrument: if an empty `batch([])` were issued it would
+    // reject and this would resolve `persist_failed` instead.
+    const { db, usageWrites } = makeDb({ rejectBatch: true });
+    const { binding } = makeAiBinding();
+    vi.mocked(chat).mockReturnValueOnce(zeroedUsageEnvelope(TIERS.lesson.primaryModel) as never);
+
+    const handle = await callGatewayStream({ env: routedEnv(db, binding), ...STREAM_CONTEXT });
+    const outcome = await handle.run(
+      [{ role: "user", content: "Teach me recursion" }],
+      { onTextDelta: () => {} },
+      () => ({ kind: "commit", statements: [] }),
+    );
+
+    expect(outcome.kind).toBe("success");
     expect(usageWrites).toHaveLength(0);
   });
 });

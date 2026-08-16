@@ -14,7 +14,7 @@
 // @ts-ignore — @tanstack/ai is in beta; complex generic constraints bypassed with 'as any'
 import { chat, toolDefinition } from "@tanstack/ai";
 import { createTextAdapter } from "./adapter";
-import type { AdapterEnv } from "./adapter";
+import type { AdapterEnv, AigCacheOptions } from "./adapter";
 import type { TierConfig } from "./tiers";
 import type { GenerationType } from "./tiers";
 
@@ -57,6 +57,14 @@ export interface RunModelOptions {
    * is what keeps it resolvable against the single `usage_events` row.
    */
   aigHeaders?: Record<string, string>;
+  /**
+   * Response-caching wiring for the routed path. Shared across the chain like
+   * `aigHeaders` above, with one difference that matters: the gateway's cache verdict is
+   * an observation *of one attempt*, so it is reset at the top of every attempt. Without
+   * that, a first attempt that reported a HIT and then failed could answer for the
+   * second attempt that actually succeeded — and the generation would go unmetered.
+   */
+  aigCache?: AigCacheOptions;
 }
 
 export interface RunModelResult {
@@ -92,6 +100,7 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
     onFallback,
     modelTimeoutMs,
     aigHeaders,
+    aigCache,
   } = opts;
 
   const toolDefs = tools?.map((t) =>
@@ -110,11 +119,16 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
     }
 
     try {
+      // Attempt identity: whatever the previous attempt observed about the gateway's
+      // cache is discarded before this one starts, so only the attempt that succeeds can
+      // decide whether this generation was served from cache.
+      aigCache?.resetCacheStatus?.();
+
       // Inside the try on purpose: a routed environment that cannot build its gateway
       // adapter is an attempt failure like any other, so the chain advances and, if it
       // exhausts, the caller sees a thrown generation failure rather than a silent
       // fall-back to the direct provider.
-      const adapter = await createTextAdapter(env, model, aigHeaders);
+      const adapter = await createTextAdapter(env, model, aigHeaders, aigCache);
 
       const streamOpts: Record<string, unknown> = {
         adapter: adapter as any,

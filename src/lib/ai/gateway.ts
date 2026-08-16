@@ -5,7 +5,9 @@
  *  1. Rejects callers whose daily quota is exhausted (zero outbound requests).
  *  2. Routes to the correct model tier (interview/lesson/quiz/roadmap).
  *  3. Retries through the tier's fallback chain on model failure.
- *  4. Records prompt_tokens, completion_tokens, and cost_usd to D1 `usage_events`.
+ *  4. Records prompt_tokens, completion_tokens, and cost_usd to D1 `usage_events` —
+ *     unless the AI Gateway served the answer from its cache, which cost nothing and is
+ *     therefore charged nothing and metered nowhere (see `./aig-cache`).
  *  5. Emits structured instrumentation signals to Cloudflare Logpush.
  *
  * Two entry points, one owner. `runGatewayGeneration()` (private) owns everything
@@ -46,6 +48,9 @@ import type { StreamUsage } from "./model-stream";
 import { isAigRouted } from "./adapter";
 import type { AdapterEnv } from "./adapter";
 import { buildAigMetadata, aigMetadataHeaders } from "./aig-metadata";
+import { AIG_CACHE_TTL_SECONDS, classifyCacheOutcome } from "./aig-cache";
+import type { CacheOutcome } from "./aig-cache";
+import type { AigCacheOptions } from "./adapter";
 
 // ---- Public error types -------------------------------------------------------
 
@@ -151,6 +156,13 @@ export interface GatewayFinalizeContext {
   usage: StreamUsage;
   costUsd: number;
   durationMs: number;
+  /**
+   * Was this answer served from the AI Gateway's cache? A cached response cost nothing,
+   * so it is not metered: a caller that writes the `usage_events` row itself must skip
+   * it, exactly as the gateway skips its own. The caller's *own* writes are unaffected —
+   * a cached lesson is still a real lesson the learner keeps.
+   */
+  cached: boolean;
 }
 
 /**
@@ -297,6 +309,42 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     ? aigMetadataHeaders(buildAigMetadata({ userId, journeyId, type, requestId }))
     : undefined;
 
+  /**
+   * Response caching, also routed-only. The key is composed down at the fetcher, from
+   * the body the provider actually receives; what comes back up here is the gateway's
+   * own verdict for the attempt that succeeded, which is the fact this function needs in
+   * order to decide whether the generation is billable at all.
+   */
+  let observedCacheStatus: string | null | undefined;
+  const aigCache: AigCacheOptions | undefined = routed
+    ? {
+        cache: { userId, ttlSeconds: AIG_CACHE_TTL_SECONDS },
+        onCacheStatus: (status) => {
+          observedCacheStatus = status;
+        },
+        resetCacheStatus: () => {
+          observedCacheStatus = undefined;
+        },
+      }
+    : undefined;
+
+  /**
+   * Did this generation actually say anything? A cache hit always replays content, so
+   * an empty answer — a refusal, a truncated stream — can never be classified as one on
+   * the payload heuristic alone (see `./aig-cache`).
+   *
+   * Counted per attempt, and reset when the chain advances, for the same reason the
+   * cache status is: text streamed by an attempt that then failed must not vouch for the
+   * attempt that actually answered. Otherwise a truncated first attempt followed by an
+   * empty second one would look like content plus a zero cost — which is a cache hit —
+   * and the generation would be waived.
+   */
+  let deltaChars = 0;
+  const countingOnTextDelta = (delta: string): void => {
+    deltaChars += delta.length;
+    onTextDelta(delta);
+  };
+
   // ── 1. Tier config ─────────────────────────────────────────────────────────
   const tier = TIERS[type];
   const modelChain = [tier.primaryModel, ...tier.fallbackChain];
@@ -333,7 +381,8 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       reasoningEffort: tier.reasoningEffort,
       modelTimeoutMs,
       aigHeaders,
-      handlers: { onTextDelta },
+      aigCache,
+      handlers: { onTextDelta: countingOnTextDelta },
       onFallback: (previousModel, nextModel, err) => {
         signal({
           event: "model.fallback_triggered",
@@ -343,17 +392,34 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
           reason: classifyError(err),
         });
         // Synchronous, inside onFallback: model-stream invokes this before creating
-        // the next adapter, so a caller's per-attempt state is reset before any delta
-        // of the retried attempt arrives.
+        // the next adapter, so a caller's per-attempt state — and ours — is reset before
+        // any delta of the retried attempt arrives.
+        deltaChars = 0;
         onAttemptReset?.();
       },
     });
 
     const durationMs = Date.now() - startTime;
 
+    // ── 3b. Was it served from the gateway's cache? ──────────────────────────
+    //
+    // Classified only here, after the chain has returned successfully: a RUN_ERROR
+    // throws out of `runModelWithFallback` and never reaches this line, so a failed
+    // generation can never be waived as "cached and therefore free".
+    const cacheOutcome: CacheOutcome = routed
+      ? classifyCacheOutcome({
+          status: observedCacheStatus,
+          usage: rawUsage,
+          producedOutput: deltaChars > 0 || toolUse !== undefined,
+        })
+      : { cached: false, signal: "none" };
+
     // ── 4. Cost computation: prefer total_cost over recomputed ───────────────
-    const { costUsd, recomputed } = computeCost(rawUsage, tier);
-    if (recomputed) {
+    const { costUsd: computedCost, recomputed } = computeCost(rawUsage, tier);
+    // A cached answer cost nothing to produce, so it is charged nothing — and with
+    // nothing to recompute, the stale-pricing warning below would be noise.
+    const costUsd = cacheOutcome.cached ? 0 : computedCost;
+    if (recomputed && !cacheOutcome.cached) {
       signal({
         event: "generation.cost_recomputed",
         user_id: userId,
@@ -380,24 +446,37 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
         usage: rawUsage,
         costUsd,
         durationMs,
+        cached: cacheOutcome.cached,
       });
       if (directive?.kind === "refuse") {
         return { kind: "refused", reason: directive.reason };
       }
       if (directive?.kind === "commit") {
-        const batchPromise = env.DB.batch([
-          ...directive.statements,
-          recordUsageStatement(env.DB, {
-            id: requestId,
-            userId,
-            journeyId,
-            model,
-            type,
-            usage: rawUsage,
-            costUsd,
-            durationMs,
-          }),
-        ]);
+        // The caller's own statements always commit — a cached lesson is still a lesson
+        // the learner must keep. Only the ledger row is dropped, and dropping it IS
+        // declining to advance quota: `checkQuota` sums `cost_usd` over `usage_events`
+        // and nothing else advances it (see `./quota`).
+        const statements = cacheOutcome.cached
+          ? directive.statements
+          : [
+              ...directive.statements,
+              recordUsageStatement(env.DB, {
+                id: requestId,
+                userId,
+                journeyId,
+                model,
+                type,
+                usage: rawUsage,
+                costUsd,
+                durationMs,
+              }),
+            ];
+        // A cached generation whose caller had nothing of its own to write must not
+        // issue `batch([])`.
+        if (statements.length === 0) {
+          return { kind: "success", usage };
+        }
+        const batchPromise = env.DB.batch(statements);
         // Registered synchronously, BEFORE the await, and with a rejection-safe view:
         // the caller reports a persist failure on its own channel, so the platform
         // must not also log an unhandled rejection for the same failure.
@@ -421,6 +500,17 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     }
 
     // ── 6. generation.completed signal — exactly one, every branch ───────────
+    //
+    // Routed-only, like the routing fields themselves: the direct path's log shape stays
+    // byte-identical. This is the operator's only view of cache behavior before a gateway
+    // dashboard exists, and — because a hit writes no ledger row — the only thing that
+    // makes a gap in `usage_events` explainable after the fact rather than suspicious.
+    const caching = routed
+      ? {
+          cache_status: cacheOutcome.cached ? "HIT" : "MISS",
+          cache_signal: cacheOutcome.signal,
+        }
+      : {};
     signal({
       event: "generation.completed",
       user_id: userId,
@@ -432,6 +522,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       cost_usd: costUsd,
       duration_ms: durationMs,
       ...routing,
+      ...caching,
       outcome: outcome.kind === "success" ? "success" : outcome.kind,
     });
 
@@ -492,8 +583,11 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
     onTextDelta: (delta) => {
       textContent += delta;
     },
-    finalize: ({ requestId, model, usage: rawUsage, costUsd, durationMs }) =>
-      recordUsage(env.DB, {
+    finalize: ({ requestId, model, usage: rawUsage, costUsd, durationMs, cached }) => {
+      // A cache hit cost nothing, so it is metered nowhere — the buffered path drops its
+      // row for the same reason the streaming path drops its statement.
+      if (cached) return;
+      return recordUsage(env.DB, {
         id: requestId,
         userId,
         journeyId,
@@ -502,7 +596,8 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
         usage: rawUsage,
         costUsd,
         durationMs,
-      }),
+      });
+    },
     finalizeErrorMode: "model-failure",
   });
 
