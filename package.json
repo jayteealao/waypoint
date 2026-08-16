@@ -25,6 +25,7 @@
   "dependencies": {
     "@better-auth/infra": "0.3.6",
     "@cloudflare/tanstack-ai": "0.2.1",
+    "@openrouter/sdk": "0.13.20",
     "@tanstack/ai": "0.40.0",
     "@tanstack/ai-openrouter": "0.15.8",
     "@tanstack/db": "0.6.14",

@@ -11,7 +11,7 @@
  * generation that never happened. Every "no ledger row" assertion below is guarding
  * that hole.
  *
- * Node environment, both adapter factories mocked, D1 mocked in-process so every
+ * Node environment, the adapter factory mocked, D1 mocked in-process so every
  * `usage_events` write — via `run()` or via `batch()` — is directly countable.
  */
 
@@ -23,18 +23,24 @@ vi.mock("@tanstack/ai", () => ({
 }));
 
 vi.mock("@tanstack/ai-openrouter", () => ({
-  createOpenRouterText: vi.fn((model: string) => ({ __direct: model })),
-}));
-
-vi.mock("@cloudflare/tanstack-ai/adapters/openrouter", () => ({
-  createOpenRouterChat: vi.fn((model: string) => ({ __routed: model })),
+  createOpenRouterText: vi.fn((model: string) => ({ __adapter: model })),
 }));
 
 import { callGateway, callGatewayStream } from "#/lib/ai/gateway";
 import { TIERS } from "#/lib/ai/tiers";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
-import { createOpenRouterChat } from "@cloudflare/tanstack-ai/adapters/openrouter";
+
+/**
+ * Both branches build the adapter with the same factory now, so factory identity no
+ * longer says which way the request goes — the third argument does. A gateway
+ * `httpClient` IS the routing: it is the transport that replaces a direct HTTPS call
+ * with `env.AI.gateway(id).run(...)`.
+ */
+function adapterConfig(callIndex = 0): Record<string, unknown> | undefined {
+  const call = vi.mocked(createOpenRouterText).mock.calls[callIndex];
+  return call?.[2] as Record<string, unknown> | undefined;
+}
 
 // ── Mock D1 ────────────────────────────────────────────────────────────────
 
@@ -267,18 +273,17 @@ describe("the kill switch decides which way out of the Worker", () => {
       ...TEXT_INPUT,
     });
 
+    // The binding was asked for the configured gateway, and the adapter was built
+    // against a transport that goes through it.
     expect(gatewayCalls).toEqual(["waypoint-dev"]);
-    expect(vi.mocked(createOpenRouterText)).not.toHaveBeenCalled();
-    expect(vi.mocked(createOpenRouterChat)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createOpenRouterText)).toHaveBeenCalledTimes(1);
 
-    const [model, config] = vi.mocked(createOpenRouterChat).mock.calls[0]!;
+    const [model, apiKey] = vi.mocked(createOpenRouterText).mock.calls[0]!;
     expect(model).toBe(TIERS.interview.primaryModel);
-    expect(config).toMatchObject({ apiKey: "test-key" });
-    // Binding mode still carries the provider key: the gateway fetcher omits the
-    // upstream authorization header without it and sends the literal "unused".
-    expect((config as { binding?: unknown }).binding).toMatchObject({
-      __gateway: "waypoint-dev",
-    });
+    // Routing to the gateway does not remove the need for a provider key — the
+    // gateway forwards upstream, and OpenRouter answers 401 without one.
+    expect(apiKey).toBe("test-key");
+    expect(adapterConfig()?.["httpClient"]).toBeDefined();
   });
 
   test.each([
@@ -301,8 +306,10 @@ describe("the kill switch decides which way out of the Worker", () => {
       ...TEXT_INPUT,
     });
 
-    expect(vi.mocked(createOpenRouterChat)).not.toHaveBeenCalled();
     expect(vi.mocked(createOpenRouterText)).toHaveBeenCalledTimes(1);
+    // No gateway transport was installed, so the request leaves for the provider
+    // directly — even though the binding and the gateway id are both present.
+    expect(adapterConfig()?.["httpClient"]).toBeUndefined();
     expect(usageWrites).toHaveLength(1);
     expect(usageWrites[0]![7]).toBe(0.001); // cost_usd — metering is untouched by the bypass
   });
