@@ -49,8 +49,15 @@ export function isAigRouted(env: Pick<AdapterEnv, "AIG_ENABLED">): boolean {
  * Routed but unconfigured throws rather than degrading to direct: a silent degrade
  * is exactly the failure the fail-closed posture exists to refuse, and it would make
  * an operator's "is the gateway on?" unanswerable from the outside.
+ *
+ * `aigHeaders` carries the `cf-aig-*` headers for this generation (its metadata tags).
+ * The direct branch ignores them — an unrouted call has no gateway to configure.
  */
-export async function createTextAdapter(env: AdapterEnv, model: string): Promise<unknown> {
+export async function createTextAdapter(
+  env: AdapterEnv,
+  model: string,
+  aigHeaders?: Record<string, string>,
+): Promise<unknown> {
   if (!isAigRouted(env)) {
     // @ts-expect-error — createOpenRouterText accepts a string model ID; the TS overloads
     // enumerate the known model names but the list is non-exhaustive at runtime.
@@ -73,6 +80,7 @@ export async function createTextAdapter(env: AdapterEnv, model: string): Promise
   const httpClient = new HTTPClient({
     fetcher: createAigGatewayFetcher(env.AI.gateway(gatewayId), {
       apiKey: env.OPENROUTER_API_KEY,
+      headers: aigHeaders,
     }),
   });
 

@@ -122,7 +122,7 @@ afterEach(() => {
 
 describe("the request that reaches the AI Gateway binding", () => {
   /** Drive one generation whose gateway rejects, and hand back what it was sent. */
-  async function captureRequest(): Promise<FakeGateway> {
+  async function captureRequest(aigHeaders?: Record<string, string>): Promise<FakeGateway> {
     const gateway = makeFakeGateway(async () => {
       throw new Error("gateway unavailable");
     });
@@ -133,6 +133,7 @@ describe("the request that reaches the AI Gateway binding", () => {
         modelChain: [MODEL],
         messages: MESSAGES,
         handlers: { onTextDelta: () => {} },
+        aigHeaders,
       }),
     ).rejects.toThrow();
 
@@ -192,6 +193,30 @@ describe("the request that reaches the AI Gateway binding", () => {
     // Cancellation has to survive the translation, or an aborted lesson keeps
     // generating (and billing) upstream.
     expect(options[0]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  test("the dashboard tags survive the whole path and arrive beside the provider headers", async () => {
+    // The strongest observation point available before a gateway is provisioned: the
+    // metadata is not inspected where it is built, but where it lands — after the real
+    // SDK has assembled the request and our fetcher has translated it into the envelope
+    // Cloudflare would actually receive. A regression anywhere along that path (a header
+    // map dropped, a name mangled, a deny-list widened) fails here rather than showing up
+    // as an empty dashboard weeks later.
+    const metadata = {
+      user_id: "user-123",
+      journey_id: "journey-abc",
+      generation_type: "lesson",
+      tier: "lesson",
+      request_id: "req-1",
+    };
+    const { requests } = await captureRequest({ "cf-aig-metadata": JSON.stringify(metadata) });
+    const headers = requests[0]!.headers;
+
+    expect(JSON.parse(headers["cf-aig-metadata"]!)).toEqual(metadata);
+    // Alongside, not instead of — the gateway header map merges last, so it must add to
+    // the provider's own headers rather than replace them.
+    expect(headers["authorization"]).toBe("Bearer test-key");
+    expect(headers["accept"]).toBe("text/event-stream");
   });
 
   test("a gateway that fails is an attempt failure, not a clean empty stream", async () => {

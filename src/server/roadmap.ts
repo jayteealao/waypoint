@@ -229,7 +229,7 @@ async function attemptRoadmapCall(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
 ) {
   const response = await callGateway({
-    env: { DB: env.DB, OPENROUTER_API_KEY: env.OPENROUTER_API_KEY },
+    env,
     userId,
     journeyId,
     type: "roadmap",
