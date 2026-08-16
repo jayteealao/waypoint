@@ -14,6 +14,9 @@ importers:
       '@cloudflare/tanstack-ai':
         specifier: 0.2.1
         version: 0.2.1(@tanstack/ai@0.40.0)(ws@8.21.0)(zod@4.4.3)
+      '@openrouter/sdk':
+        specifier: 0.13.20
+        version: 0.13.20
       '@tanstack/ai':
         specifier: 0.40.0
         version: 0.40.0

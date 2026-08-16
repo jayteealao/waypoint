@@ -2,16 +2,18 @@
 /**
  * The routed path, driven against the real libraries.
  *
- * Everywhere else the gateway adapter is mocked, which proves we *call* it correctly
+ * Everywhere else the adapter factory is mocked, which proves we *call* it correctly
  * and nothing about what it then does. Here nothing is mocked: the real
- * `createOpenRouterChat`, the real OpenRouter SDK and the real `@tanstack/ai` chat
- * loop run against a fake `env.AI.gateway(id)` — the one object a unit test can stand
- * in for, because it is the boundary where the Worker hands the request to Cloudflare.
+ * `createOpenRouterText`, the real OpenRouter SDK, our real gateway fetcher and the
+ * real `@tanstack/ai` chat loop run against a fake `env.AI.gateway(id)` — the one
+ * object a unit test can stand in for, because it is the boundary where the Worker
+ * hands the request to Cloudflare.
  *
  * That makes this the closest thing to a real gateway call that exists before one is
- * provisioned: it asserts the exact request shape that would reach the gateway, and
- * it exercises the fail-closed path (a gateway that errors must not end the stream
- * cleanly) against the actual adapter rather than a hand-written envelope.
+ * provisioned: it asserts the exact request shape that would reach the gateway —
+ * model and messages included — and it exercises the fail-closed path (a gateway that
+ * errors must not end the stream cleanly) against the actual adapter rather than a
+ * hand-written envelope.
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
@@ -20,12 +22,16 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 // runner, which asks `createTextAdapter` for the adapter and then drains it.
 import { runModelWithFallback } from "#/lib/ai/model-stream";
 
-/** The request object `@cloudflare/tanstack-ai` hands to `binding.run(...)`. */
+/** The universal-endpoint envelope handed to `binding.run(...)`. */
 interface GatewayRequest {
   provider: string;
   endpoint: string;
   headers: Record<string, string>;
   query: Record<string, unknown>;
+}
+
+interface RunOptions {
+  signal?: AbortSignal;
 }
 
 interface FakeGateway {
@@ -36,19 +42,22 @@ interface FakeGateway {
     AIG_GATEWAY_ID: string;
   };
   requests: GatewayRequest[];
+  options: Array<RunOptions | undefined>;
 }
 
 /**
- * A stand-in for `env.AI` whose `gateway(id).run(request)` records what it was given
- * and then answers with `respond` — a rejection, or a canned upstream response.
+ * A stand-in for `env.AI` whose `gateway(id).run(request, options)` records what it was
+ * given and then answers with `respond` — a rejection, or a canned upstream response.
  */
 function makeFakeGateway(respond: () => Promise<Response>): FakeGateway {
   const requests: GatewayRequest[] = [];
+  const options: Array<RunOptions | undefined> = [];
   const AI = {
     gateway(_gatewayId: string) {
       return {
-        async run(request: GatewayRequest) {
+        async run(request: GatewayRequest, opts?: RunOptions) {
           requests.push(request);
+          options.push(opts);
           return await respond();
         },
       };
@@ -63,6 +72,7 @@ function makeFakeGateway(respond: () => Promise<Response>): FakeGateway {
       AIG_GATEWAY_ID: "waypoint-test",
     },
     requests,
+    options,
   };
 }
 
@@ -111,7 +121,8 @@ afterEach(() => {
 });
 
 describe("the request that reaches the AI Gateway binding", () => {
-  test("carries the OpenRouter chat endpoint and the provider key", async () => {
+  /** Drive one generation whose gateway rejects, and hand back what it was sent. */
+  async function captureRequest(): Promise<FakeGateway> {
     const gateway = makeFakeGateway(async () => {
       throw new Error("gateway unavailable");
     });
@@ -126,43 +137,61 @@ describe("the request that reaches the AI Gateway binding", () => {
     ).rejects.toThrow();
 
     expect(gateway.requests.length).toBeGreaterThan(0);
-    const request = gateway.requests[0]!;
-    expect(request.provider).toBe("openrouter");
-    expect(request.endpoint).toContain("chat/completions");
-    // Binding mode authenticates to the PROVIDER with this header; without it the
-    // adapter sends the literal string "unused" and OpenRouter answers 401, which
-    // would read as a gateway fault.
-    expect(request.headers["authorization"]).toBe("Bearer test-key");
+    return gateway;
+  }
+
+  test("names the provider and the endpoint relative to the provider's own base", async () => {
+    const { requests } = await captureRequest();
+
+    expect(requests[0]!.provider).toBe("openrouter");
+    // Pinned exactly, not loosely. The SDK's URL is
+    // https://openrouter.ai/api/v1/chat/completions, and the universal endpoint takes
+    // the path relative to the PROVIDER's base — so a drift to "api/v1/chat/completions"
+    // (what a naive strip produces) would send the provider's own prefix through the
+    // gateway and 404. This assertion is the local guard for that.
+    expect(requests[0]!.endpoint).toBe("chat/completions");
   });
 
-  test("KNOWN UPSTREAM DEFECT: the request reaches the binding with an empty body", async () => {
-    const gateway = makeFakeGateway(async () => {
-      throw new Error("gateway unavailable");
-    });
-
-    await expect(
-      runModelWithFallback({
-        env: gateway.env,
-        modelChain: [MODEL],
-        messages: MESSAGES,
-        handlers: { onTextDelta: () => {} },
-      }),
-    ).rejects.toThrow();
+  test("carries the payload the gateway must forward: the model and the messages", async () => {
+    const { requests } = await captureRequest();
 
     // `query` is the provider's request body — the model and the messages
-    // (https://developers.cloudflare.com/ai-gateway/usage/universal/). It is empty
-    // because the two libraries disagree about how a fetcher is called: the OpenRouter
-    // SDK invokes it with a single `Request`
-    // (node_modules/@openrouter/sdk/esm/lib/http.js:34 — `this.fetcher(req)`), while the
-    // gateway fetcher reads the body from a second `init` argument that is therefore
-    // never passed (node_modules/@cloudflare/tanstack-ai/dist/create-fetcher-Cmmx6As3.mjs,
-    // `createGatewayFetch`: `if (init?.body) query = JSON.parse(init.body)`).
-    //
-    // A real gateway would forward an empty payload upstream and the generation would
-    // fail. This assertion is deliberately inverted — it PINS the defect so the suite
-    // goes red the moment it is fixed upstream or worked around here, at which point it
-    // becomes `expect(request.query["model"]).toBe(MODEL)`.
-    expect(gateway.requests[0]!.query).toEqual({});
+    // (https://developers.cloudflare.com/ai-gateway/usage/universal/). An empty one is
+    // the exact failure this path was rebuilt to repair, so it is asserted directly
+    // rather than through anything downstream of it.
+    const query = requests[0]!.query;
+    expect(query["model"]).toBe(MODEL);
+    expect(JSON.stringify(query["messages"])).toContain("Say hello");
+    expect(query["stream"]).toBe(true);
+  });
+
+  test("authenticates to the provider and declares a JSON body", async () => {
+    const { requests } = await captureRequest();
+    const headers = requests[0]!.headers;
+
+    // Routing through the gateway does not authenticate to OpenRouter; without this
+    // header the provider answers 401, which would read as a gateway fault.
+    expect(headers["authorization"]).toBe("Bearer test-key");
+    expect(headers["Content-Type"]).toBe("application/json");
+  });
+
+  test("keeps the streaming Accept header and drops the per-hop ones", async () => {
+    const { requests, options } = await captureRequest();
+    const headers = requests[0]!.headers;
+
+    // The SDK asks for SSE deliberately when streaming
+    // (node_modules/@openrouter/sdk/esm/funcs/chatSend.js:26-30). Dropping it would
+    // turn a stream into one buffered response — a lesson that appears all at once
+    // rather than an error, which is the kind of regression nothing else catches.
+    expect(headers["accept"]).toBe("text/event-stream");
+    // A forwarded content-length describes a body the gateway re-serializes, and the
+    // rest have no meaning across a hop.
+    for (const dropped of ["content-length", "host", "accept-encoding", "connection"]) {
+      expect(Object.keys(headers).map((k) => k.toLowerCase())).not.toContain(dropped);
+    }
+    // Cancellation has to survive the translation, or an aborted lesson keeps
+    // generating (and billing) upstream.
+    expect(options[0]?.signal).toBeInstanceOf(AbortSignal);
   });
 
   test("a gateway that fails is an attempt failure, not a clean empty stream", async () => {
@@ -190,8 +219,9 @@ describe("the request that reaches the AI Gateway binding", () => {
   test("a successful upstream response streams back through the binding with its usage", async () => {
     // Scope: the RESPONSE half. The fake answers regardless of what it was asked, so
     // this proves that an OpenAI-compatible SSE body arriving from the gateway is
-    // parsed into the same deltas and usage the direct path produces — not that a real
-    // gateway would accept the request (see the defect pinned above).
+    // parsed into the same deltas and usage the direct path produces. What it cannot
+    // prove is that a REAL gateway accepts the envelope and forwards it — that is the
+    // one thing still owed to a live run.
     const gateway = makeFakeGateway(async () => cannedSseResponse());
     const deltas: string[] = [];
 
