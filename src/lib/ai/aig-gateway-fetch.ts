@@ -21,6 +21,7 @@
  */
 
 import type { Fetcher } from "@openrouter/sdk";
+import { buildCacheKey, aigCacheHeaders, SKIP_CACHE_HEADERS } from "./aig-cache";
 
 /**
  * Headers that describe one hop, or that describe a body the gateway re-serializes.
@@ -74,13 +75,26 @@ function deriveEndpoint(url: URL): string {
  * shadowed by a provider header of the same name. The gateway orchestrator fills it
  * with the generation's `cf-aig-metadata` tags (see `./aig-metadata`).
  *
+ * `cache` and `onCacheStatus` are the caching pair, and they live here for the same
+ * reason: this is the only boundary that holds both the body the provider actually
+ * receives — the one thing a cache key may be composed from — and the `Response` the
+ * binding returns, which is where the gateway reports whether it served the answer from
+ * its cache. Anything computed upstream would hash a payload we *believe* is sent.
+ *
  * Nothing here catches. A gateway rejection propagates into the SDK, the adapter turns
  * it into a RUN_ERROR chunk, and the drain treats that as an attempt failure with no
  * ledger row — the fail-closed path, unchanged.
  */
 export function createAigGatewayFetcher(
   gateway: AiGateway,
-  opts: { apiKey: string; headers?: Record<string, string> },
+  opts: {
+    apiKey: string;
+    headers?: Record<string, string>;
+    /** Principal + TTL for the per-user cache key. Absent → the request is not cached. */
+    cache?: { userId: string; ttlSeconds: number };
+    /** Called once per attempt with `cf-aig-cache-status` (or null when absent). */
+    onCacheStatus?: (status: string | null) => void;
+  },
 ): Fetcher {
   return async (input, init) => {
     const request = input instanceof Request ? input : new Request(input as RequestInfo, init);
@@ -121,17 +135,39 @@ export function createAigGatewayFetcher(
     headers["Content-Type"] = "application/json";
     Object.assign(headers, opts.headers ?? {});
 
+    const endpoint = deriveEndpoint(new URL(request.url));
+
+    // Caching is scoped to the requesting user or it does not happen. Falling through
+    // without `cf-aig-cache-key` is the dangerous degrade, not the safe one: the gateway
+    // would then use its OWN default key, which does not segment by user, and one
+    // learner's answer could be replayed to another. No principal, no caching.
+    const userId = opts.cache?.userId.trim();
+    if (opts.cache && userId) {
+      const cacheKey = await buildCacheKey({
+        userId,
+        provider: "openrouter",
+        endpoint,
+        body: raw,
+      });
+      Object.assign(headers, aigCacheHeaders(cacheKey, opts.cache.ttlSeconds));
+    } else {
+      Object.assign(headers, SKIP_CACHE_HEADERS);
+    }
+
     // The Response is returned unbuffered: the SDK picks its SSE path from the status
     // plus content-type and then streams `response.body` straight through
-    // (esm/lib/matchers.js:74,113).
-    return await gateway.run(
+    // (esm/lib/matchers.js:74,113). It is read for one header first — this is the only
+    // place `cf-aig-cache-status` exists before the SDK layers hide it.
+    const response = await gateway.run(
       {
         provider: "openrouter",
-        endpoint: deriveEndpoint(new URL(request.url)),
+        endpoint,
         headers,
         query,
       },
       { signal: request.signal },
     );
+    opts.onCacheStatus?.(response.headers.get("cf-aig-cache-status"));
+    return response;
   };
 }

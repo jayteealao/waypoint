@@ -74,7 +74,8 @@ export function buildAigMetadata(input: AigMetadataInput): AigMetadata {
  * uses (`headers["cf-aig-metadata"] = serializeMetadata(opts.metadata)`, source:
  * node_modules/@cloudflare/tanstack-ai/dist/create-fetcher-Cmmx6As3.mjs:65). Returning
  * a header *map* rather than a bare string keeps the header name in exactly one place
- * in the codebase, which is also where `scoped-caching`'s `cf-aig-cache-key` will land.
+ * in the codebase. The response-caching headers follow the same shape in `./aig-cache`,
+ * and both maps merge into the same gateway header slot.
  */
 export function aigMetadataHeaders(metadata: AigMetadata): Record<string, string> {
   return { "cf-aig-metadata": JSON.stringify(metadata) };

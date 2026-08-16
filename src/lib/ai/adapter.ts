@@ -5,7 +5,7 @@
  * Direct: `createOpenRouterText(model, key)` talks to the provider straight, as
  * every generation has until now. Routed: the same factory, handed an `httpClient`
  * whose transport is the Cloudflare AI Gateway bound as `env.AI`, so the gateway can
- * log, slice and (later) cache the call.
+ * log, slice and cache the call.
  *
  * Both branches therefore build the SAME `OpenRouterTextAdapter` class and differ in
  * one argument. The `@tanstack/ai` chunk vocabulary `model-stream.ts` parses is
@@ -44,19 +44,37 @@ export function isAigRouted(env: Pick<AdapterEnv, "AIG_ENABLED">): boolean {
 }
 
 /**
+ * Per-generation response-caching wiring for the routed path.
+ *
+ * `cache` scopes the gateway's cache entry to the requesting user; `onCacheStatus`
+ * carries the gateway's own verdict back up to the orchestrator, which is the only
+ * consumer that can act on it (it decides whether the generation is metered). Both are
+ * optional so every existing caller keeps compiling.
+ */
+export interface AigCacheOptions {
+  cache?: { userId: string; ttlSeconds: number };
+  onCacheStatus?: (status: string | null) => void;
+  /** Clear the recorded status before an attempt, so one attempt never answers for another. */
+  resetCacheStatus?: () => void;
+}
+
+/**
  * Build the text adapter for one model attempt.
  *
  * Routed but unconfigured throws rather than degrading to direct: a silent degrade
  * is exactly the failure the fail-closed posture exists to refuse, and it would make
  * an operator's "is the gateway on?" unanswerable from the outside.
  *
- * `aigHeaders` carries the `cf-aig-*` headers for this generation (its metadata tags).
- * The direct branch ignores them — an unrouted call has no gateway to configure.
+ * `aigHeaders` carries the `cf-aig-*` headers for this generation (its metadata tags)
+ * and `aigCache` its response-caching wiring. The direct branch ignores both — an
+ * unrouted call has no gateway to configure, and the bypass path must stay
+ * byte-identical to what it was before either existed.
  */
 export async function createTextAdapter(
   env: AdapterEnv,
   model: string,
   aigHeaders?: Record<string, string>,
+  aigCache?: AigCacheOptions,
 ): Promise<unknown> {
   if (!isAigRouted(env)) {
     // @ts-expect-error — createOpenRouterText accepts a string model ID; the TS overloads
@@ -81,6 +99,8 @@ export async function createTextAdapter(
     fetcher: createAigGatewayFetcher(env.AI.gateway(gatewayId), {
       apiKey: env.OPENROUTER_API_KEY,
       headers: aigHeaders,
+      cache: aigCache?.cache,
+      onCacheStatus: aigCache?.onCacheStatus,
     }),
   });
 
