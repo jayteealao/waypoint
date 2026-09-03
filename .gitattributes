@@ -1,0 +1,13 @@
+# Git's own default on Windows (core.autocrlf=true, set by the installer at system
+# scope) checks every file out with CRLF, while .editorconfig, oxfmt and the
+# pre-commit format check all expect LF. That disagreement made `oxfmt --check`
+# fail on every tracked file, so every commit needed --no-verify.
+#
+# eol=lf pins the working tree to LF for everyone regardless of their autocrlf
+# setting. Git already stores LF, so this changes what is checked out, never what
+# is committed.
+* text=auto eol=lf
+
+# Binary assets: never touched, never diffed as text.
+*.png binary
+*.ico binary
