@@ -104,7 +104,12 @@ export function createAigGatewayFetcher(
     // esm/lib/sdks.js:176-190), so no attempt is ever handed a drained body.
     let raw: string;
     if (init?.body != null) {
-      raw = String(init.body);
+      // Only a string body survives `String(body)` intact. A Uint8Array, a Blob or a
+      // stream would stringify to "[object Object]" and then be refused one line below
+      // as unreadable JSON — a real payload turned into a failed generation by the
+      // read, not by the gateway. `Response` decodes every `BodyInit` the platform
+      // accepts, so this branch reads what the caller actually passed.
+      raw = typeof init.body === "string" ? init.body : await new Response(init.body).text();
     } else {
       if (request.bodyUsed) {
         throw new Error("aig: request body already consumed — refusing to send an empty payload");
