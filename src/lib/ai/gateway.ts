@@ -583,6 +583,14 @@ export async function callGateway(input: GatewayInput): Promise<GatewayResponse>
     onTextDelta: (delta) => {
       textContent += delta;
     },
+    // A failed attempt's partial text must not be prefixed onto the answer that
+    // succeeded. Deltas are forwarded the moment they arrive, so when the chain
+    // advances the buffer holds whatever the dead attempt managed to emit — and at
+    // the four structured call sites that concatenation is a JSON payload with a
+    // truncated document glued to its front.
+    onAttemptReset: () => {
+      textContent = "";
+    },
     finalize: ({ requestId, model, usage: rawUsage, costUsd, durationMs, cached }) => {
       // A cache hit cost nothing, so it is metered nowhere — the buffered path drops its
       // row for the same reason the streaming path drops its statement.

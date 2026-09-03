@@ -323,6 +323,31 @@ describe("a retry/fallback envelope still meters correctly", () => {
     expect(result.usage.model).toBe(TIERS.interview.primaryModel);
     expect(usageWrites[0]![3]).toBe(TIERS.interview.primaryModel);
   });
+
+  test("the dead attempt's partial text is not glued to the front of the answer", async () => {
+    const { db } = makeDb();
+    // Deltas are forwarded the moment they arrive, so a first attempt that emits half a
+    // JSON document and then dies leaves that half in the buffer. Four call sites parse
+    // this string as JSON; a concatenation of two documents parses as neither.
+    vi.mocked(chat)
+      .mockReturnValueOnce(
+        (async function* () {
+          yield { type: "TEXT_MESSAGE_CONTENT", delta: '{"verdict":"par' };
+          yield { type: "RUN_ERROR", message: "upstream died mid-document" };
+        })() as never,
+      )
+      .mockReturnValueOnce(
+        (async function* () {
+          yield { type: "TEXT_MESSAGE_CONTENT", delta: '{"verdict":"complete"}' };
+          yield { type: "RUN_FINISHED", usage: { promptTokens: 3, completionTokens: 4 } };
+        })() as never,
+      );
+
+    const result = await callGateway({ env: makeEnv(db), ...TEXT_INPUT });
+
+    expect(result.text).toBe('{"verdict":"complete"}');
+    expect(JSON.parse(result.text!)).toEqual({ verdict: "complete" });
+  });
 });
 
 // ── AC-10a: the kill switch ────────────────────────────────────────────────
