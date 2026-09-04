@@ -31,59 +31,39 @@ import { TIERS } from "#/lib/ai/tiers";
 import { DAILY_LIMIT_USD } from "#/lib/ai/quota";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
+import { createFakeD1, type FakeD1Statement } from "./_fixtures/fake-d1";
+import { signals } from "./_fixtures/signals";
 
 // ── Mock D1 ────────────────────────────────────────────────────────────────
-
-/** A prepared statement stand-in that remembers what it was built from. */
-interface FakeStatement {
-  __sql: string;
-  __args: unknown[];
-}
 
 interface DbHandle {
   db: D1Database;
   prepared: string[];
-  batches: FakeStatement[][];
+  batches: FakeD1Statement[][];
   quotaQueries(): number;
 }
 
 function makeDb(opts?: {
   quotaUsed?: number;
-  batch?: (statements: FakeStatement[]) => Promise<unknown>;
+  batch?: (statements: FakeD1Statement[]) => Promise<unknown>;
 }): DbHandle {
-  const prepared: string[] = [];
-  const batches: FakeStatement[][] = [];
+  const batches: FakeD1Statement[][] = [];
 
-  const db = {
-    prepare(sql: string) {
-      prepared.push(sql);
-      return {
-        bind(...args: unknown[]) {
-          return {
-            __sql: sql,
-            __args: args,
-            async first() {
-              return { used: opts?.quotaUsed ?? 0 };
-            },
-            async run() {
-              return { success: true };
-            },
-          };
-        },
-      };
-    },
-    async batch(statements: FakeStatement[]) {
+  const fake = createFakeD1({
+    first: () => ({ used: opts?.quotaUsed ?? 0 }),
+    run: () => ({ success: true }),
+    batch: async (statements) => {
       batches.push(statements);
       if (opts?.batch) return await opts.batch(statements);
       return [];
     },
-  } as unknown as D1Database;
+  });
 
   return {
-    db,
-    prepared,
+    db: fake.db,
+    prepared: fake.prepared,
     batches,
-    quotaQueries: () => prepared.filter((s) => s.includes("SUM(cost_usd)")).length,
+    quotaQueries: () => fake.prepared.filter((s) => s.includes("SUM(cost_usd)")).length,
   };
 }
 
@@ -114,18 +94,6 @@ const STREAM_CONTEXT = {
 /** A caller statement that is distinguishable from the gateway's usage insert. */
 function callerStatement(db: D1Database): D1PreparedStatement {
   return db.prepare("INSERT INTO lessons (id) VALUES (?)").bind("lesson-1");
-}
-
-function signals(spy: { mock: { calls: unknown[][] } }): Array<Record<string, unknown>> {
-  const parsed: Array<Record<string, unknown>> = [];
-  for (const call of spy.mock.calls) {
-    try {
-      parsed.push(JSON.parse(call[0] as string) as Record<string, unknown>);
-    } catch {
-      // Not a structured signal line — ignore.
-    }
-  }
-  return parsed;
 }
 
 let logSpy: ReturnType<typeof vi.spyOn>;

@@ -18,6 +18,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { createD1, seedSchema } from "./_helpers/d1-sqlite";
+import { wrapD1 } from "./_fixtures/fake-d1";
 
 const workers = vi.hoisted(() => ({
   env: { DB: null as unknown as D1Database, OPENROUTER_API_KEY: "test-key" },
@@ -82,16 +83,13 @@ let batchFails = false;
 
 /** The shipped D1 adapter, wrapped so queries are observable and batch can be broken. */
 function instrumentedD1(base: D1Database): D1Database {
-  return {
-    prepare(sql: string) {
-      queries.push(sql);
-      return base.prepare(sql);
-    },
-    batch(statements: unknown[]) {
+  return wrapD1(base, {
+    onPrepare: (sql) => queries.push(sql),
+    batch: (statements, realBase) => {
       if (batchFails) return Promise.reject(new Error("D1_ERROR: batch failed"));
-      return (base as unknown as { batch(s: unknown[]): Promise<unknown> }).batch(statements);
+      return (realBase as unknown as { batch(s: unknown[]): Promise<unknown> }).batch(statements);
     },
-  } as unknown as D1Database;
+  });
 }
 
 async function callRoute(): Promise<Response> {

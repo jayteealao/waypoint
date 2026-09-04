@@ -111,6 +111,14 @@ export interface ModelPricing {
  * MCP `get-model` for each id below, reading `pricing.prompt`,
  * `pricing.completion`, and `pricing.overrides`.
  *
+ * That reproduction is also automated, as an opt-in freshness check (default-off,
+ * hermetic suite stays offline): tests/smoke/model-pricing-freshness.test.ts asserts
+ * every entry below is still at or above OpenRouter's current list price. Run it with:
+ *
+ *   RUN_LIVE_PRICING=1 pnpm exec vitest run tests/smoke/model-pricing-freshness.test.ts
+ *
+ * (requires OPENROUTER_API_KEY in the environment).
+ *
  * A model must be priced here before it may appear in any tier chain.
  */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
@@ -137,6 +145,12 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
  * tier's own chain would not bound it. This ceiling is authored instead: it sits
  * at the most expensive rate in the map above (grok-4.5's long-prompt step), so
  * an unpriced model is charged at least as much as anything we do price.
+ *
+ * That invariant is enforced, not just asserted here: the "CO-1" test in
+ * tests/smoke/model-stream.test.ts checks UNKNOWN_MODEL_PRICING against every
+ * entry in `MODEL_PRICING`, including each entry's `overrides` steps — not just
+ * the base pair — and fails the moment any priced entry moves above this
+ * ceiling. Bump both figures here (together) if that test fails.
  *
  * sdlc-debt: hard-coded ceiling — an unpriced model is charged this rather than
  * its real price, which can be wrong in either direction. Visible rather than

@@ -28,6 +28,7 @@
 import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { createD1, seedSchema } from "./_helpers/d1-sqlite";
+import { createFakeD1 } from "./_fixtures/fake-d1";
 
 vi.mock("@tanstack/ai", () => ({
   chat: vi.fn(),
@@ -59,11 +60,6 @@ import type { GenerationType } from "#/lib/ai/tiers";
 
 // ── Fakes ──────────────────────────────────────────────────────────────────
 
-interface FakeStatement {
-  __sql: string;
-  __args: unknown[];
-}
-
 interface DbHandle {
   db: D1Database;
   /** Every `usage_events` INSERT that actually executed, in order. */
@@ -76,31 +72,19 @@ function makeDb(): DbHandle {
     if (sql.includes("INSERT INTO usage_events")) usageWrites.push(args);
   };
 
-  const db = {
-    prepare(sql: string) {
-      return {
-        bind(...args: unknown[]) {
-          return {
-            __sql: sql,
-            __args: args,
-            async first() {
-              return { used: 0 };
-            },
-            async run() {
-              record(sql, args);
-              return { success: true, meta: { changes: 1 }, results: [] };
-            },
-          };
-        },
-      };
+  const fake = createFakeD1({
+    first: () => ({ used: 0 }),
+    run: (sql, args) => {
+      record(sql, args);
+      return { success: true, meta: { changes: 1 }, results: [] };
     },
-    async batch(statements: FakeStatement[]) {
+    batch: async (statements) => {
       for (const s of statements) record(s.__sql, s.__args);
       return [];
     },
-  } as unknown as D1Database;
+  });
 
-  return { db, usageWrites };
+  return { db: fake.db, usageWrites };
 }
 
 function routedEnv(db: D1Database) {
