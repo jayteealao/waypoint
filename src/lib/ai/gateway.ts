@@ -356,6 +356,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
   );
   signal({
     event: "generation.started",
+    request_id: requestId,
     user_id: userId,
     journey_id: journeyId,
     model: tier.primaryModel,
@@ -386,6 +387,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       onFallback: (previousModel, nextModel, err) => {
         signal({
           event: "model.fallback_triggered",
+          request_id: requestId,
           user_id: userId,
           original_model: previousModel,
           fallback_model: nextModel,
@@ -422,6 +424,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     if (recomputed && !cacheOutcome.cached) {
       signal({
         event: "generation.cost_recomputed",
+        request_id: requestId,
         user_id: userId,
         model,
         generation_type: type,
@@ -513,6 +516,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       : {};
     signal({
       event: "generation.completed",
+      request_id: requestId,
       user_id: userId,
       journey_id: journeyId,
       model,
@@ -532,6 +536,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
     const durationMs = Date.now() - startTime;
     signal({
       event: "generation.completed",
+      request_id: requestId,
       user_id: userId,
       journey_id: journeyId,
       model: modelChain[modelChain.length - 1],

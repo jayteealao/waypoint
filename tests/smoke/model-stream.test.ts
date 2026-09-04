@@ -248,6 +248,45 @@ describe("computeCost", () => {
     expect(costUsd).toBeCloseTo((199_999 * grok.input + 1_000 * grok.output) / 1_000_000, 12);
   });
 
+  // ── TS-1 — the override step is selected by >=, so the boundary value itself
+  // (not just values on either side of it) must reach the override step ────
+  test("TS-1 grok-4.5 at exactly the 200,000-token boundary prices at the override rate", () => {
+    const usage: StreamUsage = { prompt_tokens: 200_000, completion_tokens: 1_000 };
+    const grok = MODEL_PRICING["x-ai/grok-4.5"]!;
+    const step = grok.overrides![0]!;
+    expect(step.minPromptTokens).toBe(200_000);
+    expect(step.input).toBe(4.0);
+    expect(step.output).toBe(12.0);
+    const { costUsd } = computeCost(usage, TIERS.roadmap, "x-ai/grok-4.5");
+    expect(costUsd).toBeCloseTo((200_000 * step.input + 1_000 * step.output) / 1_000_000, 12);
+    // The base pair would price this lower — an off-by-one (`>` instead of `>=`)
+    // would silently fall through to it at exactly the boundary.
+    const base = (200_000 * grok.input + 1_000 * grok.output) / 1_000_000;
+    expect(costUsd).toBeGreaterThan(base);
+  });
+
+  test("TS-1 gpt-5.6-luna at exactly the 272,000-token boundary prices at the override rate", () => {
+    const usage: StreamUsage = { prompt_tokens: 272_000, completion_tokens: 1_000 };
+    const luna = MODEL_PRICING["openai/gpt-5.6-luna"]!;
+    const step = luna.overrides![0]!;
+    expect(step.minPromptTokens).toBe(272_000);
+    expect(step.input).toBe(0.4);
+    expect(step.output).toBe(1.8);
+    const { costUsd } = computeCost(usage, TIERS.roadmap, "openai/gpt-5.6-luna");
+    expect(costUsd).toBeCloseTo((272_000 * step.input + 1_000 * step.output) / 1_000_000, 12);
+    const base = (272_000 * luna.input + 1_000 * luna.output) / 1_000_000;
+    expect(costUsd).toBeGreaterThan(base);
+  });
+
+  test("TS-1 gpt-5.6-luna just below the boundary keeps the base price", () => {
+    const usage: StreamUsage = { prompt_tokens: 271_999, completion_tokens: 1_000 };
+    const luna = MODEL_PRICING["openai/gpt-5.6-luna"]!;
+    expect(luna.input).toBe(0.2);
+    expect(luna.output).toBe(1.2);
+    const { costUsd } = computeCost(usage, TIERS.roadmap, "openai/gpt-5.6-luna");
+    expect(costUsd).toBeCloseTo((271_999 * luna.input + 1_000 * luna.output) / 1_000_000, 12);
+  });
+
   test("AC-C2 an unpriced served model is charged the authored ceiling", () => {
     const usage: StreamUsage = { prompt_tokens: 761, completion_tokens: 1621 };
     const { costUsd } = computeCost(usage, TIERS.lesson, "some-provider/never-seen");
@@ -291,6 +330,27 @@ describe("computeCost", () => {
     for (const tier of Object.values(TIERS)) {
       for (const model of [tier.primaryModel, ...tier.fallbackChain]) {
         expect(MODEL_PRICING[model], model + " is unpriced").toBeDefined();
+      }
+    }
+  });
+
+  // CO-1 / MT-3 — the ceiling's safety argument was asserted only in a comment,
+  // so a priced entry could move above it (routine price-table maintenance)
+  // without anything failing. This pins the invariant the docstring claims:
+  // UNKNOWN_MODEL_PRICING must be >= every price step actually in the map,
+  // including each entry's `overrides`, not just the base pair.
+  test("CO-1 the ceiling is >= every price step in MODEL_PRICING, including overrides", () => {
+    for (const [model, price] of Object.entries(MODEL_PRICING)) {
+      const steps = [price, ...(price.overrides ?? [])];
+      for (const step of steps) {
+        expect(
+          UNKNOWN_MODEL_PRICING.input,
+          `${model} input ${step.input} exceeds the ceiling`,
+        ).toBeGreaterThanOrEqual(step.input);
+        expect(
+          UNKNOWN_MODEL_PRICING.output,
+          `${model} output ${step.output} exceeds the ceiling`,
+        ).toBeGreaterThanOrEqual(step.output);
       }
     }
   });

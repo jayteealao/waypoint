@@ -32,6 +32,8 @@ import { AIG_CACHE_TTL_SECONDS, buildCacheKey, classifyCacheOutcome } from "#/li
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
 import type { HTTPClient } from "@openrouter/sdk";
+import { createFakeD1 } from "./_fixtures/fake-d1";
+import { signals as emittedSignals } from "./_fixtures/signals";
 
 /**
  * Both branches build the adapter with the same factory now, so factory identity no
@@ -45,11 +47,6 @@ function adapterConfig(callIndex = 0): Record<string, unknown> | undefined {
 }
 
 // ── Mock D1 ────────────────────────────────────────────────────────────────
-
-interface FakeStatement {
-  __sql: string;
-  __args: unknown[];
-}
 
 interface DbHandle {
   db: D1Database;
@@ -73,32 +70,20 @@ function makeDb(opts?: { rejectBatch?: boolean }): DbHandle {
     if (sql.includes("INSERT INTO usage_events")) usageWrites.push(args);
   };
 
-  const db = {
-    prepare(sql: string) {
-      return {
-        bind(...args: unknown[]) {
-          return {
-            __sql: sql,
-            __args: args,
-            async first() {
-              return { used: 0 };
-            },
-            async run() {
-              record(sql, args);
-              return { success: true, meta: { changes: 1 }, results: [] };
-            },
-          };
-        },
-      };
+  const fake = createFakeD1({
+    first: () => ({ used: 0 }),
+    run: (sql, args) => {
+      record(sql, args);
+      return { success: true, meta: { changes: 1 }, results: [] };
     },
-    async batch(statements: FakeStatement[]) {
+    batch: async (statements) => {
       if (opts?.rejectBatch) throw new Error("d1: batch rejected");
       for (const s of statements) record(s.__sql, s.__args);
       return [];
     },
-  } as unknown as D1Database;
+  });
 
-  return { db, usageWrites, executedSql };
+  return { db: fake.db, usageWrites, executedSql };
 }
 
 /**
@@ -503,19 +488,6 @@ function routedEnv(db: D1Database, binding: Ai) {
 /** A write of the caller's own — the thing that must survive a cache hit. */
 function lessonStatement(db: D1Database): D1PreparedStatement {
   return db.prepare("INSERT INTO lessons (id, body) VALUES (?, ?)").bind("lesson-1", "body");
-}
-
-/** Every structured signal this generation emitted, parsed. */
-function emittedSignals(logSpy: { mock: { calls: unknown[][] } }): Array<Record<string, unknown>> {
-  return logSpy.mock.calls
-    .map((c) => {
-      try {
-        return JSON.parse(c[0] as string) as Record<string, unknown>;
-      } catch {
-        return null;
-      }
-    })
-    .filter((s): s is Record<string, unknown> => s !== null);
 }
 
 // ── AC-5: the cache key isolates one user from another ─────────────────────

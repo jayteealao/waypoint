@@ -29,6 +29,8 @@ vi.mock("@tanstack/ai-openrouter", () => ({
 import { callGateway } from "#/lib/ai/gateway";
 import { TIERS } from "#/lib/ai/tiers";
 import { chat } from "@tanstack/ai";
+import { createFakeD1 } from "./_fixtures/fake-d1";
+import { signals } from "./_fixtures/signals";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -38,39 +40,35 @@ interface MockDbHandle {
   prepared: string[];
   /** Number of quota SUM queries issued. */
   quotaQueries(): number;
+  /** The `id` column bound on the `usage_events` INSERT, i.e. the ledger row's join key. */
+  insertedUsageEventId(): string | undefined;
 }
 
 /** A mock D1 whose usage insert can be made to reject, and which counts its queries. */
 function makeMockDb(options: { quotaUsed: number; insertRejects?: boolean }): MockDbHandle {
-  const prepared: string[] = [];
-  const db = {
-    prepare(sql: string) {
-      prepared.push(sql);
-      return {
-        bind(..._bindArgs: unknown[]) {
-          return {
-            async first() {
-              return { used: options.quotaUsed };
-            },
-            async run() {
-              if (options.insertRejects && sql.includes("INSERT INTO usage_events")) {
-                throw new Error("D1_ERROR: usage_events insert failed");
-              }
-              return { meta: { changes: 1 }, success: true, results: [] };
-            },
-            async all() {
-              return { results: [] };
-            },
-          };
-        },
-      };
+  let insertedUsageEventId: string | undefined;
+
+  const fake = createFakeD1({
+    onBind: (sql, bindArgs) => {
+      if (sql.includes("INSERT INTO usage_events")) {
+        // `id` is the first bound column — see `recordUsageStatement` in model-stream.ts.
+        insertedUsageEventId = bindArgs[0] as string;
+      }
     },
-  } as unknown as D1Database;
+    first: () => ({ used: options.quotaUsed }),
+    run: (sql) => {
+      if (options.insertRejects && sql.includes("INSERT INTO usage_events")) {
+        throw new Error("D1_ERROR: usage_events insert failed");
+      }
+      return { meta: { changes: 1 }, success: true, results: [] };
+    },
+  });
 
   return {
-    db,
-    prepared,
-    quotaQueries: () => prepared.filter((s) => s.includes("SUM(cost_usd)")).length,
+    db: fake.db,
+    prepared: fake.prepared,
+    quotaQueries: () => fake.prepared.filter((s) => s.includes("SUM(cost_usd)")).length,
+    insertedUsageEventId: () => insertedUsageEventId,
   };
 }
 
@@ -102,19 +100,6 @@ const BASE_INPUT = {
   messages: [{ role: "user" as const, content: "Hello" }],
   tools: [{ name: "echo_tool", description: "Echoes input" }],
 };
-
-/** Every JSON log line the call emitted, parsed. */
-function signals(spy: { mock: { calls: unknown[][] } }): Array<Record<string, unknown>> {
-  const parsed: Array<Record<string, unknown>> = [];
-  for (const call of spy.mock.calls) {
-    try {
-      parsed.push(JSON.parse(call[0] as string) as Record<string, unknown>);
-    } catch {
-      // Not a structured signal line — ignore.
-    }
-  }
-  return parsed;
-}
 
 let logSpy: ReturnType<typeof vi.spyOn>;
 
@@ -170,6 +155,9 @@ describe("gateway characterization — the success completion payload", () => {
     expect(Object.keys(completed[0]!).sort()).toEqual(
       [
         "event",
+        // The join key back to the `usage_events` ledger row and the gateway's own
+        // request log — same value, minted once in `runGatewayGeneration`.
+        "request_id",
         "user_id",
         "journey_id",
         "model",
@@ -194,6 +182,23 @@ describe("gateway characterization — the success completion payload", () => {
       cost_usd: 0.001,
       outcome: "success",
     });
+    expect(typeof completed[0]!["request_id"]).toBe("string");
+  });
+
+  test("generation.completed's request_id is the same id written to the usage_events ledger row", async () => {
+    // This is the join the OB-2 finding says is missing: an operator reading the app's
+    // own structured log had no key back to the `usage_events` row (or the gateway's own
+    // request log, which is minted from the same variable — see `buildAigMetadata`).
+    const { db, insertedUsageEventId } = makeMockDb({ quotaUsed: 0 });
+    vi.mocked(chat).mockReturnValueOnce(toolCallStream() as never);
+
+    await callGateway({ env: { DB: db, OPENROUTER_API_KEY: "test-key" }, ...BASE_INPUT });
+
+    const completed = signals(logSpy).filter((s) => s["event"] === "generation.completed");
+    expect(completed).toHaveLength(1);
+    const ledgerId = insertedUsageEventId();
+    expect(typeof ledgerId).toBe("string");
+    expect(completed[0]!["request_id"]).toBe(ledgerId);
   });
 
   test("generation.started fires once, before the model call, with the estimated prompt tokens", async () => {
@@ -212,6 +217,7 @@ describe("gateway characterization — the success completion payload", () => {
       // "Hello" → ceil(5/4) = 2
       estimated_prompt_tokens: 2,
     });
+    expect(typeof started[0]!["request_id"]).toBe("string");
   });
 });
 
