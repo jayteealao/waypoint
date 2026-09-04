@@ -1,14 +1,14 @@
 /**
  * AI model tier configuration.
  *
- * Maps each generation type to a primary model, ordered fallback chain, and
- * pricing metadata (per 1M tokens). Pricing is stored as config — not used in
- * arithmetic directly — so model swaps require a single constant update here
- * rather than scattered changes in gateway logic.
+ * Maps each generation type to a primary model and an ordered fallback chain.
+ * Pricing lives beside it in `MODEL_PRICING`, keyed by model rather than by tier:
+ * a tier holds a chain of models with genuinely different prices, so pricing a
+ * generation by its tier charges a fallback answer at the primary's rate.
  *
  * The quiz and roadmap tiers produce JSON by instructing the model in their
  * system prompts (see interview/prompts.ts), not via a provider structured-output
- * parameter. Tier config carries no call-shape constraint — only model + pricing.
+ * parameter. Tier config carries no call-shape constraint — only model and chain.
  */
 
 /** Generation types produced by AI calls in Waypoint. */
@@ -23,11 +23,6 @@ export interface TierConfig {
    * Empty means no fallback — the error propagates immediately.
    */
   fallbackChain: string[];
-  /** Per-1M-token pricing in USD. Used as fallback when total_cost absent. */
-  pricingPer1MTokens: {
-    input: number;
-    output: number;
-  };
   /**
    * Reasoning effort for reasoning-capable primaries. Forwarded to OpenRouter as
    * `reasoning.effort` on every call for this tier. Leave unset to use the model's
@@ -41,10 +36,9 @@ export interface TierConfig {
  * Canonical tier map. All generation features call `callGateway({ type })` and
  * the gateway resolves the model from here — no consumer hardcodes model IDs.
  *
- * Pricing figures are authoritative as of 2026-07-12 from live OpenRouter data
- * (per-model pricing captured during model selection). Update here when models
- * change; the gateway prefers `usage.total_cost` (which includes OpenRouter's
- * 5.5% credit fee) over recomputed cost.
+ * Prices are NOT here — see `MODEL_PRICING` below. The gateway prefers
+ * `usage.total_cost` (which includes OpenRouter's 5.5% credit fee) and only
+ * reaches for a price when the provider omits it.
  */
 export const TIERS: Record<GenerationType, TierConfig> = {
   /**
@@ -55,7 +49,6 @@ export const TIERS: Record<GenerationType, TierConfig> = {
   interview: {
     primaryModel: "z-ai/glm-5.2",
     fallbackChain: ["openai/gpt-5.6-luna"],
-    pricingPer1MTokens: { input: 0.42, output: 1.32 },
     reasoningEffort: "low",
   },
 
@@ -66,7 +59,6 @@ export const TIERS: Record<GenerationType, TierConfig> = {
   lesson: {
     primaryModel: "z-ai/glm-5.2",
     fallbackChain: ["google/gemini-3.5-flash"],
-    pricingPer1MTokens: { input: 0.42, output: 1.32 },
     reasoningEffort: "low",
   },
 
@@ -78,7 +70,6 @@ export const TIERS: Record<GenerationType, TierConfig> = {
   roadmap: {
     primaryModel: "x-ai/grok-4.5",
     fallbackChain: ["openai/gpt-5.6-luna"],
-    pricingPer1MTokens: { input: 2.0, output: 6.0 },
   },
 
   /**
@@ -87,7 +78,70 @@ export const TIERS: Record<GenerationType, TierConfig> = {
   quiz: {
     primaryModel: "z-ai/glm-5.2",
     fallbackChain: ["deepseek/deepseek-v4-pro"],
-    pricingPer1MTokens: { input: 0.42, output: 1.32 },
     reasoningEffort: "low",
   },
 };
+
+/** Per-1M-token USD pricing for one model, with any long-prompt price steps. */
+export interface ModelPricing {
+  /** Base price per 1M prompt tokens, USD. */
+  input: number;
+  /** Base price per 1M completion tokens, USD. */
+  output: number;
+  /**
+   * Long-prompt price steps, as OpenRouter publishes them. A request is priced by
+   * the highest-threshold entry whose `minPromptTokens` it meets; below every
+   * threshold the base pair applies. Omit for a model with a flat price.
+   */
+  overrides?: Array<{ minPromptTokens: number; input: number; output: number }>;
+}
+
+/**
+ * Published list price per model, USD per 1M tokens.
+ *
+ * This is a QUOTA POLICY PRICE, not a reconstruction of what a call was billed.
+ * A model is served by one of dozens of provider endpoints at prices spanning
+ * five to one, and nothing in the response says which — so `usage.total_cost`
+ * stays strictly first and this map is only reached when the provider omits it.
+ * The figures are the model's headline list price, which errs above what most
+ * endpoints charge: a rare over-estimate is recoverable, a systematic
+ * under-charge is not.
+ *
+ * Captured 2026-09-04 from live OpenRouter data. Reproduce with the OpenRouter
+ * MCP `get-model` for each id below, reading `pricing.prompt`,
+ * `pricing.completion`, and `pricing.overrides`.
+ *
+ * A model must be priced here before it may appear in any tier chain.
+ */
+export const MODEL_PRICING: Record<string, ModelPricing> = {
+  "z-ai/glm-5.2": { input: 0.966, output: 3.036 },
+  "x-ai/grok-4.5": {
+    input: 2.0,
+    output: 6.0,
+    overrides: [{ minPromptTokens: 200_000, input: 4.0, output: 12.0 }],
+  },
+  "openai/gpt-5.6-luna": {
+    input: 0.2,
+    output: 1.2,
+    overrides: [{ minPromptTokens: 272_000, input: 0.4, output: 1.8 }],
+  },
+  "google/gemini-3.5-flash": { input: 1.5, output: 9.0 },
+  "deepseek/deepseek-v4-pro": { input: 1.04226, output: 2.08452 },
+};
+
+/**
+ * Price applied when the served model is absent from `MODEL_PRICING`.
+ *
+ * The served model is whatever the upstream response reported, so a gateway-side
+ * fallback can serve a model that is in no chain of ours — a maximum over the
+ * tier's own chain would not bound it. This ceiling is authored instead: it sits
+ * at the most expensive rate in the map above (grok-4.5's long-prompt step), so
+ * an unpriced model is charged at least as much as anything we do price.
+ *
+ * sdlc-debt: hard-coded ceiling — an unpriced model is charged this rather than
+ * its real price, which can be wrong in either direction. Visible rather than
+ * silent: `generation.cost_recomputed` fires and the ledger's `model` column
+ * names the model, so the map can be corrected from production data. Upgrade
+ * path: price the model in `MODEL_PRICING`.
+ */
+export const UNKNOWN_MODEL_PRICING: ModelPricing = { input: 4.0, output: 12.0 };

@@ -22,6 +22,7 @@ import {
   recordUsage,
   type StreamUsage,
 } from "#/lib/ai/model-stream";
+import { MODEL_PRICING, TIERS, UNKNOWN_MODEL_PRICING } from "#/lib/ai/tiers";
 import type { TierConfig } from "#/lib/ai/tiers";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
@@ -40,7 +41,6 @@ const ENV = { OPENROUTER_API_KEY: "test-key" };
 const TIER: TierConfig = {
   primaryModel: "primary/model",
   fallbackChain: ["fallback/model"],
-  pricingPer1MTokens: { input: 1, output: 2 },
 };
 
 describe("runModelWithFallback", () => {
@@ -194,10 +194,89 @@ describe("computeCost", () => {
     expect(computeCost(usage, TIER)).toEqual({ costUsd: 0.009, recomputed: false });
   });
 
-  test("(d) recomputes from tier pricing when total_cost absent", () => {
+  test("(d) recomputes from the served model's price when total_cost absent", () => {
     const usage: StreamUsage = { prompt_tokens: 1_000_000, completion_tokens: 1_000_000 };
-    // input=1/1M, output=2/1M → 1 + 2 = 3
-    expect(computeCost(usage, TIER)).toEqual({ costUsd: 3, recomputed: true });
+    const price = MODEL_PRICING["z-ai/glm-5.2"]!;
+    // 1M prompt + 1M completion → exactly one unit of each per-1M price.
+    expect(computeCost(usage, TIERS.lesson, "z-ai/glm-5.2")).toEqual({
+      costUsd: price.input + price.output,
+      recomputed: true,
+    });
+  });
+
+  // ── AC-C1 — the gateway's cost column is a list-price estimate ────────────
+  //
+  // The AI Gateway logged $0.005656482 for generation
+  // afe22983-9e09-4a98-a4c2-27d01aaaba0f while the D1 ledger holds $0.004057911
+  // (OpenRouter's billed total_cost). Pinning the derivation makes the claim that
+  // the two are not supposed to match checkable rather than asserted: the gateway
+  // figure is tokens × the model's headline list price, and nothing in this
+  // repository computes it.
+  test("AC-C1 the AI Gateway figure reproduces from list price, not from the ledger", () => {
+    const price = MODEL_PRICING["z-ai/glm-5.2"]!;
+    const gatewayFigure = (761 * price.input + 1621 * price.output) / 1_000_000;
+    expect(gatewayFigure).toBeCloseTo(0.005656482, 9);
+    // The ledger's number is OpenRouter's billed amount and is legitimately lower —
+    // it charges what the endpoint that served the call charges, not list.
+    expect(gatewayFigure).toBeGreaterThan(0.004057911);
+  });
+
+  // ── AC-C2 — the recompute fallback no longer under-charges ────────────────
+  test("AC-C2 recompute is at or above what OpenRouter billed for the same tokens", () => {
+    const usage: StreamUsage = { prompt_tokens: 761, completion_tokens: 1621 };
+    const { costUsd, recomputed } = computeCost(usage, TIERS.lesson, "z-ai/glm-5.2");
+    expect(recomputed).toBe(true);
+    expect(costUsd).toBeGreaterThanOrEqual(0.004057911);
+  });
+
+  test("AC-C2 a long prompt is priced by the model's long-prompt step", () => {
+    const usage: StreamUsage = { prompt_tokens: 250_000, completion_tokens: 1_000 };
+    const grok = MODEL_PRICING["x-ai/grok-4.5"]!;
+    const step = grok.overrides![0]!;
+    expect(step.minPromptTokens).toBe(200_000);
+    const { costUsd } = computeCost(usage, TIERS.roadmap, "x-ai/grok-4.5");
+    expect(costUsd).toBeCloseTo((250_000 * step.input + 1_000 * step.output) / 1_000_000, 12);
+    // The base pair would be half of it — the 2× under-charge this guards against.
+    const base = (250_000 * grok.input + 1_000 * grok.output) / 1_000_000;
+    expect(costUsd).toBeCloseTo(base * 2, 12);
+  });
+
+  test("AC-C2 a prompt below the step keeps the base price", () => {
+    const usage: StreamUsage = { prompt_tokens: 199_999, completion_tokens: 1_000 };
+    const grok = MODEL_PRICING["x-ai/grok-4.5"]!;
+    const { costUsd } = computeCost(usage, TIERS.roadmap, "x-ai/grok-4.5");
+    expect(costUsd).toBeCloseTo((199_999 * grok.input + 1_000 * grok.output) / 1_000_000, 12);
+  });
+
+  test("AC-C2 an unpriced served model is charged the authored ceiling", () => {
+    const usage: StreamUsage = { prompt_tokens: 761, completion_tokens: 1621 };
+    const { costUsd } = computeCost(usage, TIERS.lesson, "some-provider/never-seen");
+    const ceiling =
+      (761 * UNKNOWN_MODEL_PRICING.input + 1621 * UNKNOWN_MODEL_PRICING.output) / 1_000_000;
+    expect(costUsd).toBeCloseTo(ceiling, 12);
+    // A maximum over the tier's own chain would have under-charged here.
+    for (const model of [TIERS.lesson.primaryModel, ...TIERS.lesson.fallbackChain]) {
+      expect(costUsd).toBeGreaterThan(computeCost(usage, TIERS.lesson, model).costUsd);
+    }
+  });
+
+  // ── AC-C3 — a fallback model is priced as itself ──────────────────────
+  test("AC-C3 a fallback answer is priced by the model that served it", () => {
+    const usage: StreamUsage = { prompt_tokens: 761, completion_tokens: 1621 };
+    const primary = computeCost(usage, TIERS.lesson, TIERS.lesson.primaryModel).costUsd;
+    const fallback = computeCost(usage, TIERS.lesson, TIERS.lesson.fallbackChain[0]).costUsd;
+    expect(TIERS.lesson.fallbackChain[0]).toBe("google/gemini-3.5-flash");
+    expect(fallback).not.toBeCloseTo(primary, 9);
+    const gemini = MODEL_PRICING["google/gemini-3.5-flash"]!;
+    expect(fallback).toBeCloseTo((761 * gemini.input + 1621 * gemini.output) / 1_000_000, 12);
+  });
+
+  test("every model in every tier chain is priced", () => {
+    for (const tier of Object.values(TIERS)) {
+      for (const model of [tier.primaryModel, ...tier.fallbackChain]) {
+        expect(MODEL_PRICING[model], model + " is unpriced").toBeDefined();
+      }
+    }
   });
 });
 

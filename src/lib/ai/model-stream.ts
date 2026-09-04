@@ -15,6 +15,7 @@
 import { chat, toolDefinition } from "@tanstack/ai";
 import { createTextAdapter } from "./adapter";
 import type { AdapterEnv, AigCacheOptions } from "./adapter";
+import { MODEL_PRICING, UNKNOWN_MODEL_PRICING } from "./tiers";
 import type { TierConfig } from "./tiers";
 import type { GenerationType } from "./tiers";
 
@@ -215,19 +216,38 @@ export async function runModelWithFallback(opts: RunModelOptions): Promise<RunMo
 
 /**
  * Compute cost from a usage payload: prefer OpenRouter's `total_cost` (which
- * includes the 5.5% credit fee), else recompute from the tier's pricing table.
- * `recomputed` lets the caller emit its own stale-pricing warning signal.
+ * includes the 5.5% credit fee), else recompute from the served model's list
+ * price. `recomputed` lets the caller emit its own stale-pricing warning signal.
+ *
+ * `servedModel` is the model the provider actually answered with, which differs
+ * from the tier's primary whenever the chain advanced — pricing by tier charges
+ * a fallback answer at the primary's rate. Omitted, the tier's primary is
+ * assumed; unpriced, `UNKNOWN_MODEL_PRICING` applies.
+ *
+ * The recomputed figure is a quota policy price, not the amount OpenRouter
+ * billed: only `total_cost` knows which endpoint served the request.
  */
 export function computeCost(
   usage: StreamUsage,
   tier: TierConfig,
+  servedModel?: string,
 ): { costUsd: number; recomputed: boolean } {
   if (usage.total_cost !== undefined) {
     return { costUsd: usage.total_cost, recomputed: false };
   }
-  // sdlc-debt: pricing table goes stale on model swaps; prefer total_cost. Upgrade path: rely on OpenRouter total_cost once every tier surfaces it.
-  const { pricingPer1MTokens: p } = tier;
-  const costUsd = (usage.prompt_tokens * p.input + usage.completion_tokens * p.output) / 1_000_000;
+  // sdlc-debt: hand-maintained list prices go stale; prefer total_cost. Upgrade path: rely on OpenRouter total_cost once every tier surfaces it. source: src/lib/ai/tiers.ts MODEL_PRICING
+  const pricing = MODEL_PRICING[servedModel ?? tier.primaryModel] ?? UNKNOWN_MODEL_PRICING;
+  // Highest-threshold step the prompt actually reaches; base pair below them all.
+  let rate: { input: number; output: number } = pricing;
+  let reached = -1;
+  for (const step of pricing.overrides ?? []) {
+    if (usage.prompt_tokens >= step.minPromptTokens && step.minPromptTokens > reached) {
+      reached = step.minPromptTokens;
+      rate = step;
+    }
+  }
+  const costUsd =
+    (usage.prompt_tokens * rate.input + usage.completion_tokens * rate.output) / 1_000_000;
   return { costUsd, recomputed: true };
 }
 

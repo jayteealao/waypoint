@@ -415,7 +415,7 @@ async function runGatewayGeneration(opts: GenerationOptions): Promise<Generation
       : { cached: false, signal: "none" };
 
     // ── 4. Cost computation: prefer total_cost over recomputed ───────────────
-    const { costUsd: computedCost, recomputed } = computeCost(rawUsage, tier);
+    const { costUsd: computedCost, recomputed } = computeCost(rawUsage, tier, model);
     // A cached answer cost nothing to produce, so it is charged nothing — and with
     // nothing to recompute, the stale-pricing warning below would be noise.
     const costUsd = cacheOutcome.cached ? 0 : computedCost;

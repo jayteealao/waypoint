@@ -17,7 +17,7 @@ vi.mock("@tanstack/ai-openrouter", () => ({
 
 // Now import the modules under test — mocks are in place.
 import { callGateway, QuotaExhaustedError } from "#/lib/ai/gateway";
-import { TIERS } from "#/lib/ai/tiers";
+import { MODEL_PRICING, TIERS } from "#/lib/ai/tiers";
 import { DAILY_LIMIT_USD } from "#/lib/ai/quota";
 import { chat } from "@tanstack/ai";
 import { createOpenRouterText } from "@tanstack/ai-openrouter";
@@ -361,10 +361,10 @@ describe("AI gateway", () => {
     await callGateway({ env, ...BASE_INPUT });
 
     // cost_usd should be derived from token counts × pricing table.
-    const expectedCost =
-      (10 * TIERS.interview.pricingPer1MTokens.input +
-        20 * TIERS.interview.pricingPer1MTokens.output) /
-      1_000_000;
+    // Priced by the model that served the call — this stream reports none, so the
+    // requested primary stands.
+    const price = MODEL_PRICING[TIERS.interview.primaryModel]!;
+    const expectedCost = (10 * price.input + 20 * price.output) / 1_000_000;
 
     const costUsd = insertArgs[7];
     expect(typeof costUsd).toBe("number");
