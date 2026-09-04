@@ -236,7 +236,15 @@ export function computeCost(
     return { costUsd: usage.total_cost, recomputed: false };
   }
   // sdlc-debt: hand-maintained list prices go stale; prefer total_cost. Upgrade path: rely on OpenRouter total_cost once every tier surfaces it. source: src/lib/ai/tiers.ts MODEL_PRICING
-  const pricing = MODEL_PRICING[servedModel ?? tier.primaryModel] ?? UNKNOWN_MODEL_PRICING;
+  const pricedModel = servedModel ?? tier.primaryModel;
+  // `servedModel` is whatever string the provider reported, so the lookup must not be
+  // allowed to reach `Object.prototype`: a reported model of `constructor`, `toString`
+  // or `__proto__` resolves to an inherited member, which is truthy enough to skip
+  // `UNKNOWN_MODEL_PRICING` and yields a NaN cost the ledger stores as no charge at all
+  // — the same under-charge this function exists to close, through a different door.
+  const pricing = Object.hasOwn(MODEL_PRICING, pricedModel)
+    ? MODEL_PRICING[pricedModel]!
+    : UNKNOWN_MODEL_PRICING;
   // Highest-threshold step the prompt actually reaches; base pair below them all.
   let rate: { input: number; output: number } = pricing;
   let reached = -1;
