@@ -260,6 +260,22 @@ describe("computeCost", () => {
     }
   });
 
+  // Regression (verify-stage adversarial probe, 2026-09-04): the served model is a
+  // string the provider chose, and `MODEL_PRICING[thatString]` used to reach
+  // Object.prototype. `constructor` / `toString` / `__proto__` resolved to inherited
+  // members, which are truthy enough to skip UNKNOWN_MODEL_PRICING, so the cost came
+  // out NaN — stored as no charge at all, the exact under-charge AC-C2 closes.
+  test("a prototype-named served model is charged the ceiling, not NaN", () => {
+    const usage: StreamUsage = { prompt_tokens: 761, completion_tokens: 1621 };
+    const ceiling =
+      (761 * UNKNOWN_MODEL_PRICING.input + 1621 * UNKNOWN_MODEL_PRICING.output) / 1_000_000;
+    for (const name of ["__proto__", "constructor", "toString", "hasOwnProperty", "valueOf"]) {
+      const { costUsd } = computeCost(usage, TIERS.lesson, name);
+      expect(Number.isFinite(costUsd), name + " priced to a non-finite cost").toBe(true);
+      expect(costUsd).toBeCloseTo(ceiling, 12);
+    }
+  });
+
   // ── AC-C3 — a fallback model is priced as itself ──────────────────────
   test("AC-C3 a fallback answer is priced by the model that served it", () => {
     const usage: StreamUsage = { prompt_tokens: 761, completion_tokens: 1621 };
