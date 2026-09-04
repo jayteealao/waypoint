@@ -73,6 +73,11 @@ describe("MODEL_PRICING freshness (live)", () => {
           `${modelId} stored output price ${priced.output} is below live list price ${liveOutput}`,
         ).toBeGreaterThanOrEqual(liveOutput);
 
+        // Direction 1 — every STORED override tier still clears the live price at that
+        // threshold. This alone is blind to a live tier we've never captured: a model
+        // priced flat here, or missing a newly-added long-prompt tier live, sails
+        // through with nothing to compare against and MODEL_PRICING silently
+        // under-charges at that threshold (see SO-1).
         for (const step of priced.overrides ?? []) {
           const liveStep = current.pricing.overrides?.find(
             (o) => o.min_prompt_tokens === step.minPromptTokens,
@@ -93,6 +98,20 @@ describe("MODEL_PRICING freshness (live)", () => {
             step.output,
             `${modelId} override@${step.minPromptTokens} stored output price ${step.output} is below live list price ${liveStepOutput}`,
           ).toBeGreaterThanOrEqual(liveStepOutput);
+        }
+
+        // Direction 2 — every LIVE override tier has a matching stored counterpart. A
+        // live tier with nothing stored against it (a brand-new long-prompt threshold,
+        // or the first tier ever added to a model we currently price flat) must fail
+        // here by name, not pass silently because direction 1 never looked at it.
+        for (const liveStep of current.pricing.overrides ?? []) {
+          const step = priced.overrides?.find(
+            (o) => o.minPromptTokens === liveStep.min_prompt_tokens,
+          );
+          expect(
+            step,
+            `${modelId} has a live override at minPromptTokens=${liveStep.min_prompt_tokens} with no stored counterpart in MODEL_PRICING — under-charging risk`,
+          ).toBeDefined();
         }
       }
     },
