@@ -49,19 +49,27 @@ function makeMockDb(options: { quotaUsed: number; insertRejects?: boolean }): Mo
   let insertedUsageEventId: string | undefined;
 
   const fake = createFakeD1({
-    onBind: (sql, bindArgs) => {
-      if (sql.includes("INSERT INTO usage_events")) {
-        // `id` is the first bound column — see `recordUsageStatement` in model-stream.ts.
-        insertedUsageEventId = bindArgs[0] as string;
-      }
-    },
     first: () => ({ used: options.quotaUsed }),
-    run: (sql) => {
+    // Captured here, at execution time (`.run()` actually invoked), not in `.bind()` —
+    // a statement can be built and never run, and a join-key assertion that only proves
+    // the statement was *constructed* would pass even if the row were never written
+    // (see SO-2). Capturing after the reject check means the id is recorded only when
+    // the write actually succeeds.
+    run: (sql, args) => {
       if (options.insertRejects && sql.includes("INSERT INTO usage_events")) {
         throw new Error("D1_ERROR: usage_events insert failed");
       }
+      if (sql.includes("INSERT INTO usage_events")) {
+        // `id` is the first bound column — see `recordUsageStatement` in model-stream.ts.
+        insertedUsageEventId = args[0] as string;
+      }
       return { meta: { changes: 1 }, success: true, results: [] };
     },
+    // The original hand-rolled double supported `.all()` unconditionally; it never
+    // supported `.batch()` at all. Preserve exactly that: no `batch` hook here means the
+    // fixture now throws if production code starts calling `db.batch(...)` on this path,
+    // which is the parity this test exists to hold (see SO-3).
+    all: () => ({ results: [] }),
   });
 
   return {

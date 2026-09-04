@@ -28,7 +28,19 @@ export interface FakeD1Options {
   first?: (sql: string, args: unknown[]) => unknown;
   /** Resolved value of the bound statement's `.run()` — throw to simulate a rejected write. */
   run?: (sql: string, args: unknown[]) => unknown;
-  /** Handles `db.batch(statements)`. Defaults to resolving `[]` with no side effects. */
+  /**
+   * Resolved value of the bound statement's `.all()`. Opt-in: a caller that does not
+   * supply this hook has not declared support for `.all()`, so calling it throws rather
+   * than silently succeeding — a call site should only tolerate `.all()` if its original
+   * hand-rolled double did.
+   */
+  all?: (sql: string, args: unknown[]) => unknown;
+  /**
+   * Handles `db.batch(statements)`. Opt-in: a caller that does not supply this hook has
+   * not declared support for `.batch()`, so calling it throws rather than silently
+   * resolving a no-op — a call site should only tolerate `.batch()` if its original
+   * hand-rolled double did.
+   */
   batch?: (statements: FakeD1Statement[]) => unknown;
 }
 
@@ -60,14 +72,22 @@ export function createFakeD1(options: FakeD1Options = {}): FakeD1Handle {
                 : { success: true, meta: { changes: 1 }, results: [] };
             },
             async all() {
-              return { results: [] };
+              if (!options.all) {
+                throw new Error(
+                  `fake D1: this fake was not given an \`all\` hook (called for: ${sql})`,
+                );
+              }
+              return options.all(sql, args);
             },
           };
         },
       };
     },
     async batch(statements: FakeD1Statement[]) {
-      return options.batch ? options.batch(statements) : [];
+      if (!options.batch) {
+        throw new Error("fake D1: this fake was not given a `batch` hook");
+      }
+      return options.batch(statements);
     },
   } as unknown as D1Database;
 
