@@ -78,6 +78,7 @@ jobs:
           GOOGLE_CLIENT_SECRET=e2e-ci-placeholder
           GITHUB_CLIENT_ID=e2e-ci-placeholder
           GITHUB_CLIENT_SECRET=e2e-ci-placeholder
+          AIG_ENABLED=false
           EOF
 
       # The seeded-session specs insert users, journeys and waypoints into local D1 via
@@ -87,7 +88,18 @@ jobs:
       - name: Apply D1 migrations (local)
         run: pnpm exec wrangler d1 migrations apply waypoint-dev --local
 
+      # Workers AI has no local simulator, so wrangler always classes the `AI` binding as
+      # remote (BINDING_LOCAL_SUPPORT.ai is the never-simulated marker, and pickRemoteBindings
+      # returns such a binding regardless of any `remote: false`). @cloudflare/vite-plugin
+      # therefore opens a remote proxy session at `vite dev`, which needs Cloudflare
+      # credentials this job does not have, and the dev server fails to boot before a single
+      # spec runs. CLOUDFLARE_VITE_FORCE_LOCAL sets remoteBindings=false and skips the session.
+      # `env.AI` is then absent, which is why the step above sets AIG_ENABLED=false: the
+      # adapter is fail-closed and would otherwise refuse every generation. The routed gateway
+      # path is covered by the smoke suites and by the live specs, not here.
       - name: End-to-end tests
+        env:
+          CLOUDFLARE_VITE_FORCE_LOCAL: "true"
         run: pnpm test:e2e --project=chromium
 
       # Advisory supply-chain scan (OSV-Scanner, maintained). Non-blocking:
