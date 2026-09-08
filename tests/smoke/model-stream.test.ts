@@ -210,11 +210,20 @@ describe("computeCost", () => {
   // afe22983-9e09-4a98-a4c2-27d01aaaba0f while the D1 ledger holds $0.004057911
   // (OpenRouter's billed total_cost). Pinning the derivation makes the claim that
   // the two are not supposed to match checkable rather than asserted: the gateway
-  // figure is tokens × the model's headline list price, and nothing in this
+  // figure is tokens × the model's catalog list price, and nothing in this
   // repository computes it.
+  //
+  // The catalog pair is pinned here as literals rather than read from
+  // MODEL_PRICING, because the two numbers have parted company: MODEL_PRICING now
+  // holds the maximum across the model's live endpoints (glm-5.2 at 2.31 / 7.88),
+  // not the catalog price the AI Gateway's own cost column is computed from. The
+  // gateway keeps charting the catalog figure, so the derivation must read the
+  // catalog figure.
   test("AC-C1 the AI Gateway figure reproduces from list price, not from the ledger", () => {
-    const price = MODEL_PRICING["z-ai/glm-5.2"]!;
-    const gatewayFigure = (761 * price.input + 1621 * price.output) / 1_000_000;
+    // OpenRouter catalog price for z-ai/glm-5.2 (GET /api/v1/models), captured
+    // 2026-09-04 — deliberately NOT MODEL_PRICING, see the note above.
+    const catalogPrice = { input: 0.966, output: 3.036 };
+    const gatewayFigure = (761 * catalogPrice.input + 1621 * catalogPrice.output) / 1_000_000;
     expect(gatewayFigure).toBeCloseTo(0.005656482, 9);
     // The ledger's number is OpenRouter's billed amount and is legitimately lower —
     // it charges what the endpoint that served the call charges, not list.
@@ -255,8 +264,8 @@ describe("computeCost", () => {
     const grok = MODEL_PRICING["x-ai/grok-4.5"]!;
     const step = grok.overrides![0]!;
     expect(step.minPromptTokens).toBe(200_000);
-    expect(step.input).toBe(4.0);
-    expect(step.output).toBe(12.0);
+    expect(step.input).toBe(8.0);
+    expect(step.output).toBe(24.0);
     const { costUsd } = computeCost(usage, TIERS.roadmap, "x-ai/grok-4.5");
     expect(costUsd).toBeCloseTo((200_000 * step.input + 1_000 * step.output) / 1_000_000, 12);
     // The base pair would price this lower — an off-by-one (`>` instead of `>=`)
@@ -270,8 +279,8 @@ describe("computeCost", () => {
     const luna = MODEL_PRICING["openai/gpt-5.6-luna"]!;
     const step = luna.overrides![0]!;
     expect(step.minPromptTokens).toBe(272_000);
-    expect(step.input).toBe(0.4);
-    expect(step.output).toBe(1.8);
+    expect(step.input).toBe(0.8);
+    expect(step.output).toBe(3.6);
     const { costUsd } = computeCost(usage, TIERS.roadmap, "openai/gpt-5.6-luna");
     expect(costUsd).toBeCloseTo((272_000 * step.input + 1_000 * step.output) / 1_000_000, 12);
     const base = (272_000 * luna.input + 1_000 * luna.output) / 1_000_000;
@@ -281,8 +290,8 @@ describe("computeCost", () => {
   test("TS-1 gpt-5.6-luna just below the boundary keeps the base price", () => {
     const usage: StreamUsage = { prompt_tokens: 271_999, completion_tokens: 1_000 };
     const luna = MODEL_PRICING["openai/gpt-5.6-luna"]!;
-    expect(luna.input).toBe(0.2);
-    expect(luna.output).toBe(1.2);
+    expect(luna.input).toBe(0.4);
+    expect(luna.output).toBe(2.4);
     const { costUsd } = computeCost(usage, TIERS.roadmap, "openai/gpt-5.6-luna");
     expect(costUsd).toBeCloseTo((271_999 * luna.input + 1_000 * luna.output) / 1_000_000, 12);
   });
