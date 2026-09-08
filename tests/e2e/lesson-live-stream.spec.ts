@@ -51,7 +51,11 @@ function sqlEsc(s: string): string {
 
 function runD1(command: string): string {
   return execSync(
-    `pnpm exec wrangler d1 execute waypoint-dev --local --command="${command.replace(/"/g, '\\"')}"`,
+    // Escape the backslash BEFORE the quote. Escaping only the quote leaves a trailing
+    // backslash able to neutralize the escape it produces, which is what CodeQL's
+    // js/incomplete-sanitization rule names. Today's callers pass SQL built in this file,
+    // so the order matters for the next caller rather than for these.
+    `pnpm exec wrangler d1 execute waypoint-dev --local --command="${command.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
     { cwd: process.cwd(), stdio: "pipe" },
   ).toString();
 }
